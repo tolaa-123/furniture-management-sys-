@@ -158,4 +158,5 @@ function markAllRead(){
     fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf_token=<?php echo urlencode($csrf_token); ?>'}).finally(()=>{const b=document.getElementById('notifBadge');if(b)b.style.display='none';document.getElementById('notifDropdown').style.display='none';location.reload();});
 }
 document.addEventListener('click',function(e){const d=document.getElementById('notifDropdown');if(d&&!e.target.closest('[onclick*="toggleNotificationDropdown"]')&&!e.target.closest('#notifDropdown'))d.style.display='none';});
+setInterval(function(){fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.count!==undefined){const b=document.getElementById('notifBadge');if(b){if(data.count>0){b.textContent=data.count>9?'9+':data.count;b.style.display='flex';}else b.style.display='none';}}}).catch(()=>{});},30000);
 </script>

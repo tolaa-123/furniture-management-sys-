@@ -425,7 +425,7 @@ $pageTitle = 'Admin Dashboard';
                         <h4 style="margin: 0 0 10px 0; color: #2c3e50;">Furniture Details</h4>
                         <strong>Furniture Type:</strong> ${order.furniture_type}<br>
                         <strong>Furniture Name:</strong> ${order.furniture_name}<br>
-                        <strong>Dimensions (L × W × H):</strong> ${order.length} cm × ${order.width} cm × ${order.height} cm<br>
+                        <strong>Dimensions (L × W × H):</strong> ${order.length} m × ${order.width} m × ${order.height} m<br>
                         <strong>Material:</strong> ${order.material}<br>
                         <strong>Color:</strong> ${order.color}<br>
                         ${order.design_description ? '<strong>Design Description:</strong> ' + order.design_description + '<br>' : ''}

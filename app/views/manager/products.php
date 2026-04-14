@@ -266,7 +266,7 @@ $pageTitle = 'Finished Furniture';
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;">Dimensions</label>
-                        <input type="text" name="dimensions" placeholder="e.g. 120×80×75 cm" style="width:100%;padding:10px 12px;border:2px solid #E0E0E0;border-radius:8px;font-family:inherit;font-size:14px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#3D1F14'" onblur="this.style.borderColor='#E0E0E0'">
+                        <input type="text" name="dimensions" placeholder="e.g. 1.2×0.8×0.75 m" style="width:100%;padding:10px 12px;border:2px solid #E0E0E0;border-radius:8px;font-family:inherit;font-size:14px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#3D1F14'" onblur="this.style.borderColor='#E0E0E0'">
                     </div>
                     <div>
                         <label style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;">Price (ETB) *</label>

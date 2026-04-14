@@ -244,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (strpos($furnitureType, $key) !== false) { $productCategory = $val; break; }
                 }
 
-                $dimensions   = sprintf('%s × %s × %s cm', $taskData['length'] ?? 'N/A', $taskData['width'] ?? 'N/A', $taskData['height'] ?? 'N/A');
+                $dimensions   = sprintf('%s × %s × %s m', $taskData['length'] ?? 'N/A', $taskData['width'] ?? 'N/A', $taskData['height'] ?? 'N/A');
                 $productTitle = $taskData['furniture_name'] ?? ($taskData['furniture_type'] . ' - Custom');
                 $productDesc  = trim(($taskData['design_description'] ?? '') . "\n\n" . $completionNotes);
                 $estimatedPrice = $taskData['estimated_cost'] ?? 0;
@@ -920,9 +920,9 @@ try {
             let dimensionsHtml = '';
             if (task.length || task.width || task.height) {
                 const dims = [];
-                if (task.length) dims.push(`L: ${task.length}cm`);
-                if (task.width) dims.push(`W: ${task.width}cm`);
-                if (task.height) dims.push(`H: ${task.height}cm`);
+                if (task.length) dims.push(`L: ${task.length}m`);
+                if (task.width) dims.push(`W: ${task.width}m`);
+                if (task.height) dims.push(`H: ${task.height}m`);
                 dimensionsHtml = `
                     <div>
                         <strong>Dimensions:</strong><br>${dims.join(' × ')}

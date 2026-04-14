@@ -14,20 +14,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'request_material') {
         try {
+            $orderId  = !empty($_POST['order_id']) ? intval($_POST['order_id']) : null;
+            $purpose  = 'Required for assigned order production';
+            $matIds   = $_POST['req_mat_id']  ?? [];
+            $matQtys  = $_POST['req_mat_qty'] ?? [];
+
+            if (empty($matIds)) throw new Exception("Please add at least one material.");
+
             $stmt = $pdo->prepare("
                 INSERT INTO furn_material_requests
                     (employee_id, material_id, quantity_requested, purpose, order_id, status, created_at)
                 VALUES (?, ?, ?, ?, ?, 'pending', NOW())
             ");
-            $stmt->execute([
-                $employeeId,
-                intval($_POST['material_id']),
-                floatval($_POST['quantity']),
-                trim($_POST['purpose']),
-                !empty($_POST['order_id']) ? intval($_POST['order_id']) : null
-            ]);
-            $success = "Material request submitted! Waiting for manager approval.";
-        } catch (PDOException $e) {
+
+            $count = 0;
+            $lastInsertId = null;
+            foreach ($matIds as $i => $matId) {
+                $matId = intval($matId);
+                $qty   = floatval($matQtys[$i] ?? 0);
+                if (!$matId || $qty <= 0) continue;
+
+                // Server-side: validate qty <= available stock
+                $stockStmt = $pdo->prepare("SELECT (current_stock - COALESCE(reserved_stock,0)) as available, name FROM furn_materials WHERE id = ?");
+                $stockStmt->execute([$matId]);
+                $mat = $stockStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$mat) continue;
+                $available = floatval($mat['available']);
+                if ($qty > $available) {
+                    throw new Exception("Requested quantity ($qty) for \"{$mat['name']}\" exceeds available stock ($available). Please request $available or less.");
+                }
+
+                $stmt->execute([$employeeId, $matId, $qty, $purpose, $orderId]);
+                $lastInsertId = $pdo->lastInsertId();
+                $count++;
+            }
+            if ($count === 0) throw new Exception("No valid materials entered.");
+
+            // Notify all managers
+            require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+            $orderLabel = '';
+            if ($orderId) {
+                $oStmt = $pdo->prepare("SELECT order_number FROM furn_orders WHERE id = ?");
+                $oStmt->execute([$orderId]);
+                $oNum = $oStmt->fetchColumn();
+                if ($oNum) $orderLabel = " for order $oNum";
+            }
+            notifyRole(
+                $pdo, 'manager', 'material',
+                'New Material Request',
+                htmlspecialchars($_SESSION['user_name'] ?? 'An employee') . " requested $count material(s)$orderLabel. Please review and approve.",
+                $lastInsertId,
+                '/manager/inventory',
+                'high'
+            );
+
+            $success = "$count material request(s) submitted! Manager has been notified.";
+        } catch (Exception $e) {
             $error = "Error submitting request: " . $e->getMessage();
         }
 
@@ -41,15 +83,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($matIds)) throw new Exception("Please add at least one material.");
 
+            $pdo->beginTransaction();
+
             $stmtIns = $pdo->prepare("
                 INSERT INTO furn_material_usage (employee_id, task_id, material_id, quantity_used, waste_amount, notes, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, NOW())
             ");
-            $stmtReduce = $pdo->prepare("
+            // Reduce approved request qty
+            $stmtReduceReq = $pdo->prepare("
                 UPDATE furn_material_requests
                 SET quantity_requested = GREATEST(0, quantity_requested - ?)
                 WHERE employee_id = ? AND material_id = ? AND status = 'approved'
                 ORDER BY approved_at DESC LIMIT 1
+            ");
+            // Deduct from actual stock AND release from reserved
+            $stmtDeductStock = $pdo->prepare("
+                UPDATE furn_materials
+                SET current_stock   = GREATEST(0, current_stock - ?),
+                    reserved_stock  = GREATEST(0, COALESCE(reserved_stock,0) - ?),
+                    updated_at      = NOW()
+                WHERE id = ?
+            ");
+            // Validate approved qty before committing
+            $stmtCheckApproved = $pdo->prepare("
+                SELECT COALESCE(SUM(quantity_requested),0) as approved_qty
+                FROM furn_material_requests
+                WHERE employee_id = ? AND material_id = ? AND status = 'approved'
             ");
 
             $count = 0;
@@ -58,13 +117,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $qty   = floatval($matQtys[$i] ?? 0);
                 $waste = floatval($matWastes[$i] ?? 0);
                 if (!$matId || $qty <= 0) continue;
+
+                // Validate: must have approved request for this material
+                $stmtCheckApproved->execute([$employeeId, $matId]);
+                $approvedQty = floatval($stmtCheckApproved->fetchColumn());
+                if ($approvedQty <= 0) {
+                    throw new Exception("No approved request found for material ID $matId. Request and get approval first.");
+                }
+                if ($qty > $approvedQty) {
+                    throw new Exception("Quantity ($qty) exceeds approved amount ($approvedQty) for material ID $matId.");
+                }
+
+                $totalConsumed = $qty + $waste;
                 $stmtIns->execute([$employeeId, $taskId ?: null, $matId, $qty, $waste, $notes]);
-                $stmtReduce->execute([$qty, $employeeId, $matId]);
+                $stmtReduceReq->execute([$qty, $employeeId, $matId]);
+                $stmtDeductStock->execute([$totalConsumed, $totalConsumed, $matId]);
                 $count++;
             }
             if ($count === 0) throw new Exception("No valid materials entered.");
-            $success = "$count material(s) usage reported successfully!";
+            $pdo->commit();
+            $success = "$count material(s) usage reported and stock updated successfully!";
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
             $error = "Error: " . $e->getMessage();
         }
     }
@@ -157,34 +231,89 @@ try {
 $tasks = [];
 try {
     $stmt = $pdo->prepare("
-        SELECT t.id, o.order_number,
-               COALESCE(o.furniture_name, o.furniture_type, 'Custom Order') as product_name
+        SELECT DISTINCT t.id, o.order_number, o.id as order_id,
+               COALESCE(o.furniture_name, o.furniture_type, 'Custom Order') as product_name,
+               MIN(p.id) as product_id
         FROM furn_production_tasks t
         LEFT JOIN furn_orders o ON t.order_id = o.id
+        LEFT JOIN furn_products p ON (
+            LOWER(p.name) = LOWER(o.furniture_name)
+            OR LOWER(p.name) = LOWER(o.furniture_type)
+        )
         WHERE t.employee_id = ? AND t.status IN ('pending','in_progress','assigned')
+        GROUP BY t.id, o.order_number, o.id, o.furniture_name, o.furniture_type
         ORDER BY t.created_at DESC
     ");
     $stmt->execute([$employeeId]);
     $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Tasks error: " . $e->getMessage()); }
 
-// Orders this employee is assigned to
-$orders = [];
+// Product materials map: product_id => [{material_id, material_name, unit, quantity_required}]
+$productMaterialsMap = [];
+try {
+    if (!empty($tasks)) {
+        $productIds = array_filter(array_unique(array_column($tasks, 'product_id')));
+        if (!empty($productIds)) {
+            $ph = implode(',', array_fill(0, count($productIds), '?'));
+            $stmt = $pdo->prepare("
+                SELECT pm.product_id, pm.material_id, pm.quantity_required,
+                       m.name as material_name, m.unit,
+                       (m.current_stock - COALESCE(m.reserved_stock,0)) as available
+                FROM furn_product_materials pm
+                JOIN furn_materials m ON pm.material_id = m.id
+                WHERE pm.product_id IN ($ph)
+            ");
+            $stmt->execute(array_values($productIds));
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $productMaterialsMap[$row['product_id']][] = $row;
+            }
+        }
+    }
+} catch (PDOException $e) { error_log("Product materials error: " . $e->getMessage()); }
+
+// Approved materials for this employee (for usage report dropdown)
+$approvedMaterials = [];
 try {
     $stmt = $pdo->prepare("
-        SELECT DISTINCT o.id, o.order_number, CONCAT(u.first_name, ' ', u.last_name) as customer_name
-        FROM furn_orders o
-        INNER JOIN furn_production_tasks t ON o.id = t.order_id
-        LEFT JOIN furn_users u ON o.customer_id = u.id
-        WHERE t.employee_id = ? AND o.status IN ('deposit_paid', 'in_production')
-        ORDER BY o.created_at DESC
+        SELECT mr.material_id, m.name as material_name, m.unit,
+               SUM(mr.quantity_requested) as approved_qty
+        FROM furn_material_requests mr
+        JOIN furn_materials m ON mr.material_id = m.id
+        WHERE mr.employee_id = ? AND mr.status = 'approved'
+        GROUP BY mr.material_id, m.name, m.unit
+        HAVING approved_qty > 0
     ");
     $stmt->execute([$employeeId]);
-    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) { error_log("Orders error: " . $e->getMessage()); }
+    $approvedMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Approved materials error: " . $e->getMessage()); }
+
+// Task material status: for each task, check if materials are requested/approved
+$taskMaterialStatus = [];
+try {
+    foreach ($tasks as $task) {
+        $tid = $task['id'];
+        $oid = $task['order_id'];
+        // Check if any request exists for this order
+        $s = $pdo->prepare("SELECT status, COUNT(*) as cnt FROM furn_material_requests WHERE employee_id=? AND order_id=? GROUP BY status");
+        $s->execute([$employeeId, $oid]);
+        $rows = $s->fetchAll(PDO::FETCH_ASSOC);
+        $statusMap = array_column($rows, 'cnt', 'status');
+        if (empty($rows)) {
+            $taskMaterialStatus[$tid] = 'not_requested';
+        } elseif (!empty($statusMap['approved'])) {
+            $taskMaterialStatus[$tid] = 'approved';
+        } elseif (!empty($statusMap['pending'])) {
+            $taskMaterialStatus[$tid] = 'pending';
+        } else {
+            $taskMaterialStatus[$tid] = 'rejected';
+        }
+    }
+} catch (PDOException $e) { error_log("Task status error: " . $e->getMessage()); }
 
 $pendingCount  = count(array_filter($requests, fn($r) => $r['status'] === 'pending'));
 $approvedCount = count(array_filter($requests, fn($r) => $r['status'] === 'approved'));
+// Orders for request form (from tasks)
+$orders = array_map(fn($t) => ['id' => $t['order_id'], 'order_number' => $t['order_number'], 'product_name' => $t['product_name'], 'task_id' => $t['id'], 'product_id' => $t['product_id']], $tasks);
 $pageTitle = 'Materials';
 ?>
 <!DOCTYPE html>
@@ -259,6 +388,60 @@ $pageTitle = 'Materials';
             </div>
         </div>
 
+        <!-- Task Material Status Notifications -->
+        <?php
+        $warningTasks = [];
+        $seen = [];
+        foreach ($tasks as $task) {
+            $tid = $task['id'];
+            if (in_array($tid, $seen)) continue;
+            $seen[] = $tid;
+            $tStatus = $taskMaterialStatus[$tid] ?? 'not_requested';
+            if ($tStatus !== 'approved') $warningTasks[] = ['task' => $task, 'status' => $tStatus];
+        }
+        if (!empty($warningTasks)):
+        ?>
+        <div style="position:relative;display:inline-block;margin-bottom:20px;" id="matNotifWrap">
+            <button onclick="toggleMatNotif()" style="background:#F39C12;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;">
+                <i class="fas fa-bell"></i>
+                Material Alerts
+                <span style="background:white;color:#F39C12;border-radius:50%;width:20px;height:20px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">
+                    <?php echo count($warningTasks); ?>
+                </span>
+            </button>
+            <div id="matNotifDropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:white;border:1px solid #FFE69C;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.12);min-width:380px;max-width:480px;z-index:999;">
+                <div style="background:#FFF3CD;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600;font-size:13px;color:#856404;border-bottom:1px solid #FFE69C;">
+                    <i class="fas fa-bell"></i> Tasks needing material requests
+                </div>
+                <?php foreach ($warningTasks as $w):
+                    $tStatus = $w['status'];
+                    $task    = $w['task'];
+                    $color   = $tStatus === 'pending' ? '#F39C12' : '#E74C3C';
+                    $icon    = $tStatus === 'pending' ? 'fa-hourglass-half' : ($tStatus === 'rejected' ? 'fa-times-circle' : 'fa-exclamation-triangle');
+                    $msg     = ['not_requested'=>'Not yet requested','pending'=>'Pending approval','rejected'=>'Request rejected'][$tStatus] ?? '';
+                ?>
+                <div style="padding:10px 16px;border-bottom:1px solid #f5f5f5;font-size:13px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <strong>Task #<?php echo str_pad($task['id'],4,'0',STR_PAD_LEFT); ?></strong>
+                            — <?php echo htmlspecialchars($task['order_number'] ?? 'N/A'); ?><br>
+                            <span style="color:#666;"><?php echo htmlspecialchars($task['product_name']); ?></span>
+                        </div>
+                        <span style="color:<?php echo $color; ?>;font-size:12px;font-weight:600;white-space:nowrap;margin-left:10px;">
+                            <i class="fas <?php echo $icon; ?>"></i> <?php echo $msg; ?>
+                        </span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+                <div style="padding:10px 16px;text-align:center;">
+                    <button onclick="toggleRequestForm();toggleMatNotif();" style="background:#3498DB;color:white;border:none;border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer;font-family:inherit;">
+                        <i class="fas fa-plus"></i> Request Materials Now
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Request Material -->
         <div class="section-card">
             <div class="section-header">
@@ -266,48 +449,53 @@ $pageTitle = 'Materials';
                 <button class="btn-action btn-primary-custom" onclick="toggleRequestForm()"><i class="fas fa-plus"></i> New Request</button>
             </div>
             <div id="requestForm" style="display:none;margin-top:20px;">
-                <form method="POST">
+                <form method="POST" id="materialRequestForm">
                     <input type="hidden" name="action" value="request_material">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? ''); ?>">
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;">
-                        <div class="form-group">
-                            <label>Material <span style="color:#E74C3C;">*</span></label>
-                            <select name="material_id" class="form-control" required>
-                                <option value="">-- Select Material --</option>
-                                <?php foreach ($materials as $m):
-                                    $avail = floatval($m['quantity']);
-                                    $reserved = floatval($m['reserved_stock']);
-                                    $disabled = $avail <= 0 ? 'disabled' : '';
-                                ?>
-                                    <option value="<?php echo $m['id']; ?>" <?php echo $disabled; ?>>
-                                        <?php echo htmlspecialchars($m['material_name']); ?>
-                                        — Available: <?php echo number_format($avail,2); ?> <?php echo $m['unit']; ?>
-                                        <?php if ($reserved > 0): ?>(<?php echo number_format($reserved,2); ?> reserved)<?php endif; ?>
-                                        <?php if ($avail <= 0): ?>[OUT OF STOCK]<?php endif; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Quantity <span style="color:#E74C3C;">*</span></label>
-                            <input type="number" name="quantity" class="form-control" min="0.01" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Related Order</label>
-                            <select name="order_id" class="form-control">
-                                <option value="">-- Optional --</option>
-                                <?php foreach ($orders as $o): ?>
-                                    <option value="<?php echo $o['id']; ?>"><?php echo htmlspecialchars($o['order_number']); ?> - <?php echo htmlspecialchars($o['customer_name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+
+                    <!-- Task selector -->
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label style="font-weight:600;">Related Task / Order <span style="color:#E74C3C;">*</span></label>
+                        <select name="order_id" id="req_task_select" class="form-control" onchange="prefillMaterials(this)">
+                            <option value="">-- Select Task --</option>
+                            <?php foreach ($tasks as $t): ?>
+                                <option value="<?php echo $t['order_id']; ?>"
+                                        data-product-id="<?php echo $t['product_id']; ?>">
+                                    Task #<?php echo str_pad($t['id'],4,'0',STR_PAD_LEFT); ?>
+                                    — <?php echo htmlspecialchars($t['order_number'] ?? 'N/A'); ?>
+                                    (<?php echo htmlspecialchars($t['product_name']); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>Purpose / Reason <span style="color:#E74C3C;">*</span></label>
-                        <textarea name="purpose" class="form-control" rows="3" placeholder="Explain why you need this material..." required></textarea>
+
+                    <!-- Product material hint -->
+                    <div id="productMaterialHint" style="display:none;background:#EBF5FB;border:1px solid #AED6F1;border-radius:8px;padding:12px 16px;margin-bottom:14px;">
+                        <strong style="color:#1A5276;font-size:13px;"><i class="fas fa-info-circle"></i> Required materials for this product:</strong>
+                        <ul id="productMaterialList" style="margin:8px 0 0 16px;font-size:13px;color:#1A5276;"></ul>
                     </div>
+
+                    <!-- Dynamic materials rows -->
+                    <label style="font-weight:600;display:block;margin-bottom:8px;">Materials to Request <span style="color:#E74C3C;">*</span></label>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;margin-bottom:10px;" id="reqMatTable">
+                            <thead>
+                                <tr style="background:#f8f9fa;font-size:13px;">
+                                    <th style="padding:8px 10px;text-align:left;border:1px solid #dee2e6;">#</th>
+                                    <th style="padding:8px 10px;text-align:left;border:1px solid #dee2e6;">Material</th>
+                                    <th style="padding:8px 10px;text-align:left;border:1px solid #dee2e6;">Quantity</th>
+                                    <th style="padding:8px 10px;border:1px solid #dee2e6;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="reqMatRows"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" onclick="addReqRow()" style="background:#3498db;color:white;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:16px;">
+                        <i class="fas fa-plus"></i> Add Material
+                    </button>
+
                     <div style="background:#FFF3CD;border:1px solid #FFE69C;border-radius:8px;padding:12px;margin-top:10px;">
-                        <p style="margin:0;color:#856404;font-size:13px;"><i class="fas fa-info-circle"></i> Your request will be sent to the manager for approval. Materials are released only after approval.</p>
+                        <p style="margin:0;color:#856404;font-size:13px;"><i class="fas fa-info-circle"></i> All materials in this form will be submitted as one batch request for manager approval.</p>
                     </div>
                     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
                         <button type="button" class="btn-action btn-secondary-custom" onclick="toggleRequestForm()"><i class="fas fa-times"></i> Cancel</button>
@@ -328,7 +516,7 @@ $pageTitle = 'Materials';
                 <div class="table-responsive">
                     <table class="data-table mobile-cards">
                         <thead>
-                            <tr><th>ID</th><th>Material</th><th>Qty</th><th>Order</th><th>Purpose</th><th>Status</th><th>Date</th><th>Approved By</th></tr>
+                            <tr><th>ID</th><th>Material</th><th>Qty</th><th>Order</th><th>Status</th><th>Date</th><th>Approved By</th></tr>
                         </thead>
                         <tbody>
                             <?php foreach ($requests as $req): ?>
@@ -337,7 +525,6 @@ $pageTitle = 'Materials';
                                 <td><strong><?php echo htmlspecialchars($req['material_name']); ?></strong></td>
                                 <td><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></td>
                                 <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
-                                <td><?php echo htmlspecialchars(mb_strimwidth($req['purpose'], 0, 40, '...')); ?></td>
                                 <td>
                                     <?php $sc = ['pending'=>'warning','approved'=>'success','rejected'=>'danger','released'=>'info']; ?>
                                     <span class="badge badge-<?php echo $sc[$req['status']] ?? 'secondary'; ?>"><?php echo ucfirst($req['status']); ?></span>
@@ -466,9 +653,26 @@ $pageTitle = 'Materials';
     </div>
 
     <script>
+    function toggleMatNotif() {
+        const d = document.getElementById('matNotifDropdown');
+        if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+    }
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('matNotifWrap');
+        if (wrap && !wrap.contains(e.target)) {
+            const d = document.getElementById('matNotifDropdown');
+            if (d) d.style.display = 'none';
+        }
+    });
+
     function toggleRequestForm() {
         const f = document.getElementById('requestForm');
-        f.style.display = f.style.display === 'none' ? 'block' : 'none';
+        const isHidden = f.style.display === 'none' || f.style.display === '';
+        f.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && document.getElementById('reqMatRows').children.length === 0) {
+            addReqRow();
+        }
     }
     function toggleUsageForm() {
         const f = document.getElementById('usageForm');
@@ -479,14 +683,16 @@ $pageTitle = 'Materials';
         }
     }
 
-    // Materials data for dropdowns — shows available (not total) stock
+    // Materials data for dropdowns — only approved materials for this employee
     const MATERIALS = <?php echo json_encode(array_map(fn($m) => [
-        'id'       => $m['id'],
-        'name'     => $m['material_name'],
-        'unit'     => $m['unit'],
-        'qty'      => $m['quantity'],        // available = current - reserved
-        'reserved' => $m['reserved_stock'],
-    ], $materials)); ?>;
+        'id'          => $m['material_id'],
+        'name'        => $m['material_name'],
+        'unit'        => $m['unit'],
+        'approved_qty'=> floatval($m['approved_qty']),
+    ], $approvedMaterials)); ?>;
+
+    // Product materials map for request form pre-fill
+    const PRODUCT_MATERIALS = <?php echo json_encode($productMaterialsMap); ?>;
 
     let rowCount = 0;
 
@@ -496,12 +702,15 @@ $pageTitle = 'Materials';
         const tr = document.createElement('tr');
         tr.id = 'matRow_' + rowCount;
 
+        if (MATERIALS.length === 0) {
+            alert('No approved materials found. You must have an approved material request before reporting usage.');
+            return;
+        }
+
         let opts = '<option value="">-- Select --</option>';
         MATERIALS.forEach(m => {
-            const avail = parseFloat(m.qty);
-            const reserved = parseFloat(m.reserved || 0);
-            const label = `${m.name} (${m.unit}) — Available: ${avail.toFixed(2)}${reserved > 0 ? ' ('+reserved.toFixed(2)+' reserved)' : ''}${avail <= 0 ? ' [OUT OF STOCK]' : ''}`;
-            opts += `<option value="${m.id}" data-unit="${m.unit}" data-avail="${avail}" ${avail <= 0 ? 'disabled' : ''}>${label}</option>`;
+            const label = `${m.name} (${m.unit}) — Approved: ${m.approved_qty.toFixed(2)}`;
+            opts += `<option value="${m.id}" data-unit="${m.unit}" data-approved="${m.approved_qty}">${label}</option>`;
         });
 
         tr.innerHTML = `
@@ -513,7 +722,7 @@ $pageTitle = 'Materials';
             </td>
             <td style="padding:6px 8px;border:1px solid #dee2e6;">
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <input type="number" name="mat_qty[]" class="form-control" style="width:100px;" min="0.01" step="0.01" placeholder="0.00" required>
+                    <input type="number" name="mat_qty[]" id="qty_${rowCount}" class="form-control" style="width:100px;" min="0.01" step="0.01" placeholder="0.00" required>
                     <span id="unit_${rowCount}" style="color:#7f8c8d;font-size:12px;white-space:nowrap;"></span>
                 </div>
             </td>
@@ -535,12 +744,131 @@ $pageTitle = 'Materials';
     function updateUnit(sel, rowId) {
         const opt = sel.options[sel.selectedIndex];
         document.getElementById('unit_' + rowId).textContent = opt.dataset.unit || '';
+        // Set max on qty input
+        const qtyInput = document.getElementById('qty_' + rowId);
+        if (qtyInput && opt.dataset.approved) {
+            qtyInput.max = opt.dataset.approved;
+            qtyInput.title = `Max approved: ${opt.dataset.approved}`;
+        }
     }
 
     function removeMatRow(rowId) {
         const row = document.getElementById('matRow_' + rowId);
         if (row) row.remove();
     }
+
+    // Request form: pre-fill materials from product spec
+    function prefillMaterials(sel) {
+        const opt = sel.options[sel.selectedIndex];
+        const productId = opt ? opt.dataset.productId : null;
+        const hint = document.getElementById('productMaterialHint');
+        const list = document.getElementById('productMaterialList');
+        list.innerHTML = '';
+        document.getElementById('reqMatRows').innerHTML = '';
+        reqRowCount = 0;
+
+        if (productId && PRODUCT_MATERIALS[productId]) {
+            const mats = PRODUCT_MATERIALS[productId];
+            mats.forEach(m => {
+                const avail = parseFloat(m.available);
+                const color = avail < m.quantity_required ? '#E74C3C' : '#27AE60';
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${m.material_name}</strong>: ${m.quantity_required} ${m.unit}
+                    <span style="color:${color};">(Available: ${avail.toFixed(2)}${avail < m.quantity_required ? ' ⚠ Insufficient' : ''})</span>`;
+                list.appendChild(li);
+                // Auto-add a row pre-filled for this material
+                addReqRow(m.material_id, m.quantity_required);
+            });
+            hint.style.display = 'block';
+        } else {
+            hint.style.display = 'none';
+            addReqRow(); // start with one empty row
+        }
+    }
+
+    let reqRowCount = 0;
+    const ALL_MATERIALS = <?php echo json_encode(array_map(fn($m) => [
+        'id'    => $m['id'],
+        'name'  => $m['material_name'],
+        'unit'  => $m['unit'],
+        'avail' => floatval($m['quantity']),
+    ], $materials)); ?>;
+
+    function addReqRow(preselect = null, preqty = null) {
+        reqRowCount++;
+        const tbody = document.getElementById('reqMatRows');
+        const tr = document.createElement('tr');
+        tr.id = 'reqRow_' + reqRowCount;
+
+        let opts = '<option value="">-- Select Material --</option>';
+        ALL_MATERIALS.forEach(m => {
+            const disabled = m.avail <= 0 ? 'disabled' : '';
+            const sel = (preselect && m.id == preselect) ? 'selected' : '';
+            opts += `<option value="${m.id}" data-unit="${m.unit}" data-avail="${m.avail}" ${disabled} ${sel}>
+                ${m.name} (${m.unit}) — Available: ${m.avail.toFixed(2)}${m.avail <= 0 ? ' [OUT OF STOCK]' : ''}
+            </option>`;
+        });
+
+        const unitLabel = preselect ? (ALL_MATERIALS.find(m => m.id == preselect)?.unit || '') : '';
+        const preAvail  = preselect ? (ALL_MATERIALS.find(m => m.id == preselect)?.avail ?? '') : '';
+
+        tr.innerHTML = `
+            <td style="padding:8px 10px;border:1px solid #dee2e6;color:#aaa;font-size:13px;">${reqRowCount}</td>
+            <td style="padding:6px 8px;border:1px solid #dee2e6;">
+                <select name="req_mat_id[]" class="form-control" style="min-width:220px;" required onchange="updateReqRowUnit(this, ${reqRowCount})">
+                    ${opts}
+                </select>
+            </td>
+            <td style="padding:6px 8px;border:1px solid #dee2e6;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" name="req_mat_qty[]" id="reqQty_${reqRowCount}" class="form-control"
+                           style="width:110px;" min="0.01" step="0.01" placeholder="0.00"
+                           ${preAvail !== '' ? `max="${preAvail}" title="Max available: ${preAvail}"` : ''}
+                           value="${preqty !== null ? preqty : ''}" required>
+                    <span id="reqUnit_${reqRowCount}" style="color:#7f8c8d;font-size:12px;white-space:nowrap;">${unitLabel}</span>
+                    <span id="reqAvail_${reqRowCount}" style="color:#27AE60;font-size:11px;white-space:nowrap;">${preAvail !== '' ? 'max: '+preAvail : ''}</span>
+                </div>
+            </td>
+            <td style="padding:6px 8px;border:1px solid #dee2e6;text-align:center;">
+                <button type="button" onclick="removeReqRow(${reqRowCount})"
+                        style="background:#e74c3c;color:white;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:13px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function updateReqRowUnit(sel, rowId) {
+        const opt = sel.options[sel.selectedIndex];
+        const unit  = opt.dataset.unit  || '';
+        const avail = parseFloat(opt.dataset.avail || 0);
+        const span  = document.getElementById('reqUnit_'  + rowId);
+        const availSpan = document.getElementById('reqAvail_' + rowId);
+        const qtyInput  = document.getElementById('reqQty_'  + rowId);
+        if (span)  span.textContent  = unit;
+        if (availSpan) availSpan.textContent = avail > 0 ? 'max: ' + avail : '';
+        if (qtyInput && avail > 0) {
+            qtyInput.max   = avail;
+            qtyInput.title = 'Max available: ' + avail;
+        } else if (qtyInput) {
+            qtyInput.removeAttribute('max');
+        }
+    }
+
+    function removeReqRow(rowId) {
+        const row = document.getElementById('reqRow_' + rowId);
+        if (row) row.remove();
+    }
+
+    // Validate at least one row on submit
+    document.getElementById('materialRequestForm').addEventListener('submit', function(e) {
+        const rows = document.querySelectorAll('#reqMatRows tr');
+        if (rows.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one material to request.');
+        }
+    });
 
     document.getElementById('usageReportForm').addEventListener('submit', function(e) {
         const rows = document.querySelectorAll('#matRows tr');

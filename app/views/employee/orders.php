@@ -203,15 +203,15 @@ $pageTitle = 'Manage Orders';
                     <!-- Dimensions -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:15px; margin-top:15px;">
                         <div class="form-group">
-                            <label>Length (cm) <span style="color:#E74C3C;">*</span></label>
+                            <label>Length (m) <span style="color:#E74C3C;">*</span></label>
                             <input type="number" name="length" class="form-control" placeholder="120" min="1" step="0.1" required>
                         </div>
                         <div class="form-group">
-                            <label>Width (cm) <span style="color:#E74C3C;">*</span></label>
+                            <label>Width (m) <span style="color:#E74C3C;">*</span></label>
                             <input type="number" name="width" class="form-control" placeholder="60" min="1" step="0.1" required>
                         </div>
                         <div class="form-group">
-                            <label>Height (cm) <span style="color:#E74C3C;">*</span></label>
+                            <label>Height (m) <span style="color:#E74C3C;">*</span></label>
                             <input type="number" name="height" class="form-control" placeholder="75" min="1" step="0.1" required>
                         </div>
                         <div class="form-group">

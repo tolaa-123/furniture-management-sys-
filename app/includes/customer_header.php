@@ -13,8 +13,8 @@ $customerId = $_SESSION['user_id'];
 $customerName = $_SESSION['first_name'] ?? $_SESSION['user_name'] ?? 'Customer';
 $pageTitle = $pageTitle ?? 'Customer Portal';
 
-// Get database connection
 require_once __DIR__ . '/../../config/db_config.php';
+require_once __DIR__ . '/notification_helper.php';
 
 // Fetch user profile image
 $profileImage = null;
@@ -36,31 +36,12 @@ $notificationCounts = [
 $notifications = [];
 
 try {
-    // Ensure notifications table exists
-    $pdo->exec("CREATE TABLE IF NOT EXISTS furn_notifications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        type VARCHAR(50) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        message TEXT,
-        related_id INT DEFAULT NULL,
-        link VARCHAR(255) DEFAULT NULL,
-        is_read TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id),
-        INDEX idx_is_read (is_read)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    
-    // Get unread notification count
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id = ? AND is_read = 0");
     $stmt->execute([$customerId]);
     $notificationCounts['unread'] = $stmt->fetchColumn();
-    
-    // Get recent notifications
-    $stmt = $pdo->prepare("SELECT * FROM furn_notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+    $stmt = $pdo->prepare("SELECT * FROM furn_notifications WHERE user_id = ? ORDER BY is_read ASC, created_at DESC LIMIT 10");
     $stmt->execute([$customerId]);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
 } catch (PDOException $e) {
     error_log("Customer notification error: " . $e->getMessage());
 }
@@ -89,9 +70,10 @@ $csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
         <div style="position: relative; cursor: pointer;" onclick="toggleNotificationDropdown()" title="Notifications">
             <i class="fas fa-bell" style="font-size: 18px; color: rgba(255,255,255,0.85); transition: transform 0.3s;" id="bellIcon"></i>
             <?php if($totalNotifications > 0): ?>
-            <span style="position: absolute; top: -6px; right: -6px; background: #e74c3c; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700;" id="notifBadge"><?php echo $totalNotifications > 9 ? '9+' : $totalNotifications; ?></span>
+            <span id="notifBadge" style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;"><?php echo $totalNotifications > 9 ? '9+' : $totalNotifications; ?></span>
+            <?php else: ?>
+            <span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;align-items:center;justify-content:center;font-weight:700;"></span>
             <?php endif; ?>
-            
             <!-- Notification Dropdown -->
             <div id="notifDropdown" style="display: none; position: absolute; top: 35px; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 300px; z-index: 9999;">
                 <div style="padding: 15px; border-bottom: 1px solid #e9ecef;">
@@ -99,32 +81,28 @@ $csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
                 </div>
                 <div style="max-height: 300px; overflow-y: auto;">
                     <?php if(count($notifications) > 0): ?>
-                        <?php foreach($notifications as $notif): ?>
-                        <a href="<?php echo !empty($notif['link']) ? BASE_URL . '/public' . $notif['link'] : 'javascript:void(0)'; ?>" 
+                        <?php foreach($notifications as $notif):
+                            [$icon, $color] = notifIcon($notif['type']);
+                            $bg   = $notif['is_read'] ? 'white' : '#f0f8ff';
+                            $fw   = $notif['is_read'] ? '400' : '600';
+                            $notifLink = !empty($notif['link']) ? BASE_URL.'/public'.$notif['link'] : null;
+                            if ($notifLink) $notifLink .= (strpos($notifLink,'?')===false?'?':'&').'notif='.$notif['id'];
+                            $href = $notifLink ?: 'javascript:void(0)';
+                        ?>
+                        <a href="<?php echo htmlspecialchars($href); ?>"
                            onclick="markNotificationRead(<?php echo $notif['id']; ?>, this, event)"
-                           style="display: block; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: #2c3e50; transition: background 0.3s; <?php echo $notif['is_read'] ? 'opacity: 0.7;' : 'background: #f0f8ff;'; ?>" 
-                           onmouseover="this.style.background='#f8f9fa'" 
-                           onmouseout="this.style.background='<?php echo $notif['is_read'] ? 'white' : '#f0f8ff'; ?>'">
-                            <div style="display: flex; align-items: flex-start; gap: 10px;">
-                                <?php 
-                                $icon = 'fa-bell';
-                                $color = '#3498DB';
-                                switch($notif['type']) {
-                                    case 'order': $icon = 'fa-shopping-cart'; $color = '#3498DB'; break;
-                                    case 'payment': $icon = 'fa-credit-card'; $color = '#E74C3C'; break;
-                                    case 'message': $icon = 'fa-envelope'; $color = '#F39C12'; break;
-                                    case 'production': $icon = 'fa-hammer'; $color = '#8B4513'; break;
-                                }
-                                ?>
-                                <i class="fas <?php echo $icon; ?>" style="color: <?php echo $color; ?>; font-size: 16px; margin-top: 2px;"></i>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 13px; font-weight: <?php echo $notif['is_read'] ? '400' : '600'; ?>;"><?php echo htmlspecialchars($notif['title']); ?></div>
-                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;"><?php echo htmlspecialchars($notif['message']); ?></div>
-                                    <div style="font-size: 10px; color: #95a5a6; margin-top: 4px;"><?php echo date('M d, H:i', strtotime($notif['created_at'])); ?></div>
+                           style="display:block;padding:12px 15px;border-bottom:1px solid #f0f0f0;text-decoration:none;color:#2c3e50;background:<?php echo $bg; ?>;transition:background .2s;"
+                           onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='<?php echo $bg; ?>'">
+                            <div style="display:flex;align-items:flex-start;gap:10px;">
+                                <div style="width:32px;height:32px;border-radius:50%;background:<?php echo $color; ?>22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fas <?php echo $icon; ?>" style="color:<?php echo $color; ?>;font-size:13px;"></i>
                                 </div>
-                                <?php if(!$notif['is_read']): ?>
-                                <span style="width: 8px; height: 8px; background: #e74c3c; border-radius: 50%; flex-shrink: 0;"></span>
-                                <?php endif; ?>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-size:13px;font-weight:<?php echo $fw; ?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($notif['title']); ?></div>
+                                    <?php if(!empty($notif['message'])): ?><div style="font-size:11px;color:#7f8c8d;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($notif['message']); ?></div><?php endif; ?>
+                                    <div style="font-size:10px;color:#95a5a6;margin-top:3px;"><?php echo timeAgo($notif['created_at']); ?></div>
+                                </div>
+                                <?php if(!$notif['is_read']): ?><span style="width:8px;height:8px;background:#e74c3c;border-radius:50%;flex-shrink:0;margin-top:4px;"></span><?php endif; ?>
                             </div>
                         </a>
                         <?php endforeach; ?>
@@ -244,5 +222,4 @@ setInterval(function() {
             }
         }
     }).catch(()=>{});
-}, 30000);
-</script>
+}, 30000);</script>

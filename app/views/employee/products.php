@@ -19,7 +19,8 @@ $searchQuery = $_GET['search'] ?? '';
 $products = [];
 try {
     $query = "
-        SELECT p.*, c.name as category_name
+        SELECT p.id, p.name, p.materials_used, p.dimensions, p.description,
+               p.base_price, p.image_main, c.name as category_name
         FROM furn_products p
         LEFT JOIN furn_categories c ON c.id = p.category_id
         WHERE p.is_active = 1
@@ -124,28 +125,13 @@ $pageTitle = 'Products Catalog';
                 </div>
             </div>
 
-            <div class="stat-card" style="border-left: 4px solid #27AE60;">
+            <div class="stat-card" style="border-left: 4px solid #F39C12;">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                     <div>
                         <div class="stat-value"><?php echo count($categories); ?></div>
                         <div class="stat-label">Categories</div>
                     </div>
                     <div style="font-size: 32px; color: #27AE60;"><i class="fas fa-th-large"></i></div>
-                </div>
-            </div>
-
-            <div class="stat-card" style="border-left: 4px solid #F39C12;">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <div class="stat-value">
-                            <?php 
-                            $totalOrders = array_sum(array_column($products, 'order_count'));
-                            echo $totalOrders;
-                            ?>
-                        </div>
-                        <div class="stat-label">Total Orders</div>
-                    </div>
-                    <div style="font-size: 32px; color: #F39C12;"><i class="fas fa-shopping-cart"></i></div>
                 </div>
             </div>
         </div>
@@ -203,9 +189,8 @@ $pageTitle = 'Products Catalog';
                                 <th>Product Name</th>
                                 <th>Category</th>
                                 <th>Material</th>
-                                <th>Standard Size</th>
+                                <th>Dimensions</th>
                                 <th>Price (ETB)</th>
-                                <th>Orders</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -247,7 +232,6 @@ $pageTitle = 'Products Catalog';
                                     <td><?php echo htmlspecialchars($product['materials_used'] ?? 'Various'); ?></td>
                                     <td><?php echo htmlspecialchars($product['dimensions'] ?? 'Custom'); ?></td>
                                     <td><strong>ETB <?php echo number_format($product['base_price'] ?? 0, 2); ?></strong></td>
-                                    <td><?php echo $product['order_count'] ?? 0; ?></td>
                                     <td>
                                         <button class="btn-action btn-primary-custom" onclick="viewProductDetails(<?php echo htmlspecialchars(json_encode($product), ENT_QUOTES); ?>)" title="View Details">
                                             <i class="fas fa-eye"></i>

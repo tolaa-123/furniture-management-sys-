@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'appro
 
             $dimensions = '';
             if ($taskData['length'] && $taskData['width'] && $taskData['height']) {
-                $dimensions = $taskData['length'] . 'cm × ' . $taskData['width'] . 'cm × ' . $taskData['height'] . 'cm';
+                $dimensions = $taskData['length'] . 'm × ' . $taskData['width'] . 'm × ' . $taskData['height'] . 'm';
             }
 
             $materials = !empty($taskData['task_materials'])
@@ -414,7 +414,7 @@ $pageTitle = 'Completed Tasks';
                                     if ($task['length'] && $task['width'] && $task['height']) {
                                         echo number_format($task['length'], 1) . ' × ' . 
                                              number_format($task['width'], 1) . ' × ' . 
-                                             number_format($task['height'], 1) . ' cm';
+                                             number_format($task['height'], 1) . ' m';
                                     } else {
                                         echo 'N/A';
                                     }

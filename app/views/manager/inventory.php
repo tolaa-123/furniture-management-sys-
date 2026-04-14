@@ -225,6 +225,8 @@ try {
     $stmt = $pdo->query("
         SELECT mr.*, 
                m.name as material_name, m.unit, m.current_stock,
+               (m.current_stock - COALESCE(m.reserved_stock,0)) as available_stock,
+               COALESCE(m.reserved_stock,0) as reserved_stock,
                CONCAT(u.first_name, ' ', u.last_name) as employee_name,
                o.order_number
         FROM furn_material_requests mr
@@ -313,9 +315,9 @@ $pageTitle = 'Inventory Management';
                             <th>Employee</th>
                             <th>Material</th>
                             <th>Qty Requested</th>
-                            <th>Current Stock</th>
+                            <th>Available Stock</th>
+                            <th>Reserved</th>
                             <th>Order</th>
-                            <th>Purpose</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
@@ -328,14 +330,15 @@ $pageTitle = 'Inventory Management';
                             <td><?php echo htmlspecialchars($req['material_name']); ?></td>
                             <td><strong><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></strong></td>
                             <td>
-                                <?php if ($req['current_stock'] < $req['quantity_requested']): ?>
-                                    <span style="color:#E74C3C;font-weight:600;"><?php echo $req['current_stock']; ?> <?php echo $req['unit']; ?> ⚠</span>
+                                <?php $avail = floatval($req['available_stock'] ?? ($req['current_stock'] - $req['reserved_stock'])); ?>
+                                <?php if ($avail < $req['quantity_requested']): ?>
+                                    <span style="color:#E74C3C;font-weight:600;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?> ⚠ Insufficient</span>
                                 <?php else: ?>
-                                    <span style="color:#27AE60;"><?php echo $req['current_stock']; ?> <?php echo $req['unit']; ?></span>
+                                    <span style="color:#27AE60;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?></span>
                                 <?php endif; ?>
                             </td>
+                            <td style="color:#e67e22;"><?php echo number_format(floatval($req['reserved_stock'] ?? 0),2); ?> <?php echo $req['unit']; ?></td>
                             <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
-                            <td style="max-width:200px;"><?php echo htmlspecialchars(strlen($req['purpose']) > 50 ? substr($req['purpose'], 0, 50) . '...' : $req['purpose']); ?></td>
                             <td><?php echo date('M d, Y', strtotime($req['created_at'])); ?></td>
                             <td>
                                 <button class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;" onclick="approveRequest(<?php echo $req['id']; ?>)">

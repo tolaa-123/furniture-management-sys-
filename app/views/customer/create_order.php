@@ -210,10 +210,10 @@ $pageTitle = 'Create Custom Furniture Order';
                         <div class="form-section">
                             <h3 class="section-title"><i class="fas fa-ruler-combined me-2"></i>Dimensions</h3>
                             <?php 
-                            // Parse dimensions if prefilled (format: "120cm x 60cm x 75cm")
+                            // Parse dimensions if prefilled (format: "1.2m x 0.6m x 0.75m")
                             $length = $width = $height = '';
                             if ($prefilledProduct && $prefilledProduct['dimensions']) {
-                                $dims = preg_match('/(\d+(?:\.\d+)?)\s*cm\s*x\s*(\d+(?:\.\d+)?)\s*cm\s*x\s*(\d+(?:\.\d+)?)\s*cm/i', 
+                                $dims = preg_match('/(\d+(?:\.\d+)?)\s*m\s*x\s*(\d+(?:\.\d+)?)\s*m\s*x\s*(\d+(?:\.\d+)?)\s*m/i', 
                                                    $prefilledProduct['dimensions'], $matches);
                                 if ($dims) {
                                     $length = $matches[1];

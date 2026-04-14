@@ -343,7 +343,7 @@ $pageTitle = 'Manage Products';
                 
                 <div class="form-group">
                     <label>Dimensions *</label>
-                    <input type="text" name="dimensions" class="form-control" placeholder="e.g., 120cm x 60cm x 75cm" required>
+                    <input type="text" name="dimensions" class="form-control" placeholder="e.g., 1.2m x 0.6m x 0.75m" required>
                 </div>
                 
                 <div class="form-group">
