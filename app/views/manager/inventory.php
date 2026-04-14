@@ -135,14 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['handle_request'])) {
                 exit();
             }
 
+            // Ensure column exists BEFORE starting transaction (DDL causes implicit commit in MySQL)
+            try { $pdo->exec("ALTER TABLE furn_materials ADD COLUMN IF NOT EXISTS reserved_stock DECIMAL(10,2) NOT NULL DEFAULT 0"); } catch (PDOException $e2) {}
+
             $pdo->beginTransaction();
-            // Reserve stock (don't deduct yet — deduct when employee reports actual usage)
-            try {
-                $pdo->exec("ALTER TABLE furn_materials ADD COLUMN IF NOT EXISTS reserved_stock DECIMAL(10,2) NOT NULL DEFAULT 0");
-            } catch (PDOException $e2) {}
             $pdo->prepare("UPDATE furn_materials SET reserved_stock = COALESCE(reserved_stock,0) + ?, updated_at = NOW() WHERE id = ?")
                 ->execute([$req['quantity_requested'], $req['material_id']]);
-            // Update request status
             $pdo->prepare("UPDATE furn_material_requests SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?")
                 ->execute([$managerId, $request_id]);
             $pdo->commit();
