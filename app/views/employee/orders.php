@@ -42,12 +42,12 @@ try { $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS created_by_em
 try {
     $query = "
         SELECT o.*,
+               COALESCE(o.estimated_cost, o.total_amount, 0) as display_total,
                CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                u.email, u.phone,
-               COUNT(oc.id) as item_count
+               1 as item_count
         FROM furn_orders o
         LEFT JOIN furn_users u ON o.customer_id = u.id
-        LEFT JOIN furn_order_customizations oc ON o.id = oc.order_id
         WHERE (
             o.created_by_employee_id = ?
             OR o.id IN (SELECT order_id FROM furn_production_tasks WHERE employee_id = ?)
@@ -356,7 +356,7 @@ $pageTitle = 'Manage Orders';
                             <tr>
                                 <th>Order Number</th>
                                 <th>Customer</th>
-                                <th>Items</th>
+                                <th>Furniture</th>
                                 <th>Total Amount</th>
                                 <th>Deposit</th>
                                 <th>Status</th>
@@ -372,8 +372,8 @@ $pageTitle = 'Manage Orders';
                                         <?php echo htmlspecialchars($order['customer_name']); ?><br>
                                         <small style="color: #7f8c8d;"><?php echo htmlspecialchars($order['email']); ?></small>
                                     </td>
-                                    <td><?php echo $order['item_count']; ?> item(s)</td>
-                                    <td><strong>ETB <?php echo number_format($order['total_amount'], 2); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($order['furniture_name'] ?? $order['furniture_type'] ?? '—'); ?></td>
+                                    <td><strong>ETB <?php echo number_format($order['display_total'] ?? $order['estimated_cost'] ?? $order['total_amount'] ?? 0, 2); ?></strong></td>
                                     <td>ETB <?php echo number_format($order['deposit_amount'], 2); ?></td>
                                     <td>
                                         <?php
@@ -536,13 +536,13 @@ $pageTitle = 'Manage Orders';
                             <strong>Phone:</strong><br>${order.phone || 'N/A'}
                         </div>
                         <div>
-                            <strong>Total Amount:</strong><br>ETB ${parseFloat(order.total_amount).toFixed(2)}
+                            <strong>Total Amount:</strong><br>ETB ${parseFloat(order.display_total || order.estimated_cost || order.total_amount || 0).toFixed(2)}
                         </div>
                         <div>
-                            <strong>Deposit Amount:</strong><br>ETB ${parseFloat(order.deposit_amount).toFixed(2)}
+                            <strong>Deposit Amount:</strong><br>ETB ${parseFloat(order.deposit_amount || 0).toFixed(2)}
                         </div>
                         <div>
-                            <strong>Items:</strong><br>${order.item_count} item(s)
+                            <strong>Furniture:</strong><br>${order.furniture_name || order.furniture_type || '—'}
                         </div>
                         <div>
                             <strong>Status:</strong><br>${order.status.replace(/_/g, ' ').toUpperCase()}

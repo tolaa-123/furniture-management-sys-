@@ -162,7 +162,7 @@ $pageTitle = 'Employee Dashboard';
                 <div class="stat-card" style="border-left:4px solid <?php echo $c; ?>;cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='';this.style.boxShadow='';">
                     <div style="display:flex;justify-content:space-between;align-items:start;">
                         <div>
-                            <div class="stat-value" style="color:<?php echo $c; ?>"><?php echo $v; ?></div>
+                            <div class="stat-value" style="color:<?php echo $c; ?>;<?php echo strlen((string)$v) > 8 ? 'font-size:16px;' : ''; ?>"><?php echo $v; ?></div>
                             <div class="stat-label"><?php echo $l; ?></div>
                         </div>
                         <div style="font-size:32px;color:<?php echo $c; ?>;opacity:.25;"><i class="fas <?php echo $i; ?>"></i></div>
