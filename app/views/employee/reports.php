@@ -11,7 +11,7 @@ $report   = $_GET['report'] ?? 'tasks';
 if ($dateFrom > $dateTo) $dateFrom = $dateTo;
 
 $employeeId = (int)$_SESSION['user_id'];
-$pageTitle  = 'My Reports';
+$pageTitle  = 'My Performance';
 
 // ══════════════════════════════════════════
 // DATA QUERIES
@@ -164,7 +164,7 @@ if ($report === 'ratings') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Reports - FurnitureCraft</title>
+    <title>My Performance - FurnitureCraft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
@@ -251,7 +251,7 @@ if ($report === 'ratings') {
 <button class="mobile-menu-toggle no-print" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
 <div class="sidebar-overlay no-print"></div>
 <?php include_once __DIR__ . '/../../includes/employee_sidebar.php'; ?>
-<?php $pageTitle = 'My Reports'; include_once __DIR__ . '/../../includes/employee_header.php'; ?>
+<?php $pageTitle = 'My Performance'; include_once __DIR__ . '/../../includes/employee_header.php'; ?>
 
 <div class="main-content">
 
@@ -259,7 +259,7 @@ if ($report === 'ratings') {
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
         <div>
             <h1 style="margin:0;font-size:24px;color:#2c3e50;">
-                <i class="fas fa-chart-bar" style="color:#27AE60;"></i> My Reports
+                <i class="fas fa-chart-bar" style="color:#27AE60;"></i> My Performance
             </h1>
             <p style="margin:4px 0 0;color:#888;font-size:13px;">
                 Period: <?php echo date('M j, Y', strtotime($dateFrom)); ?> &mdash; <?php echo date('M j, Y', strtotime($dateTo)); ?>

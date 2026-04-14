@@ -153,7 +153,7 @@ function isActive($page) {
         <li>
             <a href="<?php echo BASE_URL; ?>/public/employee/reports" class="<?php echo isActive('/employee/reports'); ?>">
                 <i class="fas fa-chart-line"></i>
-                <span>Reports</span>
+                <span>My Performance</span>
                 <?php if($notificationCounts['unread_feedback'] > 0): ?>
                     <span class="menu-badge badge-danger"><?php echo $notificationCounts['unread_feedback']; ?></span>
                 <?php endif; ?>
