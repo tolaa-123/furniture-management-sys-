@@ -1,0 +1,20 @@
+# Database config with real credentials — never commit
+config/db_config.php
+
+# Uploaded files
+public/uploads/
+
+# Logs
+logs/*.log
+logs/cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+
+# PHP error logs
+*.log
+error_log

@@ -1,0 +1,306 @@
+/**
+ * Authentication Modals Styling
+ * Matches the brown/beige theme of standalone auth pages
+ */
+
+/* Modal Content */
+.auth-modal-content {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(74, 52, 40, 0.15);
+}
+
+/* Modal Header */
+.auth-modal-header {
+    background: linear-gradient(135deg, #5a3f2e 0%, #4a3428 100%);
+    color: white;
+    padding: 2rem 1.5rem;
+    border: none;
+    position: relative;
+}
+
+.auth-modal-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 2rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.auth-modal-header .modal-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.auth-modal-subtitle {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.auth-modal-header .btn-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    opacity: 0.8;
+}
+
+.auth-modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+/* Modal Body */
+.auth-modal-body {
+    padding: 2rem 1.5rem;
+    background: white;
+}
+
+/* Form Labels */
+.auth-modal-body .form-label {
+    font-weight: 600;
+    color: #2d1f16;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Input Groups */
+.input-group-custom {
+    position: relative;
+    margin-bottom: 0;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b4e3d;
+    font-size: 1rem;
+    z-index: 10;
+}
+
+/* Form Inputs */
+.auth-modal-input {
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.auth-modal-input:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 0.15rem rgba(147, 197, 253, 0.25);
+    outline: none;
+    background: white;
+}
+
+.auth-modal-input::placeholder {
+    color: #9ca3af;
+}
+
+/* Password Toggle */
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 1rem;
+    z-index: 10;
+    transition: color 0.3s;
+}
+
+.password-toggle:hover {
+    color: #4a3428;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0;
+    transition: all 0.3s ease;
+}
+
+.password-strength-bar.weak {
+    width: 33%;
+    background: #ef4444;
+}
+
+.password-strength-bar.medium {
+    width: 66%;
+    background: #f59e0b;
+}
+
+.password-strength-bar.strong {
+    width: 100%;
+    background: #10b981;
+}
+
+/* Form Check */
+.auth-modal-body .form-check-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid #d0b79d;
+    cursor: pointer;
+}
+
+.auth-modal-body .form-check-input:checked {
+    background-color: #4a3428;
+    border-color: #4a3428;
+}
+
+.auth-modal-body .form-check-label {
+    cursor: pointer;
+    color: #64748b;
+}
+
+/* Auth Links */
+.auth-link {
+    color: #4a3428;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.auth-link:hover {
+    color: #6b4e3d;
+    text-decoration: underline;
+}
+
+/* Primary Button */
+.btn-auth-primary {
+    background: linear-gradient(135deg, #5a3f2e 0%, #4a3428 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(74, 52, 40, 0.3);
+}
+
+.btn-auth-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(74, 52, 40, 0.4);
+    background: linear-gradient(135deg, #4a3428 0%, #3a2618 100%);
+}
+
+.btn-auth-primary:active {
+    transform: translateY(0);
+}
+
+.btn-auth-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Button Spinner */
+.btn-spinner {
+    width: 1rem;
+    height: 1rem;
+    border-width: 2px;
+}
+
+/* Alerts */
+.auth-modal-body .alert {
+    border-radius: 12px;
+    padding: 1rem;
+    border: none;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-modal-body .alert-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.auth-modal-body .alert-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.auth-modal-body .alert-info {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-modal-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .auth-modal-body {
+        padding: 1.5rem 1rem;
+    }
+    
+    .auth-modal-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .auth-modal-header .modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .auth-modal-input {
+        padding: 0.75rem 0.75rem 0.75rem 2.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-lg {
+        max-width: 95%;
+    }
+}
+
+/* Modal Backdrop */
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+/* Smooth Modal Transitions */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}

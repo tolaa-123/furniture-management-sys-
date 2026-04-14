@@ -1,0 +1,15 @@
+# Disable directory listing
+Options -Indexes
+
+# Redirect all requests to public folder
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>
+
+# Fallback if mod_rewrite is not enabled
+<IfModule !mod_rewrite.c>
+    # Redirect to public/index.php
+    DirectoryIndex public/index.php
+</IfModule>
