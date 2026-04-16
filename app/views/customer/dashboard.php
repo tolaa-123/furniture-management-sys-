@@ -102,6 +102,7 @@ $pageTitle = 'Customer Dashboard';
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 25px; }
         @media (min-width: 768px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; } }
+        .kpi-value-sm { font-size: 18px !important; }
     </style>
 </head>
 <body>
@@ -152,7 +153,7 @@ $pageTitle = 'Customer Dashboard';
             <a href="<?php echo $href; ?>" style="text-decoration:none;">
                 <div class="kpi-card <?php echo $cls; ?>" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.12)';" onmouseout="this.style.transform='';this.style.boxShadow='';">
                     <div class="kpi-icon"><i class="fas <?php echo $i; ?>"></i></div>
-                    <div class="kpi-value"><?php echo $v; ?></div>
+                    <div class="kpi-value <?php echo (strpos((string)$v, 'ETB') !== false) ? 'kpi-value-sm' : ''; ?>"><?php echo $v; ?></div>
                     <div class="kpi-label"><?php echo $l; ?></div>
                 </div>
             </a>
