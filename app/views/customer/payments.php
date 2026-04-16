@@ -29,7 +29,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         .file-upload-area:hover { background: #f0f0f0; border-color: #4a2c2a; }
         .btn-pay { background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
         .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40,167,69,0.3); color: white; }
-        .payment-form { display: none; }
+        .payment-form { display: none !important; }
         .badge-waiting { background: #ffc107; color: #000; }
         .badge-paid { background: #28a745; color: white; }
     </style>
@@ -84,7 +84,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
             </div>
 
             <!-- Payment Form (Hidden by default) -->
-            <div class="section-card payment-form" id="paymentForm">
+            <div class="section-card payment-form" id="paymentForm" style="display:none;">
                 <div class="section-header">
                     <h2 class="section-title"><i class="fas fa-money-bill-wave"></i> Make Payment</h2>
                 </div>
@@ -353,7 +353,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         function showPaymentForm(order) {
             currentOrder = order;
             $('#ordersSection').hide();
-            $('#paymentForm').show();
+            document.getElementById('paymentForm').style.setProperty('display', 'block', 'important');
 
             const totalCost = parseFloat(order.estimated_cost || 0);
             const depositRequired = parseFloat(order.deposit_amount || 0);
@@ -528,7 +528,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         });
 
         function cancelPayment() {
-            $('#paymentForm').hide();
+            document.getElementById('paymentForm').style.setProperty('display', 'none', 'important');
             $('#ordersSection').show();
             $('#paymentSubmitForm')[0].reset();
         }
