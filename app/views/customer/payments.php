@@ -59,7 +59,9 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
 
             <!-- Orders Awaiting Payment -->
             <div class="section-card" id="ordersSection">
-                <div class="section-title"><i class="fas fa-clock me-2"></i>Orders Awaiting Payment</div>
+                <div class="section-header">
+                    <h2 class="section-title"><i class="fas fa-clock"></i> Orders Awaiting Payment</h2>
+                </div>
                 <div class="table-responsive">
                     <table class="data-table" id="ordersTable">
                         <thead>
@@ -83,7 +85,9 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
 
             <!-- Payment Form (Hidden by default) -->
             <div class="section-card payment-form" id="paymentForm">
-                <div class="section-title"><i class="fas fa-money-bill-wave me-2"></i>Make Payment</div>
+                <div class="section-header">
+                    <h2 class="section-title"><i class="fas fa-money-bill-wave"></i> Make Payment</h2>
+                </div>
                 
                 <!-- Order Information -->
                 <div class="order-info-card" id="orderInfo"></div>
@@ -219,7 +223,9 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
 
             <!-- Payment History -->
             <div class="section-card">
-                <div class="section-title"><i class="fas fa-history me-2"></i>Payment History</div>
+                <div class="section-header">
+                    <h2 class="section-title"><i class="fas fa-history"></i> Payment History</h2>
+                </div>
                 <div class="table-responsive">
                     <table class="data-table" id="historyTable">
                         <thead>
