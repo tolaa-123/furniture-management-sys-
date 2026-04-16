@@ -421,10 +421,11 @@ $pageTitle = 'Manager Dashboard';
             const btn = document.getElementById('rejectSubmitBtn');
             btn.disabled = true;
             btn.textContent = 'Rejecting...';
+            const csrfToken = '<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? '', ENT_QUOTES); ?>';
             fetch('<?php echo BASE_URL; ?>/public/api/order_action.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason) + '&csrf_token=<?php echo $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? ''; ?>'
+                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason) + '&csrf_token=' + encodeURIComponent(csrfToken)
             })
             .then(r => r.json())
             .then(data => {
