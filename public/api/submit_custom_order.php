@@ -120,25 +120,29 @@ try {
         
         $designImage = 'uploads/designs/' . $newFilename;
     } elseif (!empty($_POST['gallery_image_url'])) {
-        // No file uploaded — use the gallery inspiration image URL
-        // Download and save it locally so it's stored consistently
-        $galleryUrl = filter_var($_POST['gallery_image_url'], FILTER_VALIDATE_URL);
-        if ($galleryUrl) {
-            $uploadDir = __DIR__ . '/../uploads/designs/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            $ext = strtolower(pathinfo(parse_url($galleryUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) $ext = 'jpg';
-            $newFilename = preg_replace('/[^a-zA-Z0-9]/', '_', $orderNumber) . '_gallery_' . time() . '.' . $ext;
-            $imageData = @file_get_contents($galleryUrl);
-            if ($imageData !== false) {
-                file_put_contents($uploadDir . $newFilename, $imageData);
-                $designImage = 'uploads/designs/' . $newFilename;
-            } else {
-                // Can't download — store the URL directly as reference
-                $designImage = $_POST['gallery_image_url'];
-            }
+        $galleryUrl = $_POST['gallery_image_url'];
+        $uploadDir  = __DIR__ . '/../uploads/designs/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+        // Convert URL to local file path for direct copy (avoids HTTP self-request issues)
+        $localPath = null;
+        $baseUrl   = rtrim(BASE_URL, '/');
+        if (strpos($galleryUrl, $baseUrl . '/public/') === 0) {
+            $relativePath = substr($galleryUrl, strlen($baseUrl . '/public/'));
+            $localPath    = __DIR__ . '/../' . ltrim($relativePath, '/');
+        }
+
+        $ext = strtolower(pathinfo($galleryUrl, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg','jpeg','png'])) $ext = 'jpg';
+        $newFilename = preg_replace('/[^a-zA-Z0-9]/', '_', $orderNumber) . '_gallery_' . time() . '.' . $ext;
+
+        if ($localPath && file_exists($localPath)) {
+            // Direct file copy — fast and reliable
+            copy($localPath, $uploadDir . $newFilename);
+            $designImage = 'uploads/designs/' . $newFilename;
+        } else {
+            // Fallback: store URL directly as reference
+            $designImage = $galleryUrl;
         }
     }
     
