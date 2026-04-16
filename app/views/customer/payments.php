@@ -209,9 +209,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                         </div>
                     </div>
                     </div><!-- end #cashFields -->
-                        <label class="form-label">Payment Notes (Optional)</label>
-                        <textarea class="form-control" name="payment_notes" rows="3" placeholder="Any additional notes about this payment..."></textarea>
-                    </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-pay"><i class="fas fa-check-circle me-2"></i>Submit Payment</button>
