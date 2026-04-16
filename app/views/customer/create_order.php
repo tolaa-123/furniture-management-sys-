@@ -203,6 +203,34 @@ $pageTitle = 'Create Custom Furniture Order';
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Material Type <span class="required">*</span></label>
+                                    <select class="form-select" name="material" required>
+                                        <option value="">Select Material...</option>
+                                        <?php
+                                        $materials = ['Mahogany Wood','Oak Wood','Pine Wood','Teak Wood','Plywood','MDF','Particle Board','Metal Frame','Glass','Leather','Fabric','Mixed Materials'];
+                                        $prefilledMaterial = $prefilledProduct ? ($prefilledProduct['material'] ?? '') : '';
+                                        foreach ($materials as $mat) {
+                                            $selected = (stripos($prefilledMaterial, $mat) !== false) ? 'selected' : '';
+                                            echo "<option value=\"$mat\" $selected>$mat</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Color/Finish <span class="required">*</span></label>
+                                    <select class="form-select" name="color" required>
+                                        <option value="">Select Color...</option>
+                                        <?php
+                                        $colorOptions = ['Natural Wood','Brown','Dark Brown','Black','White','Gray','Custom Color'];
+                                        $prefilledColor = $prefilledProduct ? ($prefilledProduct['color'] ?? '') : '';
+                                        foreach ($colorOptions as $c) {
+                                            $selected = (strcasecmp($c, $prefilledColor) === 0) ? 'selected' : '';
+                                            echo "<option value=\"$c\" $selected>$c</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -284,42 +312,7 @@ $pageTitle = 'Create Custom Furniture Order';
                             </div>
                         </div>
 
-                        <!-- Section 3: Material Preference -->
-                        <div class="form-section">
-                            <h3 class="section-title"><i class="fas fa-tree me-2"></i>Material Preference</h3>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Material Type <span class="required">*</span></label>
-                                    <select class="form-select" name="material" required>
-                                        <option value="">Select Material...</option>
-                                        <?php
-                                        $materials = ['Mahogany Wood','Oak Wood','Pine Wood','Teak Wood','Plywood','MDF','Particle Board','Metal Frame','Glass','Leather','Fabric','Mixed Materials'];
-                                        $prefilledMaterial = $prefilledProduct ? ($prefilledProduct['material'] ?? '') : '';
-                                        foreach ($materials as $mat) {
-                                            $selected = (stripos($prefilledMaterial, $mat) !== false) ? 'selected' : '';
-                                            echo "<option value=\"$mat\" $selected>$mat</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Color/Finish <span class="required">*</span></label>
-                                    <select class="form-select" name="color" required>
-                                        <option value="">Select Color...</option>
-                                        <?php
-                                        $colorOptions = ['Natural Wood','Brown','Dark Brown','Black','White','Gray','Custom Color'];
-                                        $prefilledColor = $prefilledProduct ? ($prefilledProduct['color'] ?? '') : '';
-                                        foreach ($colorOptions as $c) {
-                                            $selected = (strcasecmp($c, $prefilledColor) === 0) ? 'selected' : '';
-                                            echo "<option value=\"$c\" $selected>$c</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Section 4: Design Details -->
+                        <!-- Section 3: Design Details -->
                         <div class="form-section">
                             <h3 class="section-title"><i class="fas fa-pencil-ruler me-2"></i>Design Details</h3>
                             <div class="mb-3">
