@@ -126,14 +126,6 @@ function isActive($page) {
         <li>
             <a href="<?php echo BASE_URL; ?>/public/employee/payroll" class="<?php echo isActive('/employee/payroll'); ?>">
                 <i class="fas fa-file-invoice-dollar"></i>
-                <span>My Payroll</span>
-            </a>
-        </li>
-
-        <!-- My Payslips -->
-        <li>
-            <a href="<?php echo BASE_URL; ?>/public/employee/payroll" class="<?php echo isActive('/employee/payroll'); ?>">
-                <i class="fas fa-file-invoice-dollar"></i>
                 <span>My Payslips</span>
             </a>
         </li>
