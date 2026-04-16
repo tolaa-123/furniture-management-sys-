@@ -432,11 +432,8 @@
                     FROM furn_ratings r
                     JOIN furn_users u ON r.customer_id = u.id
                     JOIN furn_orders o ON r.order_id = o.id
-                    WHERE o.status IN ('completed', 'delivered', 'paid')
-                      AND r.rating IS NOT NULL
+                    WHERE r.rating IS NOT NULL
                       AND r.rating >= 3
-                      AND r.review_text IS NOT NULL
-                      AND LENGTH(TRIM(r.review_text)) >= 10
                     ORDER BY r.rating DESC, r.created_at DESC
                     LIMIT 6
                 ");
@@ -453,6 +450,7 @@
             <div class="row g-4">
                 <?php foreach ($testimonials as $t):
                     $stars = (int)$t['rating'];
+                    $hasReview = !empty($t['review_text']) && strlen(trim($t['review_text'])) >= 10;
                 ?>
                 <div class="col-md-4">
                     <div class="card h-100 border-0 shadow-sm">
@@ -478,7 +476,7 @@
                                     <h5 class="mb-0" style="font-size:.95rem;"><?php echo htmlspecialchars($t['customer_name']); ?></h5>
                                     <div class="text-warning" style="font-size:.85rem;">
                                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                                            <i class="fas fa-star<?php echo $i > $stars ? '-half-alt' : ''; ?>" <?php echo $i > $stars ? 'style="opacity:.4;"' : ''; ?>></i>
+                                            <i class="fas fa-star" style="<?php echo $i > $stars ? 'opacity:.25;' : ''; ?>"></i>
                                         <?php endfor; ?>
                                     </div>
                                 </div>
@@ -488,7 +486,9 @@
                                 <i class="fas fa-couch me-1"></i><?php echo htmlspecialchars($t['furniture_name']); ?>
                             </div>
                             <?php endif; ?>
+                            <?php if ($hasReview): ?>
                             <p class="card-text" style="font-size:.88rem;color:#555;font-style:italic;">"<?php echo htmlspecialchars($t['review_text']); ?>"</p>
+                            <?php endif; ?>
                             <small class="text-muted"><?php echo date('M j, Y', strtotime($t['created_at'])); ?></small>
                         </div>
                     </div>
