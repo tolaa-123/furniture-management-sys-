@@ -194,10 +194,6 @@ $pageTitle = 'Manage Orders';
                                 <option value="Other">Other</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Furniture Name <span style="color:#E74C3C;">*</span></label>
-                            <input type="text" name="furniture_name" class="form-control" placeholder="e.g., Modern Wooden Study Table" required>
-                        </div>
                     </div>
 
                     <!-- Dimensions -->
@@ -256,12 +252,6 @@ $pageTitle = 'Manage Orders';
                     <div class="form-group" style="margin-top:15px;">
                         <label>Design Description <span style="color:#E74C3C;">*</span></label>
                         <textarea name="design_description" class="form-control" rows="4" placeholder="Describe the furniture design in detail..." required></textarea>
-                    </div>
-
-                    <!-- Special Notes -->
-                    <div class="form-group" style="margin-top:15px;">
-                        <label>Special Notes (Optional)</label>
-                        <textarea name="special_notes" class="form-control" rows="2" placeholder="Any special requirements..."></textarea>
                     </div>
 
                     <!-- Design Image Upload -->
