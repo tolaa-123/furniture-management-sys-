@@ -1,9 +1,10 @@
 <?php
 /**
  * API: Order approve/reject actions for manager dashboard
- * POST only — requires valid CSRF token and manager session
  */
+ob_start();
 require_once '../../config/db_config.php';
+ob_end_clean();
 header('Content-Type: application/json');
 
 // Session already started by db_config or config
