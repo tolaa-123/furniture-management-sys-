@@ -250,8 +250,8 @@ $pageTitle = 'Manage Orders';
 
                     <!-- Design Description -->
                     <div class="form-group" style="margin-top:15px;">
-                        <label>Design Description <span style="color:#E74C3C;">*</span></label>
-                        <textarea name="design_description" class="form-control" rows="4" placeholder="Describe the furniture design in detail..." required></textarea>
+                        <label>Design Description (Optional)</label>
+                        <textarea name="design_description" class="form-control" rows="4" placeholder="Describe the furniture design in detail..."></textarea>
                     </div>
 
                     <!-- Design Image Upload -->
