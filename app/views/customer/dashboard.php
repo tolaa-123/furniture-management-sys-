@@ -137,24 +137,6 @@ $pageTitle = 'Customer Dashboard';
         }
         ?>
 
-        <?php if (!empty($paymentPendingOrders)): ?>
-        <div style="background: linear-gradient(135deg, #27AE60, #229954); color: white; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(39,174,96,0.3);">
-            <h4 style="margin: 0 0 10px; font-size: 18px;"><i class="fas fa-bell me-2"></i>Action Required — Cost Estimation Ready!</h4>
-            <p style="margin: 0 0 15px; opacity: 0.9;">The manager has reviewed your order and provided a cost estimation. Please pay the deposit to start production.</p>
-            <?php foreach ($paymentPendingOrders as $po): ?>
-            <div style="background: rgba(255,255,255,0.15); padding: 12px 16px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <strong><?php echo htmlspecialchars($po['order_number']); ?></strong> —
-                    <?php echo htmlspecialchars($po['furniture_name'] ?? $po['furniture_type'] ?? 'Custom Order'); ?><br>
-                    <small>Total: ETB <?php echo number_format($po['estimated_cost'] ?? 0, 2); ?> &nbsp;|&nbsp; Deposit (40%): ETB <?php echo number_format($po['deposit_amount'] ?? ($po['estimated_cost'] * 0.4), 2); ?></small>
-                </div>
-                <a href="<?php echo BASE_URL; ?>/public/customer/payments" style="background: white; color: #27AE60; padding: 10px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; white-space: nowrap;">
-                    <i class="fas fa-credit-card me-1"></i> Pay Deposit Now
-                </a>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
         
         <!-- KPI Cards -->
         <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
