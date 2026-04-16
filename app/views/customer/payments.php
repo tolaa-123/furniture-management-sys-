@@ -18,42 +18,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
-        .top-header { background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .logo-section { display: flex; align-items: center; gap: 15px; }
-        .logo-icon { font-size: 28px; color: #d4a574; }
-        .brand-name { font-size: 20px; font-weight: 600; }
-        .header-title { font-size: 18px; color: #d4a574; }
-        .header-right { display: flex; align-items: center; gap: 20px; }
-        .status-badge { background: #28a745; padding: 6px 15px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 5px; }
-        .notification-icon { position: relative; font-size: 20px; cursor: pointer; }
-        .notification-badge { position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; }
-        .user-profile { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 25px; cursor: pointer; }
-        .user-avatar { width: 35px; height: 35px; border-radius: 50%; background: #d4a574; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #4a2c2a; }
-        .user-role { background: #ffc107; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        .dashboard-container { display: flex; min-height: calc(100vh - 70px); }
-        
-        /* Main Content */
-        .page-header { background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .page-title { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
-        .page-description { color: #7f8c8d; font-size: 15px; }
-        .content-section { background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .section-title { font-size: 20px; font-weight: 600; color: #4a2c2a; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #d4a574; }
-        .table { margin-bottom: 0; }
-        .table thead th { background: #f8f9fa; color: #2c3e50; font-weight: 600; border-bottom: 2px solid #4a2c2a; }
-        .badge-waiting { background: #ffc107; color: #000; }
-        .badge-paid { background: #28a745; color: white; }
-        .badge-pending { background: #17a2b8; color: white; }
-        .badge-approved { background: #28a745; color: white; }
-        .badge-rejected { background: #dc3545; color: white; }
-        .btn-pay { background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
-        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3); color: white; }
-        .payment-form { display: none; }
-        .form-label { font-weight: 600; color: #2c3e50; margin-bottom: 8px; }
-        .form-control, .form-select { border: 2px solid #e9ecef; border-radius: 8px; padding: 10px 15px; }
-        .form-control:focus, .form-select:focus { border-color: #4a2c2a; box-shadow: 0 0 0 0.2rem rgba(74, 44, 42, 0.15); }
-        .required { color: #dc3545; }
         .order-info-card { background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
         .info-row:last-child { border-bottom: none; }
@@ -63,6 +27,11 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         .progress-fill { height: 100%; background: linear-gradient(90deg, #28a745, #20c997); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; transition: width 1s ease; }
         .file-upload-area { border: 2px dashed #d4a574; border-radius: 10px; padding: 20px; text-align: center; background: #fafafa; cursor: pointer; }
         .file-upload-area:hover { background: #f0f0f0; border-color: #4a2c2a; }
+        .btn-pay { background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
+        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40,167,69,0.3); color: white; }
+        .payment-form { display: none; }
+        .badge-waiting { background: #ffc107; color: #000; }
+        .badge-paid { background: #28a745; color: white; }
     </style>
 </head>
 <body>
@@ -84,7 +53,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
     ?>
 
     <!-- Main Content -->
-    <div class="dashboard-container">
     <div class="main-content">
             <h2 style="margin-bottom: 30px; color: #2c3e50;">Order Payments</h2>
             <p style="color: #7f8c8d; margin-bottom: 25px;">Manage payments for your furniture orders. Pay the required deposit to start production and complete the remaining payment after production is finished.</p>
@@ -275,7 +243,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                 </div>
             </div>
         </div><!-- end main-content -->
-    </div><!-- end dashboard-container -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
