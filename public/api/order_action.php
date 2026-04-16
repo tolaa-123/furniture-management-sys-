@@ -84,6 +84,20 @@ try {
             exit();
         }
 
+        // Notify customer
+        try {
+            require_once __DIR__ . '/../../app/includes/notification_helper.php';
+            $oStmt = $pdo->prepare("SELECT customer_id, order_number, furniture_type FROM furn_orders WHERE id = ?");
+            $oStmt->execute([$orderId]);
+            $oRow = $oStmt->fetch(PDO::FETCH_ASSOC);
+            if ($oRow) {
+                insertNotification($pdo, $oRow['customer_id'], 'order',
+                    'Order Rejected',
+                    'Your order ' . $oRow['order_number'] . ' (' . ($oRow['furniture_type'] ?? 'Custom') . ') was rejected. Reason: ' . $reason,
+                    $orderId, '/customer/my-orders', 'high');
+            }
+        } catch (Exception $e2) { error_log("Notify error: " . $e2->getMessage()); }
+
         echo json_encode(['success' => true, 'message' => 'Order rejected']);
 
     } else {

@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
 // Get database connection
 require_once __DIR__ . '/../../../config/db_config.php';
 
+// Ensure CSRF token exists
+if (empty($_SESSION[CSRF_TOKEN_NAME])) {
+    $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
+}
+
 $managerName = $_SESSION['user_name'] ?? 'Manager User';
 
 // Fetch ALL statistics
@@ -419,7 +424,7 @@ $pageTitle = 'Manager Dashboard';
             fetch('<?php echo BASE_URL; ?>/public/api/order_action.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason) + '&csrf_token=<?php echo $_SESSION[CSRF_TOKEN_NAME] ?? ""; ?>'
+                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason) + '&csrf_token=<?php echo $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? ''; ?>'
             })
             .then(r => r.json())
             .then(data => {
