@@ -221,30 +221,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                 </form>
             </div>
 
-            <!-- Payment History -->
-            <div class="section-card">
-                <div class="section-header">
-                    <h2 class="section-title"><i class="fas fa-history"></i> Payment History</h2>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table" id="historyTable">
-                        <thead>
-                            <tr>
-                                <th>Payment ID</th>
-                                <th>Order Number</th>
-                                <th>Payment Type</th>
-                                <th>Method</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Loading payment history...</p></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div><!-- end main-content -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
