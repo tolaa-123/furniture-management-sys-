@@ -29,7 +29,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         .file-upload-area:hover { background: #f0f0f0; border-color: #4a2c2a; }
         .btn-pay { background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
         .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40,167,69,0.3); color: white; }
-        .payment-form { display: none !important; }
+        .payment-form { display: none; }
         .badge-waiting { background: #ffc107; color: #000; }
         .badge-paid { background: #28a745; color: white; }
     </style>
@@ -81,144 +81,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- Payment Form (Hidden by default) -->
-            <div class="section-card payment-form" id="paymentForm" style="display:none;">
-                <div class="section-header">
-                    <h2 class="section-title"><i class="fas fa-money-bill-wave"></i> Make Payment</h2>
-                </div>
-                
-                <!-- Order Information -->
-                <div class="order-info-card" id="orderInfo"></div>
-
-                <!-- Payment Progress -->
-                <div class="progress-bar-custom">
-                    <div class="progress-fill" id="progressBar" style="width: 0%">0% Paid</div>
-                </div>
-
-                <form id="paymentSubmitForm" enctype="multipart/form-data">
-                    <input type="hidden" name="order_id" id="order_id">
-                    <input type="hidden" name="customer_id" value="<?php echo $customerId; ?>">
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Payment Type <span class="required">*</span></label>
-                            <select class="form-select" name="payment_type" id="payment_type" required onchange="onPaymentTypeChange()">
-                                <option value="">Select Payment Type...</option>
-                                <option value="prepayment">Pre Payment (Deposit 40%)</option>
-                                <option value="postpayment">Post Payment (Remaining 60%)</option>
-                                <option value="full_payment">Full Payment (100% at once)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Payment Method <span class="required">*</span></label>
-                            <select class="form-select" name="payment_method" id="payment_method" required onchange="onPaymentMethodChange()">
-                                <option value="">Select Method...</option>
-                                <option value="bank">Bank Transfer</option>
-                                <option value="cash">Cash Payment</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Bank Transfer Fields -->
-                    <div id="bankFields" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bank Name <span class="required">*</span></label>
-                                <select class="form-select" name="bank_name" id="bankNameSelect">
-                                    <option value="">Select Bank...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Transaction Reference <span class="required">*</span></label>
-                                <input type="text" class="form-control" name="transaction_reference" placeholder="e.g., TXN123456789">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Transfer Date <span class="required">*</span></label>
-                                <input type="date" class="form-control" name="transfer_date" max="<?php echo date('Y-m-d'); ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Upload Receipt <span class="required">*</span></label>
-                                <div class="file-upload-area" onclick="document.getElementById('receiptFile').click()">
-                                    <i class="fas fa-cloud-upload-alt" style="font-size: 24px; color: #d4a574;"></i>
-                                    <p class="mb-0 mt-2">Click to upload receipt (JPG, PNG, PDF)</p>
-                                    <p class="file-name text-success" id="receiptFileName"></p>
-                                </div>
-                                <input type="file" id="receiptFile" name="receipt_file" accept=".jpg,.jpeg,.png,.pdf" style="display: none;" onchange="showReceiptName()">
-                            </div>
-                        </div>
-
-                        <!-- Bank Account Details Display -->
-                        <div id="bankDetailsDisplay" style="display: none; background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); padding: 25px; border-radius: 14px; margin: 25px 0; box-shadow: 0 6px 20px rgba(74, 44, 42, 0.2);">
-                            <h5 style="color: #d4a574; margin-bottom: 20px; font-size: 18px; font-weight: 700;"><i class="fas fa-university me-2"></i>Bank Account Details for Transfer</h5>
-                            <div style="background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #d4a574;">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Bank Name</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 700; font-size: 16px;" id="displayBankName">-</p>
-                                    </div>
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Account Holder</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 700; font-size: 16px;" id="displayAccountHolder">-</p>
-                                    </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Account Number</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace; letter-spacing: 1px;" id="displayAccountNumber">-</p>
-                                    </div>
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">SWIFT Code</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 700; font-size: 16px; font-family: 'Courier New', monospace;" id="displaySwiftCode">-</p>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 15px;">
-                                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Bank Address</p>
-                                    <p style="margin: 0; color: #2c3e50; font-weight: 600; font-size: 14px; line-height: 1.6;" id="displayBankAddress">-</p>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 15px; border-top: 2px solid #e9ecef;">
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Phone</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 600; font-size: 14px;" id="displayPhone">-</p>
-                                    </div>
-                                    <div>
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Email</p>
-                                        <p style="margin: 0; color: #2c3e50; font-weight: 600; font-size: 14px;" id="displayEmail">-</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ffc107;">
-                                <p style="margin: 0; color: #856404; font-size: 13px;"><i class="fas fa-info-circle me-2"></i><strong>Important:</strong> Please ensure you transfer the exact amount to this account and keep the receipt for verification.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cash Payment Info (shown for cash, no receipt needed) -->
-                    <div id="cashFields" style="display:none;">
-                    <div id="cashInfoBox" style="background:#d1ecf1;padding:14px;border-radius:8px;border-left:4px solid #17a2b8;margin-bottom:16px;">
-                        <h6 style="color:#0c5460;margin-bottom:6px;"><i class="fas fa-money-bill-wave me-2"></i>Cash Payment</h6>
-                        <p style="margin:4px 0;font-size:13px;">Visit our office to pay in cash. No receipt upload needed — our staff will confirm on-site.</p>
-                        <p style="margin:4px 0;font-size:13px;"><strong>Amount to bring:</strong> <span id="cashAmountDisplay" style="color:#27AE60;font-weight:700;font-size:16px;">ETB 0.00</span></p>
-                    </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Amount Paid <span class="required">*</span></label>
-                                <input type="number" class="form-control" name="amount_paid" id="amount_paid" step="0.01" min="0" readonly>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Payment Date <span class="required">*</span></label>
-                                <input type="date" class="form-control" name="payment_date" max="<?php echo date('Y-m-d'); ?>">
-                            </div>
-                        </div>
-                    </div>
-                    </div><!-- end #cashFields -->
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-pay"><i class="fas fa-check-circle me-2"></i>Submit Payment</button>
-                        <button type="button" class="btn btn-secondary" onclick="cancelPayment()"><i class="fas fa-arrow-left me-2"></i>Back to Orders</button>
-                    </div>
-                </form>
             </div>
 
         </div><!-- end main-content -->
@@ -353,7 +215,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         function showPaymentForm(order) {
             currentOrder = order;
             $('#ordersSection').hide();
-            document.getElementById('paymentForm').style.setProperty('display', 'block', 'important');
+            $('#paymentForm').show();
 
             const totalCost = parseFloat(order.estimated_cost || 0);
             const depositRequired = parseFloat(order.deposit_amount || 0);
@@ -528,7 +390,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
         });
 
         function cancelPayment() {
-            document.getElementById('paymentForm').style.setProperty('display', 'none', 'important');
+            $('#paymentForm').hide();
             $('#ordersSection').show();
             $('#paymentSubmitForm')[0].reset();
         }
