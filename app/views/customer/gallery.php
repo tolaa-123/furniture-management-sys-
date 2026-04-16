@@ -518,11 +518,17 @@ $wishlistIds = array_flip($wishlistProducts);
                                 'product_name'    => $product['name'],
                                 'category'        => $category,
                                 'material'        => $product['materials_used'] ?? '',
-                                'dimensions'      => '',
+                                'dimensions'      => $product['dimensions'] ?? '',
                                 'description'     => $product['description'] ?? '',
                                 'color'           => '',
                                 'estimated_price' => $product['base_price'],
-                                'image_url'       => '',
+                                'image_url'       => !empty($product['image_main'])
+                                    ? (strpos($product['image_main'], 'http') === 0
+                                        ? $product['image_main']
+                                        : (strpos($product['image_main'], 'uploads/') === 0 || strpos($product['image_main'], 'assets/') === 0
+                                            ? BASE_URL . '/public/' . $product['image_main']
+                                            : BASE_URL . '/public/assets/images/products/' . $product['image_main']))
+                                    : '',
                             ])); ?>)">
                                 <i class="fas fa-shopping-cart"></i> Order This Design
                             </button>

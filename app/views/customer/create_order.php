@@ -192,14 +192,15 @@ $pageTitle = 'Create Custom Furniture Order';
                                     <label class="form-label">Furniture Type <span class="required">*</span></label>
                                     <select class="form-select" name="furniture_type" required>
                                         <option value="">Select Type...</option>
-                                        <option value="Table" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'table') ? 'selected' : ''; ?>>Table</option>
-                                        <option value="Chair" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'chair') ? 'selected' : ''; ?>>Chair</option>
-                                        <option value="Bed" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'bed') ? 'selected' : ''; ?>>Bed</option>
-                                        <option value="Wardrobe" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'wardrobe') ? 'selected' : ''; ?>>Wardrobe</option>
-                                        <option value="Cabinet" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'cabinet') ? 'selected' : ''; ?>>Cabinet</option>
-                                        <option value="Desk" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'office') ? 'selected' : ''; ?>>Desk</option>
-                                        <option value="Shelf" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'shelf') ? 'selected' : ''; ?>>Shelf</option>
-                                        <option value="Sofa Frame" <?php echo ($prefilledProduct && $prefilledProduct['category'] == 'sofa') ? 'selected' : ''; ?>>Sofa Frame</option>
+                                        <option value="Table"       <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'table')    ? 'selected' : ''; ?>>Table</option>
+                                        <option value="Chair"       <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'chair')    ? 'selected' : ''; ?>>Chair</option>
+                                        <option value="Bed"         <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'bed')      ? 'selected' : ''; ?>>Bed</option>
+                                        <option value="Sofa"        <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'sofa')     ? 'selected' : ''; ?>>Sofa</option>
+                                        <option value="Wardrobe"    <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'wardrobe') ? 'selected' : ''; ?>>Wardrobe</option>
+                                        <option value="Cabinet"     <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'cabinet')  ? 'selected' : ''; ?>>Cabinet</option>
+                                        <option value="Desk"        <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'office')   ? 'selected' : ''; ?>>Desk</option>
+                                        <option value="Shelf"       <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'shelf')    ? 'selected' : ''; ?>>Shelf</option>
+                                        <option value="Custom"      <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'custom')   ? 'selected' : ''; ?>>Custom</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
