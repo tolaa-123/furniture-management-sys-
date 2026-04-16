@@ -155,7 +155,7 @@ $pageTitle = 'Employee Dashboard';
                 [$stats['completed_tasks'],  'Completed This Month',  BASE_URL.'/public/employee/tasks',      '#27AE60', 'fa-check-circle',null],
                 [$stats['hours_today'].'h',  'Hours Worked Today',    BASE_URL.'/public/employee/attendance', '#F39C12', 'fa-clock',      null],
                 [$stats['attendance_status'],'Attendance Status',     BASE_URL.'/public/employee/attendance', $stats['attendance_status']==='Checked In'?'#27AE60':'#95A5A6', 'fa-user-check', null],
-                [($myRatingStats['avg']?:'—'),'My Avg Rating ('.$myRatingStats['total'].' reviews)', BASE_URL.'/public/employee/profile', '#f39c12', 'fa-star', null],
+                [($myRatingStats['avg']?:'—'),'My Avg Rating', BASE_URL.'/public/employee/profile', '#f39c12', 'fa-star', null],
             ];
             foreach ($empCards as [$v,$l,$href,$c,$i,$sub]): ?>
             <a href="<?php echo $href; ?>" style="text-decoration:none;">
