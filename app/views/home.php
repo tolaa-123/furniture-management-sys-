@@ -432,11 +432,12 @@
                     FROM furn_ratings r
                     JOIN furn_users u ON r.customer_id = u.id
                     JOIN furn_orders o ON r.order_id = o.id
-                    WHERE o.status = 'completed'
+                    WHERE o.status IN ('completed', 'delivered', 'paid')
                       AND r.rating IS NOT NULL
+                      AND r.rating >= 3
                       AND r.review_text IS NOT NULL
-                      AND r.review_text != ''
-                    ORDER BY r.created_at DESC
+                      AND LENGTH(TRIM(r.review_text)) >= 10
+                    ORDER BY r.rating DESC, r.created_at DESC
                     LIMIT 6
                 ");
                 $testimonials = $stmt->fetchAll(PDO::FETCH_ASSOC);
