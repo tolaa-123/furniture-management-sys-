@@ -127,17 +127,6 @@ $pageTitle = 'Customer Dashboard';
     <div class="main-content">
         <h2 style="margin-bottom: 20px; color: #2c3e50;">Welcome, <?php echo htmlspecialchars($customerName); ?>!</h2>
 
-        <?php
-        // Check for orders awaiting payment (cost_estimated)
-        try {
-            $stmtPay = $pdo->prepare("SELECT id, order_number, furniture_name, furniture_type, estimated_cost, deposit_amount FROM furn_orders WHERE customer_id = ? AND status = 'cost_estimated' ORDER BY created_at DESC");
-            $stmtPay->execute([$customerId]);
-            $paymentPendingOrders = $stmtPay->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            $paymentPendingOrders = [];
-        }
-        ?>
-
         
         <!-- KPI Cards -->
         <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
@@ -234,7 +223,7 @@ $pageTitle = 'Customer Dashboard';
                             <?php foreach ($recentOrders as $order): ?>
                             <tr>
                                 <td><strong><?php echo htmlspecialchars($order['order_number']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($order['furniture_name']); ?></td>
+                                <td><?php echo htmlspecialchars($order['furniture_name'] ?? $order['furniture_type'] ?? 'Custom Order'); ?></td>
                                 <td>ETB <?php echo number_format($order['estimated_cost'] ?? $order['total_amount'] ?? 0, 2); ?></td>
                                 <td><span class="status-badge status-<?php echo htmlspecialchars($order['status']); ?>"><?php echo ucwords(str_replace('_', ' ', $order['status'])); ?></span></td>
                                 <td><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
