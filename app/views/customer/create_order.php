@@ -310,10 +310,25 @@ $pageTitle = 'Create Custom Furniture Order';
                         </div>
 
                         <!-- Section 5: Upload Design -->
-                        <?php if (!$prefilledProduct || empty($prefilledProduct['image_url'])): ?>
                         <div class="form-section">
                             <h3 class="section-title"><i class="fas fa-image me-2"></i>Upload Design Image</h3>
-                            <div class="file-upload-area" onclick="document.getElementById('designImage').click()">
+                            <?php
+                            $galleryImageUrl = '';
+                            if ($prefilledProduct && !empty($prefilledProduct['image_url'])) {
+                                $galleryImageUrl = $prefilledProduct['image_url'];
+                            }
+                            ?>
+                            <?php if ($galleryImageUrl): ?>
+                            <div id="galleryImagePreview" style="margin-bottom:15px; padding:15px; background:#f8f4e9; border-radius:10px; border:2px solid #d4a574;">
+                                <p style="margin:0 0 10px; font-weight:600; color:#4a2c2a;"><i class="fas fa-images me-2"></i>Inspiration Image (from Gallery)</p>
+                                <img src="<?php echo htmlspecialchars($galleryImageUrl); ?>"
+                                     alt="Gallery inspiration"
+                                     style="max-width:100%; max-height:200px; border-radius:8px; object-fit:cover; display:block;">
+                                <small class="text-muted d-block mt-2">This gallery image will be used as your design reference. Upload your own image below to replace it.</small>
+                            </div>
+                            <input type="hidden" name="gallery_image_url" id="galleryImageUrl" value="<?php echo htmlspecialchars($galleryImageUrl); ?>">
+                            <?php endif; ?>
+                            <div class="file-upload-area" onclick="document.getElementById('designImage').click()" <?php echo $galleryImageUrl ? 'style="display:none;"' : ''; ?>>
                                 <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
                                 <h5>Click to Upload Design Image</h5>
                                 <p class="text-muted mb-0">Supported: JPG, PNG, PDF (Max 5MB)</p>
@@ -321,10 +336,6 @@ $pageTitle = 'Create Custom Furniture Order';
                             </div>
                             <input type="file" id="designImage" name="design_image" accept=".jpg,.jpeg,.png,.pdf" style="display: none;" onchange="showFileName()">
                         </div>
-                        <?php else: ?>
-                        <!-- Gallery image used as design reference — hidden upload -->
-                        <input type="hidden" name="gallery_image_url" value="<?php echo htmlspecialchars($prefilledProduct['image_url']); ?>">
-                        <?php endif; ?>
 
                         <!-- Section 6: Special Instructions removed -->
 
