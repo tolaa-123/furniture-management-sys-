@@ -575,18 +575,21 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
             }
 
             payments.forEach(payment => {
-                const statusBadge = payment.status === 'approved' ? '<span class="badge badge-approved">Approved</span>' :
-                                  payment.status === 'rejected' ? '<span class="badge badge-rejected">Rejected</span>' :
-                                  '<span class="badge badge-pending">Pending</span>';
+                const pid = payment.payment_id || payment.id || '';
+                const statusColor = payment.status === 'approved' ? '#27ae60' : payment.status === 'rejected' ? '#e74c3c' : '#f39c12';
+                const statusLabel = payment.status === 'approved' ? 'Approved' : payment.status === 'rejected' ? 'Rejected' : 'Pending';
+                const typeLabel = payment.payment_type === 'prepayment' || payment.payment_type === 'deposit' ? 'Deposit'
+                                : payment.payment_type === 'full_payment' ? 'Full Payment' : 'Final Payment';
+                const methodLabel = payment.payment_method === 'bank' ? 'Bank Transfer' : 'Cash';
 
                 const row = `
                     <tr>
-                        <td><strong>PAY-${String(payment.id).padStart(4, '0')}</strong></td>
+                        <td><strong>PAY-${String(pid).padStart(4, '0')}</strong></td>
                         <td>${payment.order_number}</td>
-                        <td>${payment.payment_type === 'prepayment' ? 'Deposit' : payment.payment_type === 'full_payment' ? 'Full Payment' : 'Final Payment'}</td>
-                        <td>${payment.payment_method === 'bank' ? 'Bank Transfer' : 'Cash'}</td>
-                        <td>ETB ${parseFloat(payment.amount).toFixed(2)}</td>
-                        <td>${statusBadge}</td>
+                        <td>${typeLabel}</td>
+                        <td>${methodLabel}</td>
+                        <td><strong>ETB ${parseFloat(payment.amount || 0).toFixed(2)}</strong></td>
+                        <td><span style="background:${statusColor};color:white;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">${statusLabel}</span></td>
                         <td>${new Date(payment.created_at).toLocaleDateString()}</td>
                     </tr>
                 `;
