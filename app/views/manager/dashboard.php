@@ -395,29 +395,78 @@ $pageTitle = 'Manager Dashboard';
         }
 
         function rejectOrder(orderId) {
-            const reason = prompt('Enter rejection reason:');
-            if (!reason || !reason.trim()) return;
+            document.getElementById('rejectOrderId').value = orderId;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').style.display = 'flex';
+            document.getElementById('rejectReason').focus();
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+        }
+
+        function submitReject() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                document.getElementById('rejectReason').style.borderColor = '#e74c3c';
+                document.getElementById('rejectReason').placeholder = 'Rejection reason is required!';
+                return;
+            }
+            const orderId = document.getElementById('rejectOrderId').value;
+            const btn = document.getElementById('rejectSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Rejecting...';
             fetch('<?php echo BASE_URL; ?>/public/api/order_action.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason.trim()) + '&csrf_token=<?php echo $_SESSION[CSRF_TOKEN_NAME] ?? ""; ?>'
+                body: 'action=reject&order_id=' + orderId + '&reason=' + encodeURIComponent(reason) + '&csrf_token=<?php echo $_SESSION[CSRF_TOKEN_NAME] ?? ""; ?>'
             })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('Order rejected.');
+                    closeRejectModal();
                     location.reload();
                 } else {
                     alert('Error: ' + (data.message || 'Could not reject order.'));
+                    btn.disabled = false;
+                    btn.textContent = 'Confirm Reject';
                 }
             })
-            .catch(() => alert('Network error. Please try again.'));
+            .catch(() => {
+                alert('Network error. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Confirm Reject';
+            });
         }
 
         function restockMaterial(materialId) {
             window.location.href = '<?php echo BASE_URL; ?>/public/manager/inventory#restock-' + materialId;
         }
     </script>
+
+    <!-- Reject Order Modal -->
+    <div id="rejectModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;width:100%;max-width:460px;margin:20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+            <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;color:white;font-size:16px;"><i class="fas fa-times-circle"></i> Reject Order</h3>
+                <button onclick="closeRejectModal()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <input type="hidden" id="rejectOrderId">
+                <p style="margin:0 0 6px;color:#555;font-size:14px;">You are rejecting this order. The customer will be notified with your reason.</p>
+                <div style="margin-top:14px;">
+                    <label style="font-weight:600;font-size:13px;color:#2c3e50;display:block;margin-bottom:6px;">Rejection Reason <span style="color:#e74c3c;">*</span></label>
+                    <textarea id="rejectReason" rows="4" placeholder="e.g. Budget too low, incomplete information, not feasible..."
+                        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box;"
+                        oninput="this.style.borderColor='#ddd'"></textarea>
+                </div>
+            </div>
+            <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px;">
+                <button onclick="closeRejectModal()" style="padding:9px 20px;border:1.5px solid #ddd;background:white;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Cancel</button>
+                <button id="rejectSubmitBtn" onclick="submitReject()" style="padding:9px 20px;background:#e74c3c;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Mobile Menu Script -->
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
