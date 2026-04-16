@@ -220,23 +220,8 @@ $pageTitle = 'Manage Orders';
                         </div>
                     </div>
 
-                    <!-- Material & Color -->
+                    <!-- Color & Other Details -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; margin-top:15px;">
-                        <div class="form-group">
-                            <label>Material <span style="color:#E74C3C;">*</span></label>
-                            <select name="material" class="form-control" required>
-                                <option value="">Select Material...</option>
-                                <option value="Mahogany Wood">Mahogany Wood</option>
-                                <option value="Oak Wood">Oak Wood</option>
-                                <option value="Pine Wood">Pine Wood</option>
-                                <option value="Teak Wood">Teak Wood</option>
-                                <option value="Plywood">Plywood</option>
-                                <option value="MDF">MDF</option>
-                                <option value="Particle Board">Particle Board</option>
-                                <option value="Metal Frame">Metal Frame</option>
-                                <option value="Mixed Materials">Mixed Materials</option>
-                            </select>
-                        </div>
                         <div class="form-group">
                             <label>Color/Finish <span style="color:#E74C3C;">*</span></label>
                             <select name="color" class="form-control" required>
