@@ -831,30 +831,6 @@ $pageTitle = 'Settings';
                                         value="<?php echo htmlspecialchars($bank['account_holder'] ?? ''); ?>"
                                         placeholder="e.g. SmartWorkshop PLC">
                                 </div>
-                                <div class="form-group-modern">
-                                    <label><i class="fas fa-map-marker-alt"></i> Bank Address</label>
-                                    <input type="text" name="bank_address[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['bank_address'] ?? ''); ?>"
-                                        placeholder="e.g. Bole Road, Addis Ababa">
-                                </div>
-                                <div class="form-group-modern">
-                                    <label><i class="fas fa-code"></i> SWIFT Code</label>
-                                    <input type="text" name="bank_swift[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['swift_code'] ?? ''); ?>"
-                                        placeholder="e.g. CBETETAA">
-                                </div>
-                                <div class="form-group-modern">
-                                    <label><i class="fas fa-phone"></i> Phone</label>
-                                    <input type="text" name="bank_phone[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['phone'] ?? ''); ?>"
-                                        placeholder="e.g. +251-11-123-4567">
-                                </div>
-                                <div class="form-group-modern">
-                                    <label><i class="fas fa-envelope"></i> Email</label>
-                                    <input type="email" name="bank_email[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['email'] ?? ''); ?>"
-                                        placeholder="e.g. info@bank.com">
-                                </div>
                             </div>
                         </div>
                         <?php endforeach; ?>
