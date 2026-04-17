@@ -165,6 +165,14 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Backup -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/admin/backup" class="<?php echo isActive('/admin/backup'); ?>">
+                <i class="fas fa-database"></i>
+                <span>Backup</span>
+            </a>
+        </li>
+
         <!-- My Profile -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/admin/profile" class="<?php echo isActive('/admin/profile'); ?>">

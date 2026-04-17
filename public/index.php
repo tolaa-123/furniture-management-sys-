@@ -595,6 +595,14 @@ switch ($route) {
         }
         include_once '../app/views/admin/settings.php';
         break;
+
+    case 'admin/backup':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/admin/backup.php';
+        break;
         
     case 'admin/profile':
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
