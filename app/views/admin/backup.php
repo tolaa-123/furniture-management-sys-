@@ -5,6 +5,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 require_once __DIR__ . '/../../../config/db_config.php';
 $pageTitle = 'Database Backup';
 
+// Ensure CSRF token exists in session
+if (empty($_SESSION[CSRF_TOKEN_NAME])) {
+    $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
+}
+
 // Get list of existing backup files
 $backupDir = __DIR__ . '/../../../backups/';
 if (!is_dir($backupDir)) { mkdir($backupDir, 0755, true); }
@@ -151,7 +156,7 @@ try {
 
 <script>
 const BASE_URL = '<?php echo BASE_URL; ?>';
-const CSRF = '<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? bin2hex(random_bytes(16)), ENT_QUOTES); ?>';
+const CSRF = '<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME], ENT_QUOTES); ?>';
 
 function createBackup(type) {
     document.getElementById('backupProgress').style.display = 'block';
@@ -175,7 +180,10 @@ function createBackup(type) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=save&csrf_token=' + encodeURIComponent(CSRF)
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) return r.text().then(t => { throw new Error('HTTP ' + r.status + ': ' + t.substring(0,200)); });
+        return r.json();
+    })
     .then(data => {
         document.getElementById('backupProgress').style.display = 'none';
         document.getElementById('btnSave').disabled = false;
@@ -189,12 +197,12 @@ function createBackup(type) {
             res.innerHTML = '<div style="background:#f8d7da;color:#721c24;padding:14px;border-radius:8px;border:1px solid #f5c6cb;"><i class="fas fa-exclamation-circle"></i> ' + data.message + '</div>';
         }
     })
-    .catch(() => {
+    .catch((err) => {
         document.getElementById('backupProgress').style.display = 'none';
         document.getElementById('btnSave').disabled = false;
         document.getElementById('btnDownload').disabled = false;
         document.getElementById('backupResult').style.display = 'block';
-        document.getElementById('backupResult').innerHTML = '<div style="background:#f8d7da;color:#721c24;padding:14px;border-radius:8px;">Network error. Please try again.</div>';
+        document.getElementById('backupResult').innerHTML = '<div style="background:#f8d7da;color:#721c24;padding:14px;border-radius:8px;">Error: ' + err.message + '</div>';
     });
 }
 
