@@ -102,9 +102,10 @@ $banks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body>
     <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
     <div class="sidebar-overlay"></div>
-    <?php include_once __DIR__ . '/../../includes/sidebar.php'; ?>
+    <?php include_once __DIR__ . '/../../includes/admin_sidebar.php'; ?>
+    <?php $pageTitle = 'Bank Accounts'; include_once __DIR__ . '/../../includes/admin_header.php'; ?>
     
-    <div class="main-content" style="padding: 30px;">
+    <div class="main-content">
         <div class="page-header" style="background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
             <h1 style="font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">
                 <i class="fas fa-university me-2"></i>Bank Accounts Management

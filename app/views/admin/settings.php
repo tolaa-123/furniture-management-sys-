@@ -231,30 +231,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $cashEnabled = isset($_POST['payment_method_cash']) ? '1' : '0';
                     $bankEnabled = isset($_POST['payment_method_bank_transfer']) ? '1' : '0';
 
-                    // Build bank accounts array
-                    $bankAccounts = [];
-                    $names    = $_POST['bank_name']    ?? [];
-                    $numbers  = $_POST['bank_account'] ?? [];
-                    $holders  = $_POST['bank_holder']  ?? [];
-                    foreach ($names as $i => $name) {
-                        $name = trim($name);
-                        if ($name === '') continue;
-                        $bankAccounts[] = [
-                            'bank_name'    => $name,
-                            'account_number'=> trim($numbers[$i] ?? ''),
-                            'account_holder'=> trim($holders[$i] ?? ''),
-                        ];
-                    }
-
-                    $fields = [
-                        'payment_method_cash'          => $cashEnabled,
-                        'payment_method_bank_transfer' => $bankEnabled,
-                        'bank_accounts_json'           => json_encode($bankAccounts),
-                    ];
-                    foreach ($fields as $key => $value) {
+                    // Save toggles to furn_settings
+                    foreach (['payment_method_cash' => $cashEnabled, 'payment_method_bank_transfer' => $bankEnabled] as $key => $value) {
                         $pdo->prepare("INSERT INTO furn_settings (setting_key, setting_value, setting_type, category) VALUES (?, ?, 'text', 'payments') ON DUPLICATE KEY UPDATE setting_value = ?")
                             ->execute([$key, $value, $value]);
                     }
+
+                    // Save bank accounts to furn_bank_accounts (the real table customers read from)
+                    $names     = $_POST['bank_name']    ?? [];
+                    $numbers   = $_POST['bank_account'] ?? [];
+                    $holders   = $_POST['bank_holder']  ?? [];
+                    $addresses = $_POST['bank_address'] ?? [];
+                    $swifts    = $_POST['bank_swift']   ?? [];
+                    $phones    = $_POST['bank_phone']   ?? [];
+                    $emails    = $_POST['bank_email']   ?? [];
+
+                    $pdo->exec("DELETE FROM furn_bank_accounts");
+                    $stmt = $pdo->prepare("INSERT INTO furn_bank_accounts (bank_name, account_number, account_holder, bank_address, swift_code, phone, email, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
+                    foreach ($names as $i => $name) {
+                        $name = trim($name);
+                        if ($name === '' || empty(trim($numbers[$i] ?? '')) || empty(trim($holders[$i] ?? ''))) continue;
+                        $stmt->execute([
+                            $name,
+                            trim($numbers[$i]),
+                            trim($holders[$i]),
+                            trim($addresses[$i] ?? ''),
+                            trim($swifts[$i] ?? ''),
+                            trim($phones[$i] ?? ''),
+                            trim($emails[$i] ?? ''),
+                        ]);
+                    }
+
                     $message = '✅ Payment methods updated successfully!';
                     $messageType = 'success';
                 } catch (PDOException $e) {
@@ -801,8 +808,13 @@ $pageTitle = 'Settings';
                         </div>
                         <div id="bankList">
                         <?php
-                        $savedBanks = json_decode(getSetting('bank_accounts_json','[]'), true) ?: [];
-                        if (empty($savedBanks)) $savedBanks = [['bank_name'=>'','account_number'=>'','account_holder'=>'']];
+                        // Load from furn_bank_accounts table (the real source customers read from)
+                        $savedBanks = [];
+                        try {
+                            $stmt = $pdo->query("SELECT * FROM furn_bank_accounts ORDER BY bank_name");
+                            $savedBanks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        } catch (PDOException $e) {}
+                        if (empty($savedBanks)) $savedBanks = [['bank_name'=>'','account_number'=>'','account_holder'=>'','bank_address'=>'','swift_code'=>'','phone'=>'','email'=>'']];
                         foreach ($savedBanks as $idx => $bank):
                         ?>
                         <div class="bank-entry" style="background:#f8f9fa;border:1.5px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:12px;position:relative;">
@@ -816,20 +828,44 @@ $pageTitle = 'Settings';
                                 <div class="form-group-modern">
                                     <label><i class="fas fa-university"></i> Bank Name <span style="color:#e74c3c;">*</span></label>
                                     <input type="text" name="bank_name[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['bank_name']); ?>"
+                                        value="<?php echo htmlspecialchars($bank['bank_name'] ?? ''); ?>"
                                         placeholder="e.g. Commercial Bank of Ethiopia">
                                 </div>
                                 <div class="form-group-modern">
                                     <label><i class="fas fa-hashtag"></i> Account Number <span style="color:#e74c3c;">*</span></label>
                                     <input type="text" name="bank_account[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['account_number']); ?>"
+                                        value="<?php echo htmlspecialchars($bank['account_number'] ?? ''); ?>"
                                         placeholder="e.g. 1000123456789">
                                 </div>
                                 <div class="form-group-modern">
                                     <label><i class="fas fa-user"></i> Account Holder <span style="color:#e74c3c;">*</span></label>
                                     <input type="text" name="bank_holder[]" class="form-control-modern"
-                                        value="<?php echo htmlspecialchars($bank['account_holder']); ?>"
+                                        value="<?php echo htmlspecialchars($bank['account_holder'] ?? ''); ?>"
                                         placeholder="e.g. SmartWorkshop PLC">
+                                </div>
+                                <div class="form-group-modern">
+                                    <label><i class="fas fa-map-marker-alt"></i> Bank Address</label>
+                                    <input type="text" name="bank_address[]" class="form-control-modern"
+                                        value="<?php echo htmlspecialchars($bank['bank_address'] ?? ''); ?>"
+                                        placeholder="e.g. Bole Road, Addis Ababa">
+                                </div>
+                                <div class="form-group-modern">
+                                    <label><i class="fas fa-code"></i> SWIFT Code</label>
+                                    <input type="text" name="bank_swift[]" class="form-control-modern"
+                                        value="<?php echo htmlspecialchars($bank['swift_code'] ?? ''); ?>"
+                                        placeholder="e.g. CBETETAA">
+                                </div>
+                                <div class="form-group-modern">
+                                    <label><i class="fas fa-phone"></i> Phone</label>
+                                    <input type="text" name="bank_phone[]" class="form-control-modern"
+                                        value="<?php echo htmlspecialchars($bank['phone'] ?? ''); ?>"
+                                        placeholder="e.g. +251-11-123-4567">
+                                </div>
+                                <div class="form-group-modern">
+                                    <label><i class="fas fa-envelope"></i> Email</label>
+                                    <input type="email" name="bank_email[]" class="form-control-modern"
+                                        value="<?php echo htmlspecialchars($bank['email'] ?? ''); ?>"
+                                        placeholder="e.g. info@bank.com">
                                 </div>
                             </div>
                         </div>
@@ -869,6 +905,22 @@ $pageTitle = 'Settings';
                     <div class="form-group-modern">
                         <label><i class="fas fa-user"></i> Account Holder <span style="color:#e74c3c;">*</span></label>
                         <input type="text" name="bank_holder[]" class="form-control-modern" placeholder="e.g. SmartWorkshop PLC">
+                    </div>
+                    <div class="form-group-modern">
+                        <label><i class="fas fa-map-marker-alt"></i> Bank Address</label>
+                        <input type="text" name="bank_address[]" class="form-control-modern" placeholder="e.g. Bole Road, Addis Ababa">
+                    </div>
+                    <div class="form-group-modern">
+                        <label><i class="fas fa-code"></i> SWIFT Code</label>
+                        <input type="text" name="bank_swift[]" class="form-control-modern" placeholder="e.g. CBETETAA">
+                    </div>
+                    <div class="form-group-modern">
+                        <label><i class="fas fa-phone"></i> Phone</label>
+                        <input type="text" name="bank_phone[]" class="form-control-modern" placeholder="e.g. +251-11-123-4567">
+                    </div>
+                    <div class="form-group-modern">
+                        <label><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" name="bank_email[]" class="form-control-modern" placeholder="e.g. info@bank.com">
                     </div>
                 </div>
             </div>`;
