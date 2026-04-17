@@ -331,18 +331,7 @@ $pageTitle = 'Team Attendance';
     <button class="mobile-menu-toggle no-print" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
     <div class="sidebar-overlay no-print"></div>
     <?php include_once __DIR__ . '/../../includes/manager_sidebar.php'; ?>
-    <div class="top-header no-print">
-        <div class="header-left"><div class="system-status"><i class="fas fa-circle"></i> Team Attendance</div></div>
-        <div class="header-right">
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($managerName,0,1)); ?></div>
-                <div>
-                    <div style="font-weight:600;font-size:14px;"><?php echo htmlspecialchars($managerName); ?></div>
-                    <div class="admin-role-badge">MANAGER</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php $pageTitle = 'Team Attendance'; include_once __DIR__ . '/../../includes/manager_header.php'; ?>
 
     <div class="main-content">
         <?php if (isset($success)): ?>

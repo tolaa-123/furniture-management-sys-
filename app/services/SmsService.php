@@ -8,7 +8,6 @@ class SmsService {
     private $username;
     private $apiKey;
     private $from;
-    private $apiUrl;
     private $logFile;
     
     public function __construct($mode = null) {
@@ -21,7 +20,6 @@ class SmsService {
             $this->username = defined('AFRICASTALKING_USERNAME') ? AFRICASTALKING_USERNAME : '';
             $this->apiKey = defined('AFRICASTALKING_API_KEY') ? AFRICASTALKING_API_KEY : '';
             $this->from = defined('AFRICASTALKING_SENDER_ID') ? AFRICASTALKING_SENDER_ID : 'SmartWorkshop';
-            $this->apiUrl = defined('AFRICASTALKING_API_URL') ? AFRICASTALKING_API_URL : 'https://api.africastalking.com';
         }
     }
     
@@ -121,9 +119,6 @@ class SmsService {
             case 'order_approved':
                 $message = "Order #{$details['order_id']} approved by customer. Ready for production! - SmartWorkshop";
                 break;
-            case 'cost_estimated':
-                $message = "Order #{$details['order_id']} has a cost estimate ready from {$details['manager_name']}. Please review and confirm payment or production. - SmartWorkshop";
-                break;
             default:
                 $message = "Notification: $type - " . json_encode($details) . " - SmartWorkshop";
         }
@@ -189,7 +184,7 @@ class SmsService {
         
         try {
             // Using Africa's Talking REST API
-            $url = $this->apiUrl . '/version1/messaging';
+            $url = 'https://api.africastalking.com/version1/messaging';
             
             $postData = http_build_query([
                 'username' => $this->username,
@@ -212,13 +207,7 @@ class SmsService {
             
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
             curl_close($ch);
-            
-            if ($curlError) {
-                error_log("SMS cURL Error: $curlError");
-                return false;
-            }
             
             if ($httpCode === 201) {
                 $responseData = json_decode($response, true);

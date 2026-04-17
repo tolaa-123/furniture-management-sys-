@@ -105,10 +105,10 @@ try {
         
         $stmtNotif = $pdo->prepare("
             INSERT INTO furn_notifications (user_id, type, title, message, related_id, link, created_at)
-            VALUES (?, 'payment', 'Cost Estimation Ready — Pay Deposit', ?, ?, '/customer/pay-deposit', NOW())
+            VALUES (?, 'order', 'Cost Estimation Ready', ?, ?, '/customer/my-orders', NOW())
         ");
         
-        $notifMessage = "Your order {$order['order_number']} has been reviewed. Total: ETB " . number_format($estimatedCost, 2) . ". Deposit required: ETB " . number_format($depositAmount, 2);
+        $notifMessage = "Your order {$order['order_number']} has been reviewed. Estimated cost: $" . number_format($estimatedCost, 2) . ". Deposit required: $" . number_format($depositAmount, 2);
         
         $stmtNotif->execute([
             $order['customer_id'],
@@ -118,38 +118,15 @@ try {
         
         // Send SMS to customer
         try {
-            // Check if SMS notifications are enabled
-            $stmtSmsCheck = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'sms_notifications'");
-            $stmtSmsCheck->execute();
-            $smsEnabled = $stmtSmsCheck->fetch(PDO::FETCH_ASSOC);
+            require_once '../../app/services/SmsService.php';
+            $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
             
-            if ($smsEnabled && $smsEnabled['setting_value'] == '1') {
-                require_once '../../app/services/SmsService.php';
-                $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
-                
-                $stmtPhone = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
-                $stmtPhone->execute([$order['customer_id']]);
-                $customer = $stmtPhone->fetch(PDO::FETCH_ASSOC);
-                
-                if ($customer && $customer['phone']) {
-                    $sent = $smsService->sendOrderNotification($customer['phone'], $orderId, 'cost_estimated', $customer['first_name']);
-                    if (!$sent) {
-                        error_log("SMS failed for cost estimate customer notification on order {$orderId}");
-                    }
-                }
-
-                // Send SMS to all managers and admins for cost estimation update
-                $stmtManagerPhones = $pdo->prepare("SELECT phone FROM furn_users WHERE role IN ('manager','admin') AND phone IS NOT NULL");
-                $stmtManagerPhones->execute();
-                $managerPhones = $stmtManagerPhones->fetchAll(PDO::FETCH_COLUMN);
-                foreach ($managerPhones as $managerPhone) {
-                    if ($managerPhone) {
-                        $smsService->sendManagerNotification($managerPhone, 'cost_estimated', [
-                            'order_id' => $orderId,
-                            'manager_name' => $managerName
-                        ]);
-                    }
-                }
+            $stmtPhone = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
+            $stmtPhone->execute([$order['customer_id']]);
+            $customer = $stmtPhone->fetch(PDO::FETCH_ASSOC);
+            
+            if ($customer && $customer['phone']) {
+                $smsService->sendOrderNotification($customer['phone'], $orderId, 'cost_estimated', $customer['first_name']);
             }
         } catch (Exception $e) {
             error_log("SMS error: " . $e->getMessage());

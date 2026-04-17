@@ -81,44 +81,35 @@ try {
     $stmt = $pdo->prepare("UPDATE furn_orders SET deposit_paid = ?, status = 'deposit_paid' WHERE id = ? AND customer_id = ?");
     $stmt->execute([$amount, $orderId, $customerId]);
     
-    // Notify managers and admins
-    $stmt = $pdo->prepare("INSERT INTO furn_notifications (user_id, type, title, message, related_id, created_at) SELECT id, 'payment', 'New Deposit Payment', 'Customer submitted deposit payment', ?, NOW() FROM furn_users WHERE role IN ('manager','admin')");
+    // Notify manager
+    $stmt = $pdo->prepare("INSERT INTO furn_notifications (user_id, type, title, message, related_id, created_at) SELECT id, 'payment', 'New Deposit Payment', 'Customer submitted deposit payment', ?, NOW() FROM furn_users WHERE role = 'manager' LIMIT 1");
     $stmt->execute([$orderId]);
     
     // Send SMS notifications
     try {
-        // Check if SMS notifications are enabled
-        $stmtSmsCheck = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'sms_notifications'");
-        $stmtSmsCheck->execute();
-        $smsEnabled = $stmtSmsCheck->fetch(PDO::FETCH_ASSOC);
+        require_once '../../app/services/SmsService.php';
+        $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
         
-        if ($smsEnabled && $smsEnabled['setting_value'] == '1') {
-            require_once '../../app/services/SmsService.php';
-            $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
-            
-            // Get customer info
-            $stmtCust = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
-            $stmtCust->execute([$customerId]);
-            $customer = $stmtCust->fetch(PDO::FETCH_ASSOC);
-            
-            // SMS to customer
-            if ($customer && $customer['phone']) {
-                $smsService->sendPaymentNotification($customer['phone'], $orderId, $amount, 'received', $customer['first_name']);
-            }
-            
-            // SMS to all managers and admins
-            $stmtMgr = $pdo->prepare("SELECT phone FROM furn_users WHERE role IN ('manager','admin') AND phone IS NOT NULL");
-            $stmtMgr->execute();
-            $managerPhones = $stmtMgr->fetchAll(PDO::FETCH_COLUMN);
-            
-            foreach ($managerPhones as $managerPhone) {
-                if ($managerPhone) {
-                    $smsService->sendManagerNotification($managerPhone, 'new_payment', [
-                        'order_id' => $orderId,
-                        'amount' => $amount
-                    ]);
-                }
-            }
+        // Get customer info
+        $stmtCust = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
+        $stmtCust->execute([$customerId]);
+        $customer = $stmtCust->fetch(PDO::FETCH_ASSOC);
+        
+        // SMS to customer
+        if ($customer && $customer['phone']) {
+            $smsService->sendPaymentNotification($customer['phone'], $orderId, $amount, 'received', $customer['first_name']);
+        }
+        
+        // SMS to manager
+        $stmtMgr = $pdo->prepare("SELECT phone FROM furn_users WHERE role = 'manager' AND phone IS NOT NULL LIMIT 1");
+        $stmtMgr->execute();
+        $managerPhone = $stmtMgr->fetchColumn();
+        
+        if ($managerPhone) {
+            $smsService->sendManagerNotification($managerPhone, 'new_payment', [
+                'order_id' => $orderId,
+                'amount' => $amount
+            ]);
         }
     } catch (Exception $e) {
         error_log("SMS error: " . $e->getMessage());

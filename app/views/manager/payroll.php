@@ -384,15 +384,7 @@ $success = $_SESSION['pay_success'] ?? null; unset($_SESSION['pay_success']);
 <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
 <div class="sidebar-overlay"></div>
 <?php include_once __DIR__ . '/../../includes/manager_sidebar.php'; ?>
-<div class="top-header">
-  <div class="header-left"><div class="system-status"><i class="fas fa-circle"></i> Payroll Management</div></div>
-  <div class="header-right">
-    <div class="admin-profile">
-      <div class="admin-avatar"><?php echo strtoupper(substr($managerName,0,1)); ?></div>
-      <div><div style="font-weight:600;font-size:14px;"><?php echo htmlspecialchars($managerName); ?></div><div class="admin-role-badge">MANAGER</div></div>
-    </div>
-  </div>
-</div>
+<?php $pageTitle = 'Payroll Management'; include_once __DIR__ . '/../../includes/manager_header.php'; ?>
 <div class="main-content">
 <?php
 // Payroll stats cards

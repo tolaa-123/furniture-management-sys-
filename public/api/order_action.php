@@ -2,6 +2,12 @@
 /**
  * API: Order approve/reject actions for manager dashboard
  */
+
+// Define CSRF_TOKEN_NAME if not already defined
+if (!defined('CSRF_TOKEN_NAME')) {
+    define('CSRF_TOKEN_NAME', 'csrf_token');
+}
+
 ob_start();
 require_once '../../config/db_config.php';
 ob_end_clean();
