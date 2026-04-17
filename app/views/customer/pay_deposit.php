@@ -110,7 +110,6 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
                         <p style="margin:6px 0;"><strong>Bank:</strong> <span id="dBank">—</span></p>
                         <p style="margin:6px 0;"><strong>Account Holder:</strong> <span id="dHolder">—</span></p>
                         <p style="margin:6px 0;"><strong>Account Number:</strong> <span id="dAccNum" style="font-size:18px;font-weight:700;color:#2c3e50;">—</span></p>
-                        <p style="margin:6px 0;"><strong>SWIFT:</strong> <span id="dSwift">—</span></p>
                     </div>
                     <small style="color:#856404;display:block;margin-top:8px;"><i class="fas fa-info-circle me-1"></i>Transfer the exact amount shown and upload your receipt below.</small>
                 </div>
@@ -249,7 +248,6 @@ $('#bankName').on('change', function() {
         $('#dBank').text(b.bank_name);
         $('#dHolder').text(b.account_holder);
         $('#dAccNum').text(b.account_number);
-        $('#dSwift').text(b.swift_code || 'N/A');
         $('#bankDetails').slideDown();
     } else {
         $('#bankDetails').slideUp();

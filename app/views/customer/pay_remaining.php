@@ -139,10 +139,6 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
                                 <p style="margin: 8px 0;"><strong>Bank Name:</strong> <span id="displayBankName" style="color: #2c3e50; font-weight: 600;">-</span></p>
                                 <p style="margin: 8px 0;"><strong>Account Holder:</strong> <span id="displayAccountHolder" style="color: #2c3e50; font-weight: 600;">-</span></p>
                                 <p style="margin: 8px 0;"><strong>Account Number:</strong> <span id="displayAccountNumber" style="color: #2c3e50; font-weight: 600; font-size: 18px;">-</span></p>
-                                <p style="margin: 8px 0;"><strong>SWIFT Code:</strong> <span id="displaySwiftCode" style="color: #2c3e50; font-weight: 600;">-</span></p>
-                                <p style="margin: 8px 0;"><strong>Bank Address:</strong> <span id="displayBankAddress" style="color: #2c3e50; font-weight: 600;">-</span></p>
-                                <p style="margin: 8px 0;"><strong>Phone:</strong> <span id="displayPhone" style="color: #2c3e50; font-weight: 600;">-</span></p>
-                                <p style="margin: 8px 0;"><strong>Email:</strong> <span id="displayEmail" style="color: #2c3e50; font-weight: 600;">-</span></p>
                             </div>
                             <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
                                 <small><i class="fas fa-info-circle me-1"></i>Please transfer the exact amount and upload the receipt below</small>
@@ -242,10 +238,6 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
                 $('#displayBankName').text(bank.bank_name);
                 $('#displayAccountHolder').text(bank.account_holder);
                 $('#displayAccountNumber').text(bank.account_number);
-                $('#displaySwiftCode').text(bank.swift_code || 'N/A');
-                $('#displayBankAddress').text(bank.bank_address || 'N/A');
-                $('#displayPhone').text(bank.phone || 'N/A');
-                $('#displayEmail').text(bank.email || 'N/A');
                 $('#bankAccountDetails').slideDown();
             } else {
                 $('#bankAccountDetails').slideUp();

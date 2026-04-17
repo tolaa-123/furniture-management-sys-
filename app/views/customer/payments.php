@@ -141,10 +141,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                     $('#displayBankName').text(bank.bank_name);
                     $('#displayAccountHolder').text(bank.account_holder);
                     $('#displayAccountNumber').text(bank.account_number);
-                    $('#displaySwiftCode').text(bank.swift_code || 'N/A');
-                    $('#displayBankAddress').text(bank.bank_address || 'N/A');
-                    $('#displayPhone').text(bank.phone || 'N/A');
-                    $('#displayEmail').text(bank.email || 'N/A');
                     $('#bankDetailsDisplay').slideDown();
                 } else {
                     $('#bankDetailsDisplay').slideUp();
@@ -305,10 +301,6 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                 $('#displayBankName').text(bank.bank_name);
                 $('#displayAccountHolder').text(bank.account_holder);
                 $('#displayAccountNumber').text(bank.account_number);
-                $('#displaySwiftCode').text(bank.swift_code || 'N/A');
-                $('#displayBankAddress').text(bank.bank_address || 'N/A');
-                $('#displayPhone').text(bank.phone || 'N/A');
-                $('#displayEmail').text(bank.email || 'N/A');
                 $('#bankDetailsDisplay').slideDown();
             } else {
                 $('#bankDetailsDisplay').slideUp();

@@ -1,43 +1,38 @@
 <?php
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: ' . BASE_URL . '/public/login');
-    exit();
+    header('Location: ' . BASE_URL . '/public/login'); exit();
 }
-
-$csrf_token = $_SESSION['csrf_token'] ?? null;
-if (!$csrf_token) {
-    $csrf_token = bin2hex(random_bytes(32));
-    $_SESSION['csrf_token'] = $csrf_token;
-}
-
+$csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? bin2hex(random_bytes(32));
+$_SESSION[CSRF_TOKEN_NAME] = $csrf_token;
 require_once __DIR__ . '/../../../config/db_config.php';
 
-// Handle form submission
-$message = '';
-$messageType = '';
+$message = ''; $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF token check for all POST actions
-    if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        $message = 'Invalid CSRF token.';
-        $messageType = 'danger';
+    if (!isset($_POST['csrf_to'csrf_token'])) {
+        $message = 'Invalid CSRF token.'; $messageType = 'danger';
     } else {
         $action = $_POST['action'] ?? '';
         if ($action === 'add') {
-            $bank_name = $_POST['bank_name'] ?? '';
-            $account_number = $_POST['account_number'] ?? '';
-            $account_holder = $_POST['account_holder'] ?? '';
-            $bank_address = $_POST['bank_address'] ?? '';
-            $swift_code = $_POST['swift_code'] ?? '';
-            $routing_number = $_POST['routing_number'] ?? '';
-            $phone = $_POST['phone'] ?? '';
-            $email = $_POST['email'] ?? '';
-            if ($bank_name && $account_number && $account_holder) {
+            $bn = trim($_POST['bank_name'] ?? '');
+'account_number'] ?? '');
+            $ah = trim($_POST['account_holder'] ?? '');
+            if ($bn && $an && $ah) {
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO furn_bank_accounts (bank_name, account_number, account_holder, bank_address, swift_code, routing_number, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$bank_name, $account_number, $account_holder, $bank_address, $swift_code, $routing_number, $phone, $email]);
-                    $message = 'Bank account added successfully!';
-                    $messageType = 'success';
+                    $pdo->prepare("INSERT$bn,$an,$ah]);
+                    $message = 'Bank account added!'; $messageType = 'success';
+             'danger'; }
+            } else { $message = 'All fiel
+        } elseif ($action === 'edit') {
+            $id = intval($_POST['id'] ?? 0);
+            $bn = trim($_POST['bank_name'] ?? '');
+            $an = trim($_POST['account_number'] ?? '');
+            $ah = trim($_POST['account_holder'] ?? '');
+            if ($id && $bn && $an && $ah) {
+                try {
+                    $pdo->prepare("UPDATE furn_bank_accounts SET bank_name=?, accour=? WHERE id=?")->execute([$bn,$an,$ah,$id]);
+                    $message = 'Bank account updated!'; $messageType = 'success';
+                } catcessageType = 'success';
                 } catch (Exception $e) {
                     $message = 'Error: ' . $e->getMessage();
                     $messageType = 'danger';
@@ -51,15 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bank_name = $_POST['bank_name'] ?? '';
             $account_number = $_POST['account_number'] ?? '';
             $account_holder = $_POST['account_holder'] ?? '';
-            $bank_address = $_POST['bank_address'] ?? '';
-            $swift_code = $_POST['swift_code'] ?? '';
-            $routing_number = $_POST['routing_number'] ?? '';
-            $phone = $_POST['phone'] ?? '';
-            $email = $_POST['email'] ?? '';
             if ($id && $bank_name && $account_number && $account_holder) {
                 try {
-                    $stmt = $pdo->prepare("UPDATE furn_bank_accounts SET bank_name = ?, account_number = ?, account_holder = ?, bank_address = ?, swift_code = ?, routing_number = ?, phone = ?, email = ? WHERE id = ?");
-                    $stmt->execute([$bank_name, $account_number, $account_holder, $bank_address, $swift_code, $routing_number, $phone, $email, $id]);
+                    $stmt = $pdo->prepare("UPDATE furn_bank_accounts SET bank_name = ?, account_number = ?, account_holder = ? WHERE id = ?");
+                    $stmt->execute([$bank_name, $account_number, $account_holder, $id]);
                     $message = 'Bank account updated successfully!';
                     $messageType = 'success';
                 } catch (Exception $e) {
@@ -142,31 +132,6 @@ $banks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="mb-3">
                             <label class="form-label" style="font-weight: 600;">Account Holder *</label>
                             <input type="text" name="account_holder" class="form-control" required style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600;">Bank Address</label>
-                            <input type="text" name="bank_address" class="form-control" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600;">SWIFT Code</label>
-                            <input type="text" name="swift_code" class="form-control" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600;">Routing Number</label>
-                            <input type="text" name="routing_number" class="form-control" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600;">Phone</label>
-                            <input type="text" name="phone" class="form-control" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label" style="font-weight: 600;">Email</label>
-                            <input type="email" name="email" class="form-control" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
                         </div>
 
                         <button type="submit" style="background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; width: 100%; cursor: pointer;">
@@ -257,26 +222,6 @@ $banks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <label class="form-label">Account Holder *</label>
                             <input type="text" name="account_holder" id="edit_account_holder" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Bank Address</label>
-                            <input type="text" name="bank_address" id="edit_bank_address" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">SWIFT Code</label>
-                            <input type="text" name="swift_code" id="edit_swift_code" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Routing Number</label>
-                            <input type="text" name="routing_number" id="edit_routing_number" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="text" name="phone" id="edit_phone" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="email" id="edit_email" class="form-control">
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -294,11 +239,6 @@ $banks = $stmt->fetchAll(PDO::FETCH_ASSOC);
             document.getElementById('edit_bank_name').value = bank.bank_name;
             document.getElementById('edit_account_number').value = bank.account_number;
             document.getElementById('edit_account_holder').value = bank.account_holder;
-            document.getElementById('edit_bank_address').value = bank.bank_address || '';
-            document.getElementById('edit_swift_code').value = bank.swift_code || '';
-            document.getElementById('edit_routing_number').value = bank.routing_number || '';
-            document.getElementById('edit_phone').value = bank.phone || '';
-            document.getElementById('edit_email').value = bank.email || '';
             new bootstrap.Modal(document.getElementById('editModal')).show();
         }
     </script>
