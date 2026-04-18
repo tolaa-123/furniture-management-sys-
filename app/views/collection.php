@@ -22,12 +22,12 @@ $collections = [
         'description' => 'Explore our luxurious and comfortable bed collection',
         'headerImage' => 'https://picsum.photos/1200/400?random=2',
         'products' => [
-            ['name' => 'King Size Bed Frame', 'price' => 'ETB 65,000', 'image' => 'https://picsum.photos/600/400?random=201'],
-            ['name' => 'Queen Size Platform', 'price' => 'ETB 48,000', 'image' => 'https://picsum.photos/600/400?random=202'],
-            ['name' => 'Bunk Bed Set', 'price' => 'ETB 35,000', 'image' => 'https://picsum.photos/600/400?random=203'],
-            ['name' => 'Upholstered Headboard', 'price' => 'ETB 28,000', 'image' => 'https://picsum.photos/600/400?random=204'],
-            ['name' => 'Storage Bed Frame', 'price' => 'ETB 55,000', 'image' => 'https://picsum.photos/600/400?random=205'],
-            ['name' => 'Four-Poster Bed', 'price' => 'ETB 72,000', 'image' => 'https://picsum.photos/600/400?random=206']
+            ['name' => 'King Size Bed Frame',    'price' => 'ETB 65,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed1.jpg'],
+            ['name' => 'Queen Size Platform',    'price' => 'ETB 48,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed2.jpg'],
+            ['name' => 'Bunk Bed Set',           'price' => 'ETB 35,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed3.jpg'],
+            ['name' => 'Upholstered Headboard',  'price' => 'ETB 28,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed4.jpg'],
+            ['name' => 'Storage Bed Frame',      'price' => 'ETB 55,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed5.jpg'],
+            ['name' => 'Four-Poster Bed',        'price' => 'ETB 72,000', 'image' => BASE_URL . '/public/assets/images/collections/bed/bed6.jpg'],
         ]
     ],
     'table' => [
