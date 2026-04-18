@@ -48,12 +48,12 @@ $collections = [
         'description' => 'Find your perfect seating solution in our chair collection',
         'headerImage' => 'https://picsum.photos/1200/400?random=4',
         'products' => [
-            ['name' => 'Executive Office Chair', 'price' => 'ETB 28,000', 'image' => 'https://picsum.photos/600/400?random=401'],
-            ['name' => 'Dining Chair Set', 'price' => 'ETB 15,000', 'image' => 'https://picsum.photos/600/400?random=402'],
-            ['name' => 'Lounge Chair', 'price' => 'ETB 22,000', 'image' => 'https://picsum.photos/600/400?random=403'],
-            ['name' => 'Bar Stool', 'price' => 'ETB 8,000', 'image' => 'https://picsum.photos/600/400?random=404'],
-            ['name' => 'Rocking Chair', 'price' => 'ETB 18,000', 'image' => 'https://picsum.photos/600/400?random=405'],
-            ['name' => 'Gaming Chair', 'price' => 'ETB 32,000', 'image' => 'https://picsum.photos/600/400?random=406']
+            ['name' => 'Executive Office Chair', 'price' => 'ETB 28,000', 'image' => BASE_URL . '/public/assets/images/collections/chair/chair1.jpg'],
+            ['name' => 'Dining Chair Set',       'price' => 'ETB 15,000', 'image' => BASE_URL . '/public/assets/images/collections/chair/chair2.jpg'],
+            ['name' => 'Lounge Chair',           'price' => 'ETB 22,000', 'image' => BASE_URL . '/public/assets/images/collections/chair/chair3.jpg'],
+            ['name' => 'Bar Stool',              'price' => 'ETB 8,000',  'image' => BASE_URL . '/public/assets/images/collections/chair/chair4.jpg'],
+            ['name' => 'Rocking Chair',          'price' => 'ETB 18,000', 'image' => BASE_URL . '/public/assets/images/collections/chair/chair5.jpg'],
+            ['name' => 'Gaming Chair',           'price' => 'ETB 32,000', 'image' => BASE_URL . '/public/assets/images/collections/chair/chair6.jpg'],
         ]
     ]
 ];
