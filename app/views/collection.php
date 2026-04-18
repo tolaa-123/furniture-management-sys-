@@ -35,12 +35,12 @@ $collections = [
         'description' => 'Browse our elegant dining and work tables',
         'headerImage' => 'https://picsum.photos/1200/400?random=3',
         'products' => [
-            ['name' => 'Oak Dining Table', 'price' => 'ETB 38,000', 'image' => 'https://picsum.photos/600/400?random=301'],
-            ['name' => 'Glass Coffee Table', 'price' => 'ETB 22,000', 'image' => 'https://picsum.photos/600/400?random=302'],
-            ['name' => 'Executive Desk', 'price' => 'ETB 45,000', 'image' => 'https://picsum.photos/600/400?random=303'],
-            ['name' => 'Round Dining Set', 'price' => 'ETB 58,000', 'image' => 'https://picsum.photos/600/400?random=304'],
-            ['name' => 'Conference Table', 'price' => 'ETB 85,000', 'image' => 'https://picsum.photos/600/400?random=305'],
-            ['name' => 'Side Table Set', 'price' => 'ETB 18,000', 'image' => 'https://picsum.photos/600/400?random=306']
+            ['name' => 'Oak Dining Table',   'price' => 'ETB 38,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table1.jpg'],
+            ['name' => 'Glass Coffee Table', 'price' => 'ETB 22,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table2.jpg'],
+            ['name' => 'Executive Desk',     'price' => 'ETB 45,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table3.jpg'],
+            ['name' => 'Round Dining Set',   'price' => 'ETB 58,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table4.jpg'],
+            ['name' => 'Conference Table',   'price' => 'ETB 85,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table5.jpg'],
+            ['name' => 'Side Table Set',     'price' => 'ETB 18,000', 'image' => BASE_URL . '/public/assets/images/collections/table/table6.jpg'],
         ]
     ],
     'chair' => [
