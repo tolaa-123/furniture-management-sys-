@@ -326,7 +326,7 @@
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&h=400&q=80" class="img-fluid w-100" alt="Featured Furniture 1">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery1.jpg" class="img-fluid w-100" alt="Featured Furniture 1" style="height:280px;object-fit:cover;">
                         <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
                             <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
                         </div>
@@ -334,7 +334,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&h=400&q=80" class="img-fluid w-100" alt="Featured Furniture 2">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery2.jpg" class="img-fluid w-100" alt="Featured Furniture 2" style="height:280px;object-fit:cover;">
                         <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
                             <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
                         </div>
@@ -342,7 +342,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&h=400&q=80" class="img-fluid w-100" alt="Featured Furniture 3">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery3.jpg" class="img-fluid w-100" alt="Featured Furniture 3" style="height:280px;object-fit:cover;">
                         <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
                             <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
                         </div>
