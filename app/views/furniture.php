@@ -63,6 +63,45 @@ require_once '../config/config.php';
                     </div>
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery4.jpg" class="card-img-top" alt="Cabinet" style="height:220px;object-fit:cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">Wooden Cabinet</h5>
+                        <p class="card-text">Elegant storage cabinet crafted from solid wood with smooth finish.</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 text-primary">ETB 18,000</span>
+                            <button class="btn btn-primary" onclick="addToCart('Wooden Cabinet')">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery5.jpg" class="card-img-top" alt="Wardrobe" style="height:220px;object-fit:cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">Modern Wardrobe</h5>
+                        <p class="card-text">Spacious wardrobe with multiple compartments and mirror finish.</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 text-primary">ETB 32,000</span>
+                            <button class="btn btn-primary" onclick="addToCart('Modern Wardrobe')">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery6.jpg" class="card-img-top" alt="Shelf" style="height:220px;object-fit:cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">Wall Shelf Unit</h5>
+                        <p class="card-text">Stylish wall-mounted shelf unit perfect for books and decor.</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="h5 text-primary">ETB 12,000</span>
+                            <button class="btn btn-primary" onclick="addToCart('Wall Shelf Unit')">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
