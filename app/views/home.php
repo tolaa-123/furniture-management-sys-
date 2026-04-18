@@ -323,34 +323,60 @@
                 <h2 class="fw-bold">Featured <span class="text-primary">Gallery</span></h2>
                 <p class="lead">Our finest craftsmanship showcased</p>
             </div>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery1.jpg" class="img-fluid w-100" alt="Featured Furniture 1" style="height:280px;object-fit:cover;">
-                        <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
-                            <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
-                        </div>
+            <!-- Gallery Slideshow -->
+            <div style="position:relative;width:100%;height:420px;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.15);" id="gallerySlideshow">
+                <?php
+                $galleryImages = ['gallery1.jpg','gallery2.jpg','gallery3.jpg','gallery4.jpg','gallery5.jpg','gallery6.jpg'];
+                foreach ($galleryImages as $idx => $img):
+                    $active = $idx === 0 ? '1' : '0';
+                ?>
+                <div class="gallery-slide" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:<?php echo $active; ?>;transition:opacity 0.8s ease-in-out;">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/<?php echo $img; ?>"
+                         alt="Gallery <?php echo $idx+1; ?>"
+                         style="width:100%;height:100%;object-fit:cover;"
+                         onerror="this.closest('.gallery-slide').style.display='none'">
+                    <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 30px;background:linear-gradient(transparent,rgba(0,0,0,0.5));">
+                        <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm"><i class="fas fa-search-plus me-2"></i>View Details</a>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery2.jpg" class="img-fluid w-100" alt="Featured Furniture 2" style="height:280px;object-fit:cover;">
-                        <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
-                            <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="position-relative overflow-hidden rounded-3 shadow-sm h-100">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery3.jpg" class="img-fluid w-100" alt="Featured Furniture 3" style="height:280px;object-fit:cover;">
-                        <div class="overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 opacity-0 hover-effect">
-                            <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light"><i class="fas fa-search-plus me-2"></i>View Details</a>
-                        </div>
-                    </div>
+                <?php endforeach; ?>
+                <!-- Prev/Next arrows -->
+                <button onclick="galleryPrev()" style="position:absolute;left:15px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;z-index:10;">&#8249;</button>
+                <button onclick="galleryNext()" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;z-index:10;">&#8250;</button>
+                <!-- Dots -->
+                <div style="position:absolute;bottom:15px;right:20px;display:flex;gap:6px;z-index:10;" id="galleryDots">
+                    <?php foreach ($galleryImages as $idx => $img): ?>
+                    <span onclick="galleryGoTo(<?php echo $idx; ?>)" style="width:10px;height:10px;border-radius:50%;background:<?php echo $idx===0?'white':'rgba(255,255,255,0.5)'; ?>;cursor:pointer;transition:background .3s;" class="gallery-dot"></span>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
     </section>
+    <script>
+    (function(){
+        const slides = document.querySelectorAll('.gallery-slide');
+        const dots   = document.querySelectorAll('.gallery-dot');
+        let current  = 0;
+        let timer;
+
+        function show(n) {
+            slides[current].style.opacity = '0';
+            dots[current].style.background = 'rgba(255,255,255,0.5)';
+            current = (n + slides.length) % slides.length;
+            slides[current].style.opacity = '1';
+            dots[current].style.background = 'white';
+        }
+
+        function startTimer() { timer = setInterval(() => show(current + 1), 4000); }
+        function resetTimer()  { clearInterval(timer); startTimer(); }
+
+        window.galleryNext = function() { show(current + 1); resetTimer(); };
+        window.galleryPrev = function() { show(current - 1); resetTimer(); };
+        window.galleryGoTo = function(n) { show(n); resetTimer(); };
+
+        startTimer();
+    })();
+    </script>
 
     <!-- How It Works -->
     <section id="how-it-works" class="py-5 bg-light">
