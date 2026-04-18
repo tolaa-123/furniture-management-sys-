@@ -255,7 +255,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 rounded-4 overflow-hidden shadow-lg h-100 product-card">
                         <div class="position-relative">
-                            <img src="https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&w=400&h=300&fit=crop" class="card-img-top" alt="African Style Sofa"> <!-- African Style Sofa -->
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/collections/sofa.jpg" class="card-img-top" alt="Sofa Collection" style="height:220px;object-fit:cover;">
                             <div class="product-badge bg-primary text-white position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill">Popular</div>
                         </div>
                         <div class="card-body text-center p-4">
@@ -270,7 +270,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 rounded-4 overflow-hidden shadow-lg h-100 product-card">
                         <div class="position-relative">
-                            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&h=300&q=80" class="card-img-top" alt="Beds"> <!-- King Size Bed -->
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/collections/bed.jpg" class="card-img-top" alt="Bed Collection" style="height:220px;object-fit:cover;">
                             <div class="product-badge bg-success text-white position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill">Best Seller</div>
                         </div>
                         <div class="card-body text-center p-4">
@@ -285,7 +285,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 rounded-4 overflow-hidden shadow-lg h-100 product-card">
                         <div class="position-relative">
-                            <img src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&h=300&q=80" class="card-img-top" alt="Tables"> <!-- Oak Dining Table -->
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/collections/table.jpg" class="card-img-top" alt="Table Collection" style="height:220px;object-fit:cover;">
                             <div class="product-badge bg-warning text-dark position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill">New</div>
                         </div>
                         <div class="card-body text-center p-4">
@@ -300,7 +300,7 @@
                 <div class="col-lg-3 col-md-6">
                     <div class="card border-0 rounded-4 overflow-hidden shadow-lg h-100 product-card">
                         <div class="position-relative">
-                            <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&h=300&q=80" class="card-img-top" alt="Chairs"> <!-- Executive Office Chair -->
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/collections/chair.jpg" class="card-img-top" alt="Chair Collection" style="height:220px;object-fit:cover;">
                             <div class="product-badge bg-info text-white position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill">Trending</div>
                         </div>
                         <div class="card-body text-center p-4">
