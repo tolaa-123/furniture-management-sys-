@@ -26,7 +26,7 @@ require_once '../config/config.php';
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card h-100">
-                    <img src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&h=400&q=80" class="card-img-top" alt="Featured Product 1">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery1.jpg" class="card-img-top" alt="Modern Sofa" style="height:220px;object-fit:cover;">
                     <div class="card-body">
                         <h5 class="card-title">Modern Sofa</h5>
                         <p class="card-text">A sleek and comfortable sofa perfect for modern living rooms.</p>
@@ -39,7 +39,7 @@ require_once '../config/config.php';
             </div>
             <div class="col-md-4">
                 <div class="card h-100">
-                    <img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&h=400&q=80" class="card-img-top" alt="Featured Product 2">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery2.jpg" class="card-img-top" alt="Wooden Dining Table" style="height:220px;object-fit:cover;">
                     <div class="card-body">
                         <h5 class="card-title">Wooden Dining Table</h5>
                         <p class="card-text">Handcrafted dining table made from premium hardwood.</p>
@@ -52,7 +52,7 @@ require_once '../config/config.php';
             </div>
             <div class="col-md-4">
                 <div class="card h-100">
-                    <img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=600&h=400&q=80" class="card-img-top" alt="Featured Product 3">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery3.jpg" class="card-img-top" alt="King Size Bed" style="height:220px;object-fit:cover;">
                     <div class="card-body">
                         <h5 class="card-title">King Size Bed</h5>
                         <p class="card-text">Comfortable king-size bed frame with elegant headboard.</p>
