@@ -9,12 +9,12 @@ $collections = [
         'description' => 'Discover our comfortable and stylish sofa collection',
         'headerImage' => 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
         'products' => [
-            ['name' => 'Modern L-Shaped Sofa', 'price' => 'ETB 45,000', 'image' => 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'],
-            ['name' => 'Classic Three-Seater', 'price' => 'ETB 38,000', 'image' => 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=600&q=80'],
-            ['name' => 'Luxury Recliner', 'price' => 'ETB 52,000', 'image' => 'https://images.unsplash.com/photo-1460518451285-97b6aa326961?auto=format&fit=crop&w=600&q=80'],
-            ['name' => 'Corner Sofa', 'price' => 'ETB 42,000', 'image' => 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80'],
-            ['name' => 'Velvet Chesterfield', 'price' => 'ETB 48,000', 'image' => 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=600&q=80'],
-            ['name' => 'Minimalist Sofa', 'price' => 'ETB 35,000', 'image' => 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'] // Repeats first for 6th item
+            ['name' => 'Modern L-Shaped Sofa',  'price' => 'ETB 45,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa1.jpg'],
+            ['name' => 'Classic Three-Seater',   'price' => 'ETB 38,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa2.jpg'],
+            ['name' => 'Luxury Recliner',        'price' => 'ETB 52,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa3.jpg'],
+            ['name' => 'Corner Sofa',            'price' => 'ETB 42,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa4.jpg'],
+            ['name' => 'Velvet Chesterfield',    'price' => 'ETB 48,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa5.jpg'],
+            ['name' => 'Minimalist Sofa',        'price' => 'ETB 35,000', 'image' => BASE_URL . '/public/assets/images/collections/sofa/sofa6.jpg'],
         ]
     ],
     'bed' => [
