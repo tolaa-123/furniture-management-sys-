@@ -163,21 +163,68 @@ function viewMessage(msg) {
         <div style="margin-bottom:12px;"><strong>Email:</strong> <a href="mailto:${msg.email}">${msg.email}</a></div>
         <div style="margin-bottom:12px;"><strong>Subject:</strong> ${msg.subject}</div>
         <div style="margin-bottom:12px;"><strong>Date:</strong> ${msg.created_at}</div>
-        <div style="background:#f8f9fa;padding:14px;border-radius:8px;border-left:4px solid #3498db;white-space:pre-wrap;font-size:14px;line-height:1.6;">${msg.message}</div>
-        <div style="margin-top:14px;">
-            <a href="mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}" 
-               style="background:#27ae60;color:white;padding:9px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
-                <i class="fas fa-reply"></i> Reply via Email
-            </a>
+        <div style="background:#f8f9fa;padding:14px;border-radius:8px;border-left:4px solid #3498db;white-space:pre-wrap;font-size:14px;line-height:1.6;margin-bottom:16px;">${msg.message}</div>
+        <div style="border-top:1px solid #eee;padding-top:14px;">
+            <strong style="font-size:14px;"><i class="fas fa-reply" style="color:#27ae60;"></i> Reply to ${msg.first_name}</strong>
+            <textarea id="replyText" rows="4" placeholder="Type your reply here..." 
+                style="width:100%;margin-top:8px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+            <div style="display:flex;gap:10px;margin-top:10px;">
+                <button onclick="sendReply('${msg.id}','${msg.email.replace(/'/g,"\\'")}','${msg.subject.replace(/'/g,"\\'")}','${msg.first_name.replace(/'/g,"\\'")}' )"
+                    id="replyBtn"
+                    style="background:#27ae60;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+                    <i class="fas fa-paper-plane"></i> Send Reply
+                </button>
+                <div id="replyStatus" style="display:flex;align-items:center;font-size:13px;"></div>
+            </div>
         </div>
     `;
     document.getElementById('msgModal').style.display = 'flex';
 }
+function sendReply(msgId, toEmail, subject, firstName) {
+    const reply = document.getElementById('replyText').value.trim();
+    if (!reply) { alert('Please type a reply message.'); return; }
+    const btn = document.getElementById('replyBtn');
+    const status = document.getElementById('replyStatus');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    status.innerHTML = '';
+    fetch('<?php echo BASE_URL; ?>/public/api/reply_contact.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'msg_id=' + encodeURIComponent(msgId) +
+              '&to_email=' + encodeURIComponent(toEmail) +
+              '&subject=' + encodeURIComponent('Re: ' + subject) +
+              '&first_name=' + encodeURIComponent(firstName) +
+              '&reply=' + encodeURIComponent(reply) +
+              '&csrf_token=<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? '', ENT_QUOTES); ?>'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            status.innerHTML = '<span style="color:#27ae60;"><i class="fas fa-check-circle"></i> Reply sent!</span>';
+            btn.innerHTML = '<i class="fas fa-check"></i> Sent';
+            document.getElementById('replyText').value = '';
+            setTimeout(() => document.getElementById('msgModal').style.display = 'none', 1500);
+        } else {
+            status.innerHTML = '<span style="color:#e74c3c;">' + data.message + '</span>';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reply';
+        }
+    })
+    .catch(() => {
+        status.innerHTML = '<span style="color:#e74c3c;">Network error.</span>';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reply';
+    });
+}
+</script>
+<script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
+</body>
+</html>
+
+<script>
 document.addEventListener('click', function(e) {
     const modal = document.getElementById('msgModal');
     if (e.target === modal) modal.style.display = 'none';
 });
 </script>
-<script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
-</body>
-</html>
