@@ -332,7 +332,7 @@
                 <div style="min-width:100%;height:100%;flex-shrink:0;position:relative;">
                     <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/<?php echo $img; ?>"
                          alt="Gallery <?php echo $idx+1; ?>"
-                         style="width:100%;height:100%;object-fit:cover;"
+                         style="width:100%;height:100%;object-fit:fill;"
                          onerror="this.parentElement.style.display='none'">
                     <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 30px;background:linear-gradient(transparent,rgba(0,0,0,0.5));">
                         <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm"><i class="fas fa-search-plus me-2"></i>View Details</a>
