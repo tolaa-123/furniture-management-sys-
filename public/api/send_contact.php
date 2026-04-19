@@ -6,6 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Method not allowed']); exit;
 }
 
+// Capture any accidental output from config
 ob_start();
 require_once '../../config/db_config.php';
 ob_end_clean();
@@ -17,13 +18,11 @@ $subject   = trim($_POST['subject']   ?? '');
 $message   = trim($_POST['message']   ?? '');
 
 if (!$firstName || !$lastName || !$email || !$subject || !$message) {
-    http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'All fields are required.']); exit;
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid email address.']); exit;
+    echo json_encode(['success' => false, 'message' => 'Invalid email address: "' . htmlspecialchars($email) . '"']); exit;
 }
 
 $firstName = substr($firstName, 0, 100);
