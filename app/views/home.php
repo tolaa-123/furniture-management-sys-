@@ -219,19 +219,19 @@
             <div id="sofaSlider" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner rounded-4 shadow-lg">
                     <div class="carousel-item active">
-                        <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80" class="d-block w-100" alt="Modern Grey Sofa" loading="lazy" style="height:400px;object-fit:cover;">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f1.jpg" class="d-block w-100" alt="Sofa 1" loading="lazy" style="height:400px;object-fit:cover;">
                     </div>
                     <div class="carousel-item">
-                        <img src="https://images.unsplash.com/photo-1540574163026-643ea20ade25?auto=format&fit=crop&w=800&q=80" class="d-block w-100" alt="Luxury Mahogany Sofa" loading="lazy" style="height:400px;object-fit:cover;">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f2.jpg" class="d-block w-100" alt="Sofa 2" loading="lazy" style="height:400px;object-fit:cover;">
                     </div>
                     <div class="carousel-item">
-                        <img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=800&q=80" class="d-block w-100" alt="Minimalist Cream Sofa" loading="lazy" style="height:400px;object-fit:cover;">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f3.jpg" class="d-block w-100" alt="Sofa 3" loading="lazy" style="height:400px;object-fit:cover;">
                     </div>
                     <div class="carousel-item">
-                        <img src="https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?auto=format&fit=crop&w=800&q=80" class="d-block w-100" alt="Classic Leather Sofa" loading="lazy" style="height:400px;object-fit:cover;">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f4.jpg" class="d-block w-100" alt="Sofa 4" loading="lazy" style="height:400px;object-fit:cover;">
                     </div>
                     <div class="carousel-item">
-                        <img src="https://images.unsplash.com/photo-1550254478-ead40cc54513?auto=format&fit=crop&w=800&q=80" class="d-block w-100" alt="Elegant Blue Velvet" loading="lazy" style="height:400px;object-fit:cover;">
+                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f5.jpg" class="d-block w-100" alt="Sofa 5" loading="lazy" style="height:400px;object-fit:cover;">
                     </div>
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#sofaSlider" data-bs-slide="prev">
