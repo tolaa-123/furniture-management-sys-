@@ -325,21 +325,21 @@
             </div>
             <!-- Gallery Slideshow -->
             <div style="position:relative;width:100%;height:420px;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.15);" id="gallerySlideshow">
+                <div id="galleryTrack" style="display:flex;height:100%;transition:transform 0.7s cubic-bezier(.77,0,.18,1);">
                 <?php
                 $galleryImages = ['gallery1.jpg','gallery2.jpg','gallery3.jpg','gallery4.jpg','gallery5.jpg','gallery6.jpg'];
-                foreach ($galleryImages as $idx => $img):
-                    $active = $idx === 0 ? '1' : '0';
-                ?>
-                <div class="gallery-slide" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:<?php echo $active; ?>;transition:opacity 0.8s ease-in-out;">
+                foreach ($galleryImages as $idx => $img): ?>
+                <div style="min-width:100%;height:100%;flex-shrink:0;position:relative;">
                     <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/<?php echo $img; ?>"
                          alt="Gallery <?php echo $idx+1; ?>"
-                         style="width:100%;height:100%;object-fit:contain;background:#f5f0eb;"
-                         onerror="this.closest('.gallery-slide').style.display='none'">
+                         style="width:100%;height:100%;object-fit:cover;"
+                         onerror="this.parentElement.style.display='none'">
                     <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 30px;background:linear-gradient(transparent,rgba(0,0,0,0.5));">
                         <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm"><i class="fas fa-search-plus me-2"></i>View Details</a>
                     </div>
                 </div>
                 <?php endforeach; ?>
+                </div>
                 <!-- Prev/Next arrows -->
                 <button onclick="galleryPrev()" style="position:absolute;left:15px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;z-index:10;">&#8249;</button>
                 <button onclick="galleryNext()" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;z-index:10;">&#8250;</button>
@@ -354,16 +354,16 @@
     </section>
     <script>
     (function(){
-        const slides = document.querySelectorAll('.gallery-slide');
+        const track  = document.getElementById('galleryTrack');
         const dots   = document.querySelectorAll('.gallery-dot');
+        const total  = dots.length;
         let current  = 0;
         let timer;
 
         function show(n) {
-            slides[current].style.opacity = '0';
             dots[current].style.background = 'rgba(255,255,255,0.5)';
-            current = (n + slides.length) % slides.length;
-            slides[current].style.opacity = '1';
+            current = (n + total) % total;
+            track.style.transform = 'translateX(-' + (current * 100) + '%)';
             dots[current].style.background = 'white';
         }
 
