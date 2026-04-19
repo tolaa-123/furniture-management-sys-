@@ -22,7 +22,7 @@ if (!$firstName || !$lastName || !$email || !$subject || !$message) {
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid email address: "' . htmlspecialchars($email) . '"']); exit;
+    echo json_encode(['success' => false, 'message' => 'Invalid email address.']); exit;
 }
 
 $firstName = substr($firstName, 0, 100);

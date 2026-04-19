@@ -259,8 +259,7 @@ require_once '../config/config.php';
             
             // Use XMLHttpRequest
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', '<?php echo BASE_URL; ?>/public/api/simple_contact.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.open('POST', '<?php echo BASE_URL; ?>/public/api/send_contact.php', true);
             
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
@@ -268,7 +267,7 @@ require_once '../config/config.php';
                         try {
                             const response = JSON.parse(xhr.responseText);
                             if (response.success) {
-                                alert('Thank you for your message! We will get back to you soon. Message ID: #' + response.data.message_id);
+                                alert('Thank you for your message! We will get back to you soon.');
                                 document.getElementById('contactForm').reset();
                             } else {
                                 alert('Error: ' + response.message);
