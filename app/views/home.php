@@ -209,42 +209,6 @@
         </div>
     </section>
 
-    <!-- Featured Sofa Slider -->
-    <section id="featured-sofa" class="py-5" style="background: #f8f8f8;">
-        <div class="container">
-            <div class="text-center mb-4">
-                <h2 class="fw-bold">Featured <span class="text-primary">Sofa</span> Collection</h2>
-                <p class="lead">Explore our most popular and elegant sofas</p>
-            </div>
-            <div id="sofaSlider" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner rounded-4 shadow-lg">
-                    <div class="carousel-item active">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f1.jpg" class="d-block w-100" alt="Sofa 1" loading="lazy" style="height:400px;object-fit:cover;">
-                    </div>
-                    <div class="carousel-item">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f2.jpg" class="d-block w-100" alt="Sofa 2" loading="lazy" style="height:400px;object-fit:cover;">
-                    </div>
-                    <div class="carousel-item">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f3.jpg" class="d-block w-100" alt="Sofa 3" loading="lazy" style="height:400px;object-fit:cover;">
-                    </div>
-                    <div class="carousel-item">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f4.jpg" class="d-block w-100" alt="Sofa 4" loading="lazy" style="height:400px;object-fit:cover;">
-                    </div>
-                    <div class="carousel-item">
-                        <img src="<?php echo BASE_URL; ?>/public/assets/images/sofa-featured/sofa-f5.jpg" class="d-block w-100" alt="Sofa 5" loading="lazy" style="height:400px;object-fit:cover;">
-                    </div>
-                </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#sofaSlider" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#sofaSlider" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
-            </div>
-        </div>
-    </section>
     <section id="furniture" class="py-5" style="background-color: #FFF8F0;">
         <div class="container">
             <div class="text-center mb-5">
