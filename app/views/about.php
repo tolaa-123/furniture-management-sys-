@@ -36,6 +36,10 @@ require_once '../config/config.php';
                                      onerror="this.parentElement.style.display='none'">
                             </div>
                             <?php endforeach; ?>
+                            <!-- Clone of first for infinite loop -->
+                            <div style="min-width:100%;height:100%;flex-shrink:0;">
+                                <img src="<?php echo BASE_URL; ?>/public/assets/images/about/about1.jpg" style="width:100%;height:100%;object-fit:fill;">
+                            </div>
                             </div>
                             <button onclick="aboutPrev()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:10;">&#8249;</button>
                             <button onclick="aboutNext()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:10;">&#8250;</button>
@@ -49,18 +53,22 @@ require_once '../config/config.php';
                         (function(){
                             const track = document.getElementById('aboutTrack');
                             const dots  = document.querySelectorAll('.about-dot');
-                            const total = dots.length;
+                            const total = dots.length; // 8 real slides
                             let cur = 0, timer;
                             function show(n) {
-                                dots[cur].style.background='rgba(255,255,255,0.5)';
-                                cur = (n + total) % total;
-                                track.style.transform = 'translateX(-' + (cur * 100) + '%)';
-                                dots[cur].style.background='white';
+                                dots[cur % total].style.background='rgba(255,255,255,0.5)';
+                                cur = n;
+                                track.style.transition='transform 0.7s cubic-bezier(.77,0,.18,1)';
+                                track.style.transform='translateX(-'+(cur*100)+'%)';
+                                dots[cur % total].style.background='white';
                             }
+                            track.addEventListener('transitionend', function(){
+                                if(cur === total){ track.style.transition='none'; cur=0; track.style.transform='translateX(0%)'; dots[0].style.background='white'; }
+                            });
                             function start() { timer = setInterval(()=>show(cur+1), 3500); }
                             function reset() { clearInterval(timer); start(); }
                             window.aboutNext = function(){ show(cur+1); reset(); };
-                            window.aboutPrev = function(){ show(cur-1); reset(); };
+                            window.aboutPrev = function(){ if(cur>0){ show(cur-1); } reset(); };
                             window.aboutGoTo = function(n){ show(n); reset(); };
                             start();
                         })();

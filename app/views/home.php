@@ -113,6 +113,8 @@
                             <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
                             <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
                             <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                            <!-- Clone of first image for infinite loop -->
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
                         </div>
                     </div>
                 </div>
@@ -121,12 +123,27 @@
     </section>
     
     <script>
-    // Hero Image Slideshow - slide left
+    // Hero Image Slideshow - infinite loop slide left
     (function() {
         const track = document.getElementById('heroTrack');
-        const total = 4;
+        const total = 4; // real slides (5th is clone)
         let cur = 0;
-        function show(n) { cur = (n + total) % total; track.style.transform = 'translateX(-' + (cur * 100) + '%)'; }
+
+        function show(n) {
+            cur = n;
+            track.style.transition = 'transform 0.7s cubic-bezier(.77,0,.18,1)';
+            track.style.transform = 'translateX(-' + (cur * 100) + '%)';
+        }
+
+        // After sliding to clone (index 4), snap back to real index 0 instantly
+        track.addEventListener('transitionend', function() {
+            if (cur === total) {
+                track.style.transition = 'none';
+                cur = 0;
+                track.style.transform = 'translateX(0%)';
+            }
+        });
+
         setInterval(() => show(cur + 1), 4000);
     })();
     </script>
@@ -322,6 +339,13 @@
                     </div>
                 </div>
                 <?php endforeach; ?>
+                <!-- Clone of first for infinite loop -->
+                <div style="min-width:100%;height:100%;flex-shrink:0;position:relative;">
+                    <img src="<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery1.jpg" style="width:100%;height:100%;object-fit:cover;">
+                    <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 30px;background:linear-gradient(transparent,rgba(0,0,0,0.5));">
+                        <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm"><i class="fas fa-search-plus me-2"></i>View Details</a>
+                    </div>
+                </div>
                 </div>
                 <!-- Prev/Next arrows -->
                 <button onclick="galleryPrev()" style="position:absolute;left:15px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:40px;height:40px;font-size:16px;cursor:pointer;z-index:10;">&#8249;</button>
@@ -339,22 +363,34 @@
     (function(){
         const track  = document.getElementById('galleryTrack');
         const dots   = document.querySelectorAll('.gallery-dot');
-        const total  = dots.length;
+        const total  = dots.length; // 6 real slides
         let current  = 0;
         let timer;
 
         function show(n) {
-            dots[current].style.background = 'rgba(255,255,255,0.5)';
-            current = (n + total) % total;
-            track.style.transform = 'translateX(-' + (current * 100) + '%)';
-            dots[current].style.background = 'white';
+            if (n <= total) {
+                dots[current % total].style.background = 'rgba(255,255,255,0.5)';
+                current = n;
+                track.style.transition = 'transform 0.7s cubic-bezier(.77,0,.18,1)';
+                track.style.transform = 'translateX(-' + (current * 100) + '%)';
+                dots[current % total].style.background = 'white';
+            }
         }
+
+        track.addEventListener('transitionend', function() {
+            if (current === total) {
+                track.style.transition = 'none';
+                current = 0;
+                track.style.transform = 'translateX(0%)';
+                dots[0].style.background = 'white';
+            }
+        });
 
         function startTimer() { timer = setInterval(() => show(current + 1), 4000); }
         function resetTimer()  { clearInterval(timer); startTimer(); }
 
         window.galleryNext = function() { show(current + 1); resetTimer(); };
-        window.galleryPrev = function() { show(current - 1); resetTimer(); };
+        window.galleryPrev = function() { if(current > 0){ show(current - 1); } else { track.style.transition='none'; current=total; track.style.transform='translateX(-'+(total*100)+'%)'; requestAnimationFrame(()=>{ track.style.transition='transform 0.7s cubic-bezier(.77,0,.18,1)'; show(total-1); }); } resetTimer(); };
         window.galleryGoTo = function(n) { show(n); resetTimer(); };
 
         startTimer();
