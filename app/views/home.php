@@ -109,16 +109,16 @@
                     <!-- Hero Image Slideshow -->
                     <div class="hero-slideshow" style="position: relative; width: 100%; height: 500px; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                         <div class="hero-slide active" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 1; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                         <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg.png" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                         <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg.png" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                         <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg.png" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                     </div>
                 </div>
