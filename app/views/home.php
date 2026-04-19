@@ -107,18 +107,12 @@
                 </div>
                 <div class="col-lg-6">
                     <!-- Hero Image Slideshow -->
-                    <div class="hero-slideshow" style="position: relative; width: 100%; height: 500px; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                        <div class="hero-slide active" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 1; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div class="hero-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out;">
-                            <img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" alt="Premium Custom Furniture" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div style="position:relative;width:100%;height:500px;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                        <div id="heroTrack" style="display:flex;height:100%;transition:transform 0.7s cubic-bezier(.77,0,.18,1);">
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
                         </div>
                     </div>
                 </div>
@@ -127,24 +121,13 @@
     </section>
     
     <script>
-    // Hero Image Slideshow
+    // Hero Image Slideshow - slide left
     (function() {
-        const slides = document.querySelectorAll('.hero-slide');
-        let currentSlide = 0;
-        
-        function showNextSlide() {
-            // Hide current slide
-            slides[currentSlide].style.opacity = '0';
-            
-            // Move to next slide
-            currentSlide = (currentSlide + 1) % slides.length;
-            
-            // Show next slide
-            slides[currentSlide].style.opacity = '1';
-        }
-        
-        // Change slide every 4 seconds
-        setInterval(showNextSlide, 4000);
+        const track = document.getElementById('heroTrack');
+        const total = 4;
+        let cur = 0;
+        function show(n) { cur = (n + total) % total; track.style.transform = 'translateX(-' + (cur * 100) + '%)'; }
+        setInterval(() => show(cur + 1), 4000);
     })();
     </script>
 

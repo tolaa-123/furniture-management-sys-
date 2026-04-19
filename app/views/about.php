@@ -25,17 +25,18 @@ require_once '../config/config.php';
                     <div class="col-md-6">
                         <!-- About Us Slideshow -->
                         <div style="position:relative;width:100%;height:380px;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);" id="aboutSlideshow">
+                            <div id="aboutTrack" style="display:flex;height:100%;transition:transform 0.7s cubic-bezier(.77,0,.18,1);">
                             <?php
                             $aboutImgs = ['about1.jpg','about2.jpg','about3.jpg','about4.jpg','about5.jpg','about6.jpg','about7.jpg','about8.jpg'];
-                            foreach ($aboutImgs as $i => $img):
-                            ?>
-                            <div class="about-slide" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:<?php echo $i===0?'1':'0'; ?>;transition:opacity 0.8s ease-in-out;">
+                            foreach ($aboutImgs as $i => $img): ?>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;">
                                 <img src="<?php echo BASE_URL; ?>/public/assets/images/about/<?php echo $img; ?>"
                                      alt="Workshop <?php echo $i+1; ?>"
-                                     style="width:100%;height:100%;object-fit:cover;"
-                                     onerror="this.closest('.about-slide').style.display='none'">
+                                     style="width:100%;height:100%;object-fit:fill;"
+                                     onerror="this.parentElement.style.display='none'">
                             </div>
                             <?php endforeach; ?>
+                            </div>
                             <button onclick="aboutPrev()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:10;">&#8249;</button>
                             <button onclick="aboutNext()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;z-index:10;">&#8250;</button>
                             <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;" id="aboutDots">
@@ -46,13 +47,15 @@ require_once '../config/config.php';
                         </div>
                         <script>
                         (function(){
-                            const slides = document.querySelectorAll('.about-slide');
-                            const dots   = document.querySelectorAll('.about-dot');
+                            const track = document.getElementById('aboutTrack');
+                            const dots  = document.querySelectorAll('.about-dot');
+                            const total = dots.length;
                             let cur = 0, timer;
                             function show(n) {
-                                slides[cur].style.opacity='0'; dots[cur].style.background='rgba(255,255,255,0.5)';
-                                cur = (n + slides.length) % slides.length;
-                                slides[cur].style.opacity='1'; dots[cur].style.background='white';
+                                dots[cur].style.background='rgba(255,255,255,0.5)';
+                                cur = (n + total) % total;
+                                track.style.transform = 'translateX(-' + (cur * 100) + '%)';
+                                dots[cur].style.background='white';
                             }
                             function start() { timer = setInterval(()=>show(cur+1), 3500); }
                             function reset() { clearInterval(timer); start(); }
