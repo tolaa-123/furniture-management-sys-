@@ -3,287 +3,181 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login'); exit();
 }
 require_once __DIR__ . '/../../../config/db_config.php';
-$csrf_token = $_SESSION['csrf_token'] ?? bin2hex(random_bytes(32));
-$_SESSION['csrf_token'] = $csrf_token;
-$adminName = $_SESSION['user_name'] ?? 'Admin User';
 
-// Unread count for sidebar badge
-$unreadCount = 0;
+// Mark as read
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_read'])) {
+    $id = intval($_POST['id']);
+    $pdo->prepare("UPDATE contact_messages SET status='read' WHERE id=?")->execute([$id]);
+    header('Location: ' . BASE_URL . '/public/admin/messages'); exit();
+}
+
+// Delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_msg'])) {
+    $id = intval($_POST['id']);
+    $pdo->prepare("DELETE FROM contact_messages WHERE id=?")->execute([$id]);
+    header('Location: ' . BASE_URL . '/public/admin/messages'); exit();
+}
+
+// Ensure table exists
 try {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_messages WHERE receiver_id=? AND is_read=0");
-    $stmt->execute([$_SESSION['user_id']]);
-    $unreadCount = (int)$stmt->fetchColumn();
-} catch(PDOException $e){}
+    $pdo->exec("CREATE TABLE IF NOT EXISTS contact_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status ENUM('new','read','replied') DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (PDOException $e) {}
+
+$messages = [];
+try {
+    $stmt = $pdo->query("SELECT * FROM contact_messages ORDER BY created_at DESC");
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
+$newCount = count(array_filter($messages, fn($m) => $m['status'] === 'new'));
+$pageTitle = 'Contact Messages';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Messages - FurnitureCraft Admin</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
-  <?php include_once __DIR__ . '/../../includes/msg_styles.php'; ?>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?> - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
 </head>
 <body>
 <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
 <div class="sidebar-overlay"></div>
-
 <?php include_once __DIR__ . '/../../includes/admin_sidebar.php'; ?>
-
-<!-- Top Header -->
-<?php 
-$pageTitle = 'Messages';
-include_once __DIR__ . '/../../includes/admin_header.php'; 
-?>
-  <div class="header-left"><div class="system-status"><i class="fas fa-circle"></i> Administrator</div></div>
-  <div class="header-right">
-    <div class="admin-profile">
-      <div class="admin-avatar"><?php echo strtoupper(substr($adminName,0,1)); ?></div>
-      <div>
-        <div style="font-weight:600;font-size:14px;"><?php echo htmlspecialchars($adminName); ?></div>
-        <div class="admin-role-badge">ADMIN</div>
-      </div>
-    </div>
-  </div>
-</div>
+<?php $pageTitle = 'Contact Messages'; include_once __DIR__ . '/../../includes/admin_header.php'; ?>
 
 <div class="main-content">
-  <div id="toast" class="msg-toast" style="display:none;"></div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
-    <div>
-      <h1 style="margin:0 0 4px;font-size:22px;color:#2C3E50;"><i class="fas fa-envelope" style="color:#E74C3C;margin-right:8px;"></i>Messages</h1>
-      <p style="margin:0;font-size:13px;color:#95A5A6;">System-wide communications</p>
+    <!-- Stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #e74c3c;">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div><div class="stat-value"><?php echo $newCount; ?></div><div class="stat-label">New Messages</div></div>
+                <div style="font-size:28px;color:#e74c3c;opacity:.3;"><i class="fas fa-envelope"></i></div>
+            </div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #3498DB;">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div><div class="stat-value"><?php echo count($messages); ?></div><div class="stat-label">Total Messages</div></div>
+                <div style="font-size:28px;color:#3498DB;opacity:.3;"><i class="fas fa-inbox"></i></div>
+            </div>
+        </div>
     </div>
-    <button class="msg-btn-primary" style="background:linear-gradient(135deg,#922B21,#E74C3C);" onclick="openCompose()">
-      <i class="fas fa-pen"></i> Compose Message
-    </button>
-  </div>
 
-  <!-- Stats -->
-  <div class="stats-grid" style="margin-bottom:24px;">
-    <div class="stat-card" style="border-left:4px solid #3498DB;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><div class="stat-value" id="stat-inbox">—</div><div class="stat-label">Inbox</div></div>
-        <i class="fas fa-inbox" style="font-size:28px;color:#3498DB;opacity:.5;"></i>
-      </div>
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-envelope"></i> Contact Messages</h2>
+        </div>
+        <?php if (empty($messages)): ?>
+            <p style="text-align:center;color:#7f8c8d;padding:40px;">No messages yet.</p>
+        <?php else: ?>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($messages as $msg): ?>
+                    <tr style="<?php echo $msg['status']==='new' ? 'background:#fff8f0;font-weight:600;' : ''; ?>">
+                        <td><?php echo htmlspecialchars($msg['first_name'].' '.$msg['last_name']); ?></td>
+                        <td><a href="mailto:<?php echo htmlspecialchars($msg['email']); ?>"><?php echo htmlspecialchars($msg['email']); ?></a></td>
+                        <td><?php echo htmlspecialchars($msg['subject']); ?></td>
+                        <td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?php echo htmlspecialchars($msg['message']); ?>">
+                            <?php echo htmlspecialchars($msg['message']); ?>
+                        </td>
+                        <td>
+                            <?php
+                            $colors = ['new'=>'#e74c3c','read'=>'#3498db','replied'=>'#27ae60'];
+                            $c = $colors[$msg['status']] ?? '#aaa';
+                            ?>
+                            <span style="background:<?php echo $c; ?>;color:white;padding:3px 10px;border-radius:10px;font-size:12px;">
+                                <?php echo ucfirst($msg['status']); ?>
+                            </span>
+                        </td>
+                        <td><?php echo date('M d, Y H:i', strtotime($msg['created_at'])); ?></td>
+                        <td>
+                            <button onclick="viewMessage(<?php echo htmlspecialchars(json_encode($msg), ENT_QUOTES); ?>)" class="btn-action btn-primary-custom" style="padding:5px 10px;font-size:12px;">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <?php if ($msg['status'] === 'new'): ?>
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="id" value="<?php echo $msg['id']; ?>">
+                                <button type="submit" name="mark_read" class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;">
+                                    <i class="fas fa-check"></i> Mark Read
+                                </button>
+                            </form>
+                            <?php endif; ?>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this message?');">
+                                <input type="hidden" name="id" value="<?php echo $msg['id']; ?>">
+                                <button type="submit" name="delete_msg" class="btn-action btn-danger-custom" style="padding:5px 10px;font-size:12px;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
     </div>
-    <div class="stat-card" style="border-left:4px solid #E74C3C;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><div class="stat-value" id="stat-unread">—</div><div class="stat-label">Unread</div></div>
-        <i class="fas fa-envelope" style="font-size:28px;color:#E74C3C;opacity:.5;"></i>
-      </div>
-    </div>
-    <div class="stat-card" style="border-left:4px solid #27AE60;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><div class="stat-value" id="stat-sent">—</div><div class="stat-label">Sent</div></div>
-        <i class="fas fa-paper-plane" style="font-size:28px;color:#27AE60;opacity:.5;"></i>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-card">
-    <div class="msg-tabs">
-      <button class="msg-tab active" id="tab-inbox" onclick="switchTab('inbox')">
-        <i class="fas fa-inbox"></i> Inbox <span class="unread-dot" id="badge-inbox" style="display:none;">0</span>
-      </button>
-      <button class="msg-tab" id="tab-sent" onclick="switchTab('sent')">
-        <i class="fas fa-paper-plane"></i> Sent
-      </button>
-    </div>
-    <div id="pane-inbox" class="tab-pane active"></div>
-    <div id="pane-sent"  class="tab-pane"></div>
-  </div>
 </div>
 
-<!-- Compose Modal -->
-<div class="msg-modal" id="composeModal">
-  <div class="msg-modal-box">
-    <div class="msg-modal-head" style="background:linear-gradient(135deg,#922B21,#E74C3C);">
-      <h3><i class="fas fa-pen" style="margin-right:8px;"></i>Compose Message</h3>
-      <button class="msg-modal-close" onclick="closeModal('composeModal')"><i class="fas fa-times"></i></button>
+<!-- View Message Modal -->
+<div id="msgModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;width:100%;max-width:520px;margin:20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+        <div style="background:linear-gradient(135deg,#2c1810,#3d1f14);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;color:white;font-size:16px;"><i class="fas fa-envelope"></i> Message Details</h3>
+            <button onclick="document.getElementById('msgModal').style.display='none'" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:20px;" id="msgContent"></div>
+        <div style="padding:14px 20px;border-top:1px solid #eee;text-align:right;">
+            <button onclick="document.getElementById('msgModal').style.display='none'" style="padding:9px 20px;border:1.5px solid #ddd;background:white;border-radius:8px;cursor:pointer;">Close</button>
+        </div>
     </div>
-    <div class="msg-modal-body">
-      <div class="fg">
-        <label>To <span style="color:#E74C3C;">*</span></label>
-        <select id="c_receiver" class="fg-input"><option value="">— Select Recipient —</option></select>
-      </div>
-      <div class="fg">
-        <label>Subject <span style="color:#E74C3C;">*</span></label>
-        <input type="text" id="c_subject" class="fg-input" placeholder="Enter subject…">
-      </div>
-      <div class="fg">
-        <label>Message <span style="color:#E74C3C;">*</span></label>
-        <textarea id="c_message" class="fg-input" rows="5" placeholder="Type your message…"></textarea>
-      </div>
-    </div>
-    <div class="msg-modal-foot">
-      <button class="msg-btn-cancel" onclick="closeModal('composeModal')">Cancel</button>
-      <button class="msg-btn-primary" style="background:linear-gradient(135deg,#922B21,#E74C3C);" onclick="sendMessage()">
-        <i class="fas fa-paper-plane"></i> Send
-      </button>
-    </div>
-  </div>
 </div>
 
-<!-- View Modal -->
-<div class="msg-modal" id="viewModal">
-  <div class="msg-modal-box" style="max-width:620px;">
-    <div class="msg-modal-head" style="background:linear-gradient(135deg,#922B21,#E74C3C);">
-      <h3><i class="fas fa-envelope-open" style="margin-right:8px;"></i>Message</h3>
-      <button class="msg-modal-close" onclick="closeModal('viewModal')"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="msg-modal-body">
-      <div class="msg-meta" id="v_meta"></div>
-      <div style="font-size:16px;font-weight:700;color:#2C3E50;margin-bottom:10px;" id="v_subject"></div>
-      <div class="msg-body-box" id="v_body"></div>
-    </div>
-    <div class="msg-modal-foot">
-      <button class="msg-btn-cancel" onclick="closeModal('viewModal')">Close</button>
-      <button class="msg-btn-primary" id="v_reply_btn" style="display:none;background:linear-gradient(135deg,#922B21,#E74C3C);" onclick="replyFromView()">
-        <i class="fas fa-reply"></i> Reply
-      </button>
-    </div>
-  </div>
-</div>
-
-<script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
 <script>
-const API  = '<?php echo BASE_URL; ?>/public/api/messages.php';
-const CSRF = <?php echo json_encode($csrf_token); ?>;
-let _inbox=[], _sent=[], _recipients=[], _viewMsg=null;
-
-async function api(method,params){
-  if(method==='GET'){const r=await fetch(API+'?'+new URLSearchParams(params));return r.json();}
-  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...params,csrf_token:CSRF})});
-  return r.json();
+function viewMessage(msg) {
+    document.getElementById('msgContent').innerHTML = `
+        <div style="margin-bottom:12px;"><strong>From:</strong> ${msg.first_name} ${msg.last_name}</div>
+        <div style="margin-bottom:12px;"><strong>Email:</strong> <a href="mailto:${msg.email}">${msg.email}</a></div>
+        <div style="margin-bottom:12px;"><strong>Subject:</strong> ${msg.subject}</div>
+        <div style="margin-bottom:12px;"><strong>Date:</strong> ${msg.created_at}</div>
+        <div style="background:#f8f9fa;padding:14px;border-radius:8px;border-left:4px solid #3498db;white-space:pre-wrap;font-size:14px;line-height:1.6;">${msg.message}</div>
+        <div style="margin-top:14px;">
+            <a href="mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}" 
+               style="background:#27ae60;color:white;padding:9px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+                <i class="fas fa-reply"></i> Reply via Email
+            </a>
+        </div>
+    `;
+    document.getElementById('msgModal').style.display = 'flex';
 }
-function toast(msg,type='success'){
-  const t=document.getElementById('toast');t.textContent=msg;t.className='msg-toast msg-toast-'+type;t.style.display='block';
-  setTimeout(()=>t.style.display='none',3500);
-}
-async function loadAll(){
-  const[ib,st,rc]=await Promise.all([api('GET',{action:'inbox'}),api('GET',{action:'sent'}),api('GET',{action:'recipients'})]);
-  _inbox=ib.data||[];_sent=st.data||[];_recipients=rc.data||[];
-  renderRecipients();renderStats();renderTab('inbox');renderTab('sent');
-}
-function renderRecipients(){
-  const sel=document.getElementById('c_receiver');
-  sel.innerHTML='<option value="">— Select Recipient —</option>';
-  const groups={};
-  _recipients.forEach(r=>{(groups[r.role]=groups[r.role]||[]).push(r);});
-  const lbl={manager:'Managers',admin:'Admins',employee:'Employees',customer:'Customers'};
-  Object.keys(groups).forEach(role=>{
-    const og=document.createElement('optgroup');og.label=lbl[role]||role;
-    groups[role].forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name;og.appendChild(o);});
-    sel.appendChild(og);
-  });
-}
-function renderStats(){
-  const unread=_inbox.filter(m=>!parseInt(m.is_read)).length;
-  document.getElementById('stat-inbox').textContent=_inbox.length;
-  document.getElementById('stat-unread').textContent=unread;
-  document.getElementById('stat-sent').textContent=_sent.length;
-  const b=document.getElementById('badge-inbox');
-  if(unread>0){b.textContent=unread;b.style.display='inline-flex';}else b.style.display='none';
-}
-function renderTab(tab){
-  const pane=document.getElementById('pane-'+tab);
-  const msgs=tab==='inbox'?_inbox:_sent;
-  if(!msgs.length){pane.innerHTML=`<div class="msg-empty"><i class="fas fa-${tab==='inbox'?'inbox':'paper-plane'}"></i><div>No ${tab} messages</div></div>`;return;}
-  const rows=msgs.map(m=>{
-    const isUnread=tab==='inbox'&&!parseInt(m.is_read);
-    const who=tab==='inbox'
-      ?`<div style="font-weight:${isUnread?700:500};font-size:13px;">${esc(m.sender_name||'Unknown')}</div><span class="role-badge role-${m.sender_role||''}">${cap(m.sender_role||'')}</span>`
-      :`<div style="font-size:13px;">${esc(m.receiver_name||'Unknown')}</div><span class="role-badge role-${m.receiver_role||''}">${cap(m.receiver_role||'')}</span>`;
-    const statusBadge=tab==='inbox'?(isUnread?'<span class="s-new">NEW</span>':'<span class="s-read">READ</span>'):'<span class="s-sent">SENT</span>';
-    const actions=tab==='inbox'
-      ?`<button class="btn-view" onclick='viewMsg(${m.id},"inbox")'><i class="fas fa-eye"></i> View</button>
-         <button class="btn-reply" onclick='quickReply(${m.id},${m.sender_id},"${esc2(m.sender_name)}","${esc2(m.subject)}")'><i class="fas fa-reply"></i> Reply</button>
-         <button class="btn-del" onclick='delMsg(${m.id},"inbox")'><i class="fas fa-trash"></i></button>`
-      :`<button class="btn-view" onclick='viewMsg(${m.id},"sent")'><i class="fas fa-eye"></i> View</button>
-         <button class="btn-del" onclick='delMsg(${m.id},"sent")'><i class="fas fa-trash"></i></button>`;
-    return `<tr id="row-${m.id}" class="${isUnread?'unread-row':''}">
-      <td><div style="display:flex;align-items:center;gap:8px;"><div class="msg-avatar" style="background:linear-gradient(135deg,#922B21,#E74C3C);">${(m.sender_name||m.receiver_name||'?')[0].toUpperCase()}</div><div>${who}</div></div></td>
-      <td style="font-weight:${isUnread?700:400};">${esc(m.subject)}</td>
-      <td style="color:#7F8C8D;font-size:12px;">${esc(m.message.substring(0,55))}…</td>
-      <td style="white-space:nowrap;font-size:12px;">${fmtDate(m.created_at)}</td>
-      <td>${statusBadge}</td>
-      <td><div class="action-btns">${actions}</div></td>
-    </tr>`;
-  }).join('');
-  pane.innerHTML=`<div class="table-responsive"><table class="data-table"><thead><tr>
-    <th>${tab==='inbox'?'From':'To'}</th><th>Subject</th><th>Preview</th><th>Date</th><th>Status</th><th>Actions</th>
-  </tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-function switchTab(tab){
-  document.querySelectorAll('.msg-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('pane-'+tab).classList.add('active');
-}
-function openCompose(receiverId='',subject=''){
-  document.getElementById('c_receiver').value=receiverId;
-  document.getElementById('c_subject').value=subject;
-  document.getElementById('c_message').value='';
-  openModal('composeModal');
-}
-async function sendMessage(){
-  const to=document.getElementById('c_receiver').value;
-  const sub=document.getElementById('c_subject').value.trim();
-  const msg=document.getElementById('c_message').value.trim();
-  if(!to||!sub||!msg){toast('All fields are required.','error');return;}
-  const res=await api('POST',{action:'send',receiver_id:to,subject:sub,message:msg});
-  if(res.ok){toast('Message sent.');closeModal('composeModal');loadAll();}
-  else toast(res.error||'Send failed.','error');
-}
-function viewMsg(id,tab){
-  const msgs=tab==='inbox'?_inbox:_sent;
-  const m=msgs.find(x=>x.id==id);if(!m)return;
-  _viewMsg={...m,_tab:tab};
-  const isInbox=tab==='inbox';
-  const who=isInbox
-    ?`${esc(m.sender_name||'Unknown')} <span class="role-badge role-${m.sender_role||''}">${cap(m.sender_role||'')}</span>`
-    :`${esc(m.receiver_name||'Unknown')} <span class="role-badge role-${m.receiver_role||''}">${cap(m.receiver_role||'')}</span>`;
-  document.getElementById('v_meta').innerHTML=`<div><strong>${isInbox?'From':'To'}:</strong><br>${who}</div><div><strong>Date:</strong><br>${fmtDate(m.created_at)}</div>`;
-  document.getElementById('v_subject').textContent=m.subject;
-  document.getElementById('v_body').textContent=m.message;
-  document.getElementById('v_reply_btn').style.display=isInbox?'inline-flex':'none';
-  openModal('viewModal');
-  if(isInbox&&!parseInt(m.is_read)){
-    api('POST',{action:'mark_read',id:m.id}).then(()=>{
-      m.is_read=1;
-      const row=document.getElementById('row-'+m.id);
-      if(row){row.classList.remove('unread-row');const nb=row.querySelector('.s-new');if(nb){nb.className='s-read';nb.textContent='READ';}}
-      renderStats();
-    });
-  }
-}
-function replyFromView(){if(!_viewMsg)return;closeModal('viewModal');quickReply(_viewMsg.id,_viewMsg.sender_id,_viewMsg.sender_name,_viewMsg.subject);}
-function quickReply(origId,senderId,senderName,subject){
-  document.getElementById('c_receiver').value=senderId;
-  document.getElementById('c_subject').value='Re: '+subject;
-  document.getElementById('c_message').value='';
-  openModal('composeModal');
-}
-async function delMsg(id,tab){
-  if(!confirm('Delete this message?'))return;
-  const res=await api('POST',{action:'delete',id});
-  if(res.ok){
-    if(tab==='inbox')_inbox=_inbox.filter(m=>m.id!=id);else _sent=_sent.filter(m=>m.id!=id);
-    renderStats();renderTab(tab);toast('Message deleted.');
-  }else toast('Delete failed.','error');
-}
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-function esc2(s){return(s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"');}
-function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
-function fmtDate(s){return new Date(s).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-document.querySelectorAll('.msg-modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
-loadAll();
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('msgModal');
+    if (e.target === modal) modal.style.display = 'none';
+});
 </script>
+<script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
 </body>
 </html>

@@ -151,8 +151,14 @@ function isActive($page) {
             <a href="<?php echo BASE_URL; ?>/public/admin/messages" class="<?php echo isActive('/admin/messages'); ?>">
                 <i class="fas fa-envelope"></i>
                 <span>Messages</span>
-                <?php if($notificationCounts['unread_messages'] > 0): ?>
-                    <span class="menu-badge badge-info"><?php echo $notificationCounts['unread_messages']; ?></span>
+                <?php
+                $contactNew = 0;
+                try {
+                    $contactNew = (int)$pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status='new'")->fetchColumn();
+                } catch(PDOException $e2){}
+                $totalMsgBadge = $notificationCounts['unread_messages'] + $contactNew;
+                if($totalMsgBadge > 0): ?>
+                    <span class="menu-badge badge-info"><?php echo $totalMsgBadge; ?></span>
                 <?php endif; ?>
             </a>
         </li>
