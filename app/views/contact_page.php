@@ -238,11 +238,12 @@ require_once '../config/config.php';
             event.preventDefault();
             
             // Get form values
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const email = document.getElementById('email').value;
-            const subject = document.getElementById('subject').value;
-            const message = document.getElementById('message').value;
+            const form = document.getElementById('contactForm');
+            const firstName = form.querySelector('[name="firstName"]').value;
+            const lastName = form.querySelector('[name="lastName"]').value;
+            const email = form.querySelector('[name="email"]').value;
+            const subject = form.querySelector('[name="subject"]').value;
+            const message = form.querySelector('[name="message"]').value;
             
             // Validate form
             if (!firstName || !lastName || !email || !subject || !message) {
