@@ -108,15 +108,6 @@ require_once '../config/config.php';
                     </div>
                 </div>
 
-                <!-- Map Placeholder -->
-                <div class="mt-4">
-                    <h5 class="mb-3">Find Us</h5>
-                    <div class="ratio ratio-16x9">
-                        <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 250px;">
-                            <p class="text-muted text-center mb-0">Map Location<br><small>Google Maps Integration</small></p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
