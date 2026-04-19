@@ -366,37 +366,49 @@
         <div class="container">
             <div class="text-center mb-5">
                 <h2 class="fw-bold">How It <span class="text-primary">Works</span></h2>
-                <p class="lead">Simple 5-step process to get your custom furniture</p>
+                <p class="lead">Simple 6-step process to get your custom furniture</p>
             </div>
-            <div class="row g-4">
+            <div class="row g-4 justify-content-center">
                 <div class="col-md-2 mb-4">
                     <div class="text-center">
-                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width: 50px; height: 50px;">1</div>
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">1</div>
                         <h5 class="fw-bold">Choose Furniture</h5>
+                        <p class="text-muted small">Browse gallery or create a custom order</p>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4">
                     <div class="text-center">
-                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width: 50px; height: 50px;">2</div>
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">2</div>
                         <h5 class="fw-bold">Customize It</h5>
+                        <p class="text-muted small">Set dimensions, color and design details</p>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4">
                     <div class="text-center">
-                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width: 50px; height: 50px;">3</div>
-                        <h5 class="fw-bold">Manager Approves Cost</h5>
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">3</div>
+                        <h5 class="fw-bold">Manager Reviews & Sets Cost</h5>
+                        <p class="text-muted small">Manager approves and provides cost estimation</p>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4">
                     <div class="text-center">
-                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width: 50px; height: 50px;">4</div>
-                        <h5 class="fw-bold">Pay Deposit</h5>
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">4</div>
+                        <h5 class="fw-bold">Pay Deposit (40%)</h5>
+                        <p class="text-muted small">Pay 40% deposit to start production</p>
                     </div>
                 </div>
                 <div class="col-md-2 mb-4">
                     <div class="text-center">
-                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width: 50px; height: 50px;">5</div>
-                        <h5 class="fw-bold">Production & Delivery</h5>
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">5</div>
+                        <h5 class="fw-bold">Production Begins</h5>
+                        <p class="text-muted small">Skilled craftsmen build your furniture</p>
+                    </div>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <div class="text-center">
+                        <div class="step-number d-flex align-items-center justify-content-center mx-auto bg-primary text-white rounded-circle mb-3" style="width:50px;height:50px;">6</div>
+                        <h5 class="fw-bold">Pay Remaining & Delivery</h5>
+                        <p class="text-muted small">Pay remaining 60% and receive your furniture</p>
                     </div>
                 </div>
             </div>
