@@ -4,6 +4,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'employee') {
 }
 require_once __DIR__ . '/../../../config/db_config.php';
 
+// Ensure production_completed_at column exists
+try { $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS production_completed_at DATETIME DEFAULT NULL"); } catch (PDOException $e) {}
+
 // -- Date range filter --
 $dateFrom = $_GET['from'] ?? date('Y-m-01');
 $dateTo   = $_GET['to']   ?? date('Y-m-d');
@@ -320,7 +323,7 @@ if ($report === 'ratings') {
     ?>
 
     <!-- ------------------------------------------ -->
-    <!-- TAB 1 — MY TASKS                          -->
+    <!-- TAB 1 ï¿½ MY TASKS                          -->
     <!-- ------------------------------------------ -->
     <?php if ($report === 'tasks'): ?>
     <div class="sum-grid">
@@ -374,8 +377,8 @@ if ($report === 'ratings') {
             ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['furniture_name'] ?? $r['furniture_type'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? 'ï¿½'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['furniture_name'] ?? $r['furniture_type'] ?? 'ï¿½'); ?></td>
                 <td>
                     <div class="prog-bar-wrap">
                         <div class="prog-bar-bg">
@@ -386,8 +389,8 @@ if ($report === 'ratings') {
                 </td>
                 <td><?php echo empBadge($r['status']); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
-                <td><?php echo $r['completed_at'] ? date('M j, Y', strtotime($r['completed_at'])) : '—'; ?></td>
-                <td><?php echo $r['actual_hours'] ? number_format($r['actual_hours'], 1) . 'h' : ($r['estimated_hours'] ? number_format($r['estimated_hours'], 1) . 'h est.' : '—'); ?></td>
+                <td><?php echo $r['completed_at'] ? date('M j, Y', strtotime($r['completed_at'])) : 'ï¿½'; ?></td>
+                <td><?php echo $r['actual_hours'] ? number_format($r['actual_hours'], 1) . 'h' : ($r['estimated_hours'] ? number_format($r['estimated_hours'], 1) . 'h est.' : 'ï¿½'); ?></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
@@ -398,7 +401,7 @@ if ($report === 'ratings') {
     <?php endif; ?>
 
     <!-- ------------------------------------------ -->
-    <!-- TAB 2 — MY ATTENDANCE                     -->
+    <!-- TAB 2 ï¿½ MY ATTENDANCE                     -->
     <!-- ------------------------------------------ -->
     <?php if ($report === 'attendance'): ?>
     <div class="sum-grid">
@@ -452,11 +455,11 @@ if ($report === 'ratings') {
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['att_date'])); ?></td>
-                <td><?php echo !empty($r['check_in_time']) ? date('h:i A', strtotime($r['check_in_time'])) : '—'; ?></td>
-                <td><?php echo !empty($r['check_out_time']) ? date('h:i A', strtotime($r['check_out_time'])) : '—'; ?></td>
+                <td><?php echo !empty($r['check_in_time']) ? date('h:i A', strtotime($r['check_in_time'])) : 'ï¿½'; ?></td>
+                <td><?php echo !empty($r['check_out_time']) ? date('h:i A', strtotime($r['check_out_time'])) : 'ï¿½'; ?></td>
                 <td><?php
                     $hrs = floatval($r['hours_worked'] ?? $r['total_hours'] ?? 0);
-                    echo $hrs > 0 ? number_format($hrs, 1) . 'h' : '—';
+                    echo $hrs > 0 ? number_format($hrs, 1) . 'h' : 'ï¿½';
                 ?></td>
                 <td><?php echo empBadge($r['status']); ?></td>
             </tr>
@@ -469,7 +472,7 @@ if ($report === 'ratings') {
     <?php endif; ?>
 
     <!-- ------------------------------------------ -->
-    <!-- TAB 3 — MY PAYROLL                        -->
+    <!-- TAB 3 ï¿½ MY PAYROLL                        -->
     <!-- ------------------------------------------ -->
     <?php if ($report === 'payroll'): ?>
     <div class="sum-grid">
@@ -539,7 +542,7 @@ if ($report === 'ratings') {
     <?php endif; ?>
 
     <!-- ------------------------------------------ -->
-    <!-- TAB 4 — MATERIALS USED                    -->
+    <!-- TAB 4 ï¿½ MATERIALS USED                    -->
     <!-- ------------------------------------------ -->
     <?php if ($report === 'materials'): ?>
     <div class="sum-grid">
@@ -581,10 +584,10 @@ if ($report === 'ratings') {
             <?php foreach ($matRows as $i => $r): ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? 'ï¿½'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['order_number'] ?? 'ï¿½'); ?></td>
                 <td><?php echo number_format($r['quantity_used'], 2); ?></td>
-                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? '—'); ?></td>
+                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? 'ï¿½'); ?></td>
                 <td style="color:#27ae60;font-weight:600;">ETB <?php echo number_format($r['total_cost'], 2); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
             </tr>
@@ -606,7 +609,7 @@ if ($report === 'ratings') {
     <?php endif; ?>
 
     <!-- ------------------------------------------ -->
-    <!-- TAB 5 — MY RATINGS                        -->
+    <!-- TAB 5 ï¿½ MY RATINGS                        -->
     <!-- ------------------------------------------ -->
     <?php if ($report === 'ratings'): ?>
     <div class="sum-grid">
@@ -655,16 +658,16 @@ if ($report === 'ratings') {
             ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['furniture_name'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? 'ï¿½'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['furniture_name'] ?? 'ï¿½'); ?></td>
                 <td>
                     <span class="stars" title="<?php echo $stars; ?> out of 5"><?php echo $starHtml; ?></span>
                     <span style="font-size:12px;color:#888;margin-left:4px;">(<?php echo $stars; ?>)</span>
                 </td>
                 <td style="max-width:220px;white-space:normal;font-size:12px;color:#666;">
-                    <?php echo $r['review_text'] ? htmlspecialchars(mb_strimwidth($r['review_text'], 0, 100, '…')) : '<em style="color:#bbb;">No review</em>'; ?>
+                    <?php echo $r['review_text'] ? htmlspecialchars(mb_strimwidth($r['review_text'], 0, 100, 'ï¿½')) : '<em style="color:#bbb;">No review</em>'; ?>
                 </td>
-                <td><?php echo htmlspecialchars($r['customer_name'] ?? '—'); ?></td>
+                <td><?php echo htmlspecialchars($r['customer_name'] ?? 'ï¿½'); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
             </tr>
             <?php endforeach; ?>

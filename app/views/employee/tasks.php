@@ -856,7 +856,7 @@ try {
         <input type="hidden" name="task_id" id="start_task_id">
     </form>
 
-    <form id="completeTaskForm" method="POST" action="" style="display: none;">
+    <form id="completeTaskHiddenForm" method="POST" action="" style="display: none;">
         <input type="hidden" name="action" value="complete_task">
         <input type="hidden" name="task_id" id="complete_task_id">
     </form>
