@@ -239,11 +239,11 @@ require_once '../config/config.php';
             
             // Get form values
             const form = document.getElementById('contactForm');
-            const firstName = form.querySelector('[name="firstName"]').value;
-            const lastName = form.querySelector('[name="lastName"]').value;
-            const email = form.querySelector('[name="email"]').value;
-            const subject = form.querySelector('[name="subject"]').value;
-            const message = form.querySelector('[name="message"]').value;
+            const firstName = form.querySelector('[name="firstName"]').value.trim();
+            const lastName = form.querySelector('[name="lastName"]').value.trim();
+            const email = form.querySelector('[name="email"]').value.trim();
+            const subject = form.querySelector('[name="subject"]').value.trim();
+            const message = form.querySelector('[name="message"]').value.trim();
             
             // Validate form
             if (!firstName || !lastName || !email || !subject || !message) {
@@ -251,9 +251,8 @@ require_once '../config/config.php';
                 return;
             }
             
-            // Validate email format
-            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailPattern.test(email)) {
+            // Validate email format - simplified regex
+            if (!email.includes('@') || !email.includes('.')) {
                 alert('Please enter a valid email address.');
                 return;
             }
