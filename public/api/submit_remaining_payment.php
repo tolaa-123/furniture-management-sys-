@@ -49,14 +49,24 @@ try {
         $receiptImage = 'uploads/payments/' . $filename;
     }
     
-    $pdo->beginTransaction();
-    
     // Prevent duplicate final payment rows
-    $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM furn_payments WHERE order_id = ? AND payment_type IN ('final','postpayment','remaining','final_payment') AND status IN ('pending','approved','verified')");
-    $stmtCheck->execute([$orderId]);
-    if ($stmtCheck->fetchColumn() > 0) {
+    $stmtCheck = $pdo->prepare("SELECT payment_id, status FROM furn_payments WHERE order_id = ? AND customer_id = ? AND payment_type IN ('final','postpayment','remaining','final_payment','full_payment') AND status IN ('pending','approved','verified') ORDER BY created_at DESC, payment_id DESC LIMIT 1");
+    $stmtCheck->execute([$orderId, $customerId]);
+    $existingFinal = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+    if ($existingFinal) {
+        if ($existingFinal['status'] === 'pending') {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Final payment is already submitted and pending manager verification.'
+            ]);
+            exit;
+        }
+
         throw new Exception('A final payment has already been submitted for this order.');
     }
+
+    $pdo->beginTransaction();
 
     // Insert payment with type 'final'
     $stmt = $pdo->prepare("INSERT INTO furn_payments (order_id, customer_id, amount, payment_type, payment_method, receipt_image, transaction_notes, payment_date, status, created_at) VALUES (?, ?, ?, 'final', ?, ?, ?, CURDATE(), 'pending', NOW())");
