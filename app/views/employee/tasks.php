@@ -96,6 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INDEX(category), INDEX(status), INDEX(order_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); } catch (PDOException $e2) {}
 
+        // Ensure columns exist BEFORE transaction (DDL causes implicit commit in MySQL)
+        try { $pdo->exec("ALTER TABLE furn_products ADD COLUMN IF NOT EXISTS image_main VARCHAR(255) DEFAULT NULL, ADD COLUMN IF NOT EXISTS order_id INT DEFAULT NULL, ADD COLUMN IF NOT EXISTS dimensions VARCHAR(100) DEFAULT NULL"); } catch (PDOException $e2) {}
+
         try {
             $pdo->beginTransaction();
 
