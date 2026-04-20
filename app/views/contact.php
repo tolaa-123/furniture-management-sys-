@@ -39,7 +39,7 @@ require_once '../config/config.php';
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        <input type="email" class="form-control" id="email" name="email" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+" title="Please enter a valid email address">
                     </div>
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject</label>
@@ -121,6 +121,17 @@ require_once '../config/config.php';
 
             const btn = this.querySelector('button[type="submit"]');
             const alertBox = document.getElementById('contactAlert');
+            const emailInput = document.getElementById('email');
+            const email = emailInput.value.trim();
+            
+            // Validate email with regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alertBox.className = 'alert alert-danger mt-3';
+                alertBox.textContent = 'Please enter a valid email address.';
+                emailInput.focus();
+                return;
+            }
 
             btn.disabled = true;
             btn.textContent = 'Sending...';

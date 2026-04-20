@@ -488,7 +488,7 @@ $pageTitle = 'Cost Estimation - Review Orders';
         <?php endif; ?>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/public/assets/js/jquery-3.6.0.min.js"></script>
     <script>
         function calculateDeposit(orderId) {
             const form = document.querySelector(`form[data-order-id="${orderId}"]`);

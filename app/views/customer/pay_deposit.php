@@ -179,7 +179,7 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="<?php echo BASE_URL; ?>/public/assets/js/jquery-3.6.0.min.js"></script>
 <script>
 const TOTAL    = <?php echo $totalCost; ?>;
 const DEPOSIT  = <?php echo $depositAmt; ?>;

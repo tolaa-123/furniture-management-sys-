@@ -1,10 +1,10 @@
-﻿<?php
+<?php
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'employee') {
     header('Location: ' . BASE_URL . '/public/login'); exit();
 }
 require_once __DIR__ . '/../../../config/db_config.php';
 
-// ── Date range filter ──
+// -- Date range filter --
 $dateFrom = $_GET['from'] ?? date('Y-m-01');
 $dateTo   = $_GET['to']   ?? date('Y-m-d');
 $report   = $_GET['report'] ?? 'tasks';
@@ -13,11 +13,11 @@ if ($dateFrom > $dateTo) $dateFrom = $dateTo;
 $employeeId = (int)$_SESSION['user_id'];
 $pageTitle  = 'My Performance';
 
-// ══════════════════════════════════════════
+// ------------------------------------------
 // DATA QUERIES
-// ══════════════════════════════════════════
+// ------------------------------------------
 
-// ── 1. MY TASKS ──
+// -- 1. MY TASKS --
 $taskSummary = ['total'=>0,'completed'=>0,'in_progress'=>0,'pending'=>0,'avg_progress'=>0];
 $taskRows = [];
 if ($report === 'tasks') {
@@ -47,7 +47,7 @@ if ($report === 'tasks') {
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// ── 2. MY ATTENDANCE ──
+// -- 2. MY ATTENDANCE --
 $attSummary = ['total'=>0,'present'=>0,'absent'=>0,'late'=>0,'rate'=>0,'total_hours'=>0];
 $attRows = [];
 if ($report === 'attendance') {
@@ -76,7 +76,7 @@ if ($report === 'attendance') {
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// ── 3. MY PAYROLL ──
+// -- 3. MY PAYROLL --
 $paySummary = ['total'=>0,'total_net'=>0,'approved'=>0,'pending'=>0];
 $payRows = [];
 if ($report === 'payroll') {
@@ -99,7 +99,7 @@ if ($report === 'payroll') {
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// ── 4. MATERIALS USED ──
+// -- 4. MATERIALS USED --
 $matSummary = ['total_records'=>0,'total_qty'=>0,'total_cost'=>0];
 $matRows = [];
 if ($report === 'materials') {
@@ -129,7 +129,7 @@ if ($report === 'materials') {
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// ── 5. MY RATINGS ──
+// -- 5. MY RATINGS --
 $ratSummary = ['total'=>0,'avg'=>0,'five_star'=>0,'one_star'=>0];
 $ratRows = [];
 if ($report === 'ratings') {
@@ -169,7 +169,7 @@ if ($report === 'ratings') {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
     <style>
-        /* ── Tab navigation ── */
+        /* -- Tab navigation -- */
         .rpt-nav { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:24px; }
         .rpt-tab {
             padding:10px 18px; border-radius:8px; border:2px solid #e0e0e0;
@@ -180,7 +180,7 @@ if ($report === 'ratings') {
         .rpt-tab:hover  { border-color:#27AE60; color:#27AE60; }
         .rpt-tab.active { background:#27AE60; border-color:#27AE60; color:#fff; }
 
-        /* ── Date filter bar ── */
+        /* -- Date filter bar -- */
         .rpt-filter {
             background:#fff; border-radius:10px; padding:16px 20px;
             margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.07);
@@ -203,7 +203,7 @@ if ($report === 'ratings') {
         }
         .rpt-filter .btn-shortcut:hover { background:#e0e0e0; }
 
-        /* ── Summary cards ── */
+        /* -- Summary cards -- */
         .sum-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:22px; }
         .sum-card {
             background:#fff; border-radius:10px; padding:16px 18px;
@@ -212,32 +212,32 @@ if ($report === 'ratings') {
         .sum-val { font-size:22px; font-weight:700; color:#2c3e50; line-height:1.2; }
         .sum-lbl { font-size:12px; color:#888; margin-top:3px; }
 
-        /* ── Data table ── */
+        /* -- Data table -- */
         .rpt-table { width:100%; border-collapse:collapse; font-size:13px; }
         .rpt-table thead tr { background:#2c3e50; color:#fff; }
         .rpt-table th { padding:11px 12px; text-align:left; font-size:12px; font-weight:600; white-space:nowrap; }
         .rpt-table td { padding:10px 12px; border-bottom:1px solid #f0f0f0; color:#444; }
         .rpt-table tbody tr:hover { background:#fafbfc; }
 
-        /* ── Empty state ── */
+        /* -- Empty state -- */
         .empty-rpt { text-align:center; padding:50px 20px; color:#aaa; }
         .empty-rpt i { font-size:40px; display:block; margin-bottom:12px; }
 
-        /* ── Progress bar ── */
+        /* -- Progress bar -- */
         .prog-bar-wrap { display:flex; align-items:center; gap:8px; }
         .prog-bar-bg { flex:1; background:#f0f0f0; border-radius:6px; height:8px; min-width:80px; }
         .prog-bar-fill { height:100%; border-radius:6px; }
 
-        /* ── Star rating ── */
+        /* -- Star rating -- */
         .stars { color:#f39c12; letter-spacing:1px; }
 
-        /* ── Status badge ── */
+        /* -- Status badge -- */
         .badge {
             border-radius:12px; padding:3px 10px;
             font-size:11px; font-weight:600; display:inline-block;
         }
 
-        /* ── Print ── */
+        /* -- Print -- */
         @media print {
             .no-print, .rpt-filter, .rpt-nav { display:none !important; }
             body { background:#fff; }
@@ -319,9 +319,9 @@ if ($report === 'ratings') {
     }
     ?>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TAB 1 — MY TASKS                          -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ------------------------------------------ -->
+    <!-- TAB 1 � MY TASKS                          -->
+    <!-- ------------------------------------------ -->
     <?php if ($report === 'tasks'): ?>
     <div class="sum-grid">
         <div class="sum-card" style="border-color:#3498db;">
@@ -374,8 +374,8 @@ if ($report === 'ratings') {
             ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['furniture_name'] ?? $r['furniture_type'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '�'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['furniture_name'] ?? $r['furniture_type'] ?? '�'); ?></td>
                 <td>
                     <div class="prog-bar-wrap">
                         <div class="prog-bar-bg">
@@ -386,8 +386,8 @@ if ($report === 'ratings') {
                 </td>
                 <td><?php echo empBadge($r['status']); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
-                <td><?php echo $r['completed_at'] ? date('M j, Y', strtotime($r['completed_at'])) : '—'; ?></td>
-                <td><?php echo $r['actual_hours'] ? number_format($r['actual_hours'], 1) . 'h' : ($r['estimated_hours'] ? number_format($r['estimated_hours'], 1) . 'h est.' : '—'); ?></td>
+                <td><?php echo $r['completed_at'] ? date('M j, Y', strtotime($r['completed_at'])) : '�'; ?></td>
+                <td><?php echo $r['actual_hours'] ? number_format($r['actual_hours'], 1) . 'h' : ($r['estimated_hours'] ? number_format($r['estimated_hours'], 1) . 'h est.' : '�'); ?></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
@@ -397,9 +397,9 @@ if ($report === 'ratings') {
     </div>
     <?php endif; ?>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TAB 2 — MY ATTENDANCE                     -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ------------------------------------------ -->
+    <!-- TAB 2 � MY ATTENDANCE                     -->
+    <!-- ------------------------------------------ -->
     <?php if ($report === 'attendance'): ?>
     <div class="sum-grid">
         <div class="sum-card" style="border-color:#3498db;">
@@ -452,11 +452,11 @@ if ($report === 'ratings') {
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['att_date'])); ?></td>
-                <td><?php echo !empty($r['check_in_time']) ? date('h:i A', strtotime($r['check_in_time'])) : '—'; ?></td>
-                <td><?php echo !empty($r['check_out_time']) ? date('h:i A', strtotime($r['check_out_time'])) : '—'; ?></td>
+                <td><?php echo !empty($r['check_in_time']) ? date('h:i A', strtotime($r['check_in_time'])) : '�'; ?></td>
+                <td><?php echo !empty($r['check_out_time']) ? date('h:i A', strtotime($r['check_out_time'])) : '�'; ?></td>
                 <td><?php
                     $hrs = floatval($r['hours_worked'] ?? $r['total_hours'] ?? 0);
-                    echo $hrs > 0 ? number_format($hrs, 1) . 'h' : '—';
+                    echo $hrs > 0 ? number_format($hrs, 1) . 'h' : '�';
                 ?></td>
                 <td><?php echo empBadge($r['status']); ?></td>
             </tr>
@@ -468,9 +468,9 @@ if ($report === 'ratings') {
     </div>
     <?php endif; ?>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TAB 3 — MY PAYROLL                        -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ------------------------------------------ -->
+    <!-- TAB 3 � MY PAYROLL                        -->
+    <!-- ------------------------------------------ -->
     <?php if ($report === 'payroll'): ?>
     <div class="sum-grid">
         <div class="sum-card" style="border-color:#3498db;">
@@ -538,9 +538,9 @@ if ($report === 'ratings') {
     </div>
     <?php endif; ?>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TAB 4 — MATERIALS USED                    -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ------------------------------------------ -->
+    <!-- TAB 4 � MATERIALS USED                    -->
+    <!-- ------------------------------------------ -->
     <?php if ($report === 'materials'): ?>
     <div class="sum-grid">
         <div class="sum-card" style="border-color:#3498db;">
@@ -581,10 +581,10 @@ if ($report === 'ratings') {
             <?php foreach ($matRows as $i => $r): ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? '�'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['order_number'] ?? '�'); ?></td>
                 <td><?php echo number_format($r['quantity_used'], 2); ?></td>
-                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? '—'); ?></td>
+                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? '�'); ?></td>
                 <td style="color:#27ae60;font-weight:600;">ETB <?php echo number_format($r['total_cost'], 2); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
             </tr>
@@ -605,9 +605,9 @@ if ($report === 'ratings') {
     </div>
     <?php endif; ?>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TAB 5 — MY RATINGS                        -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ------------------------------------------ -->
+    <!-- TAB 5 � MY RATINGS                        -->
+    <!-- ------------------------------------------ -->
     <?php if ($report === 'ratings'): ?>
     <div class="sum-grid">
         <div class="sum-card" style="border-color:#3498db;">
@@ -655,16 +655,16 @@ if ($report === 'ratings') {
             ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['furniture_name'] ?? '—'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '�'); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['furniture_name'] ?? '�'); ?></td>
                 <td>
                     <span class="stars" title="<?php echo $stars; ?> out of 5"><?php echo $starHtml; ?></span>
                     <span style="font-size:12px;color:#888;margin-left:4px;">(<?php echo $stars; ?>)</span>
                 </td>
                 <td style="max-width:220px;white-space:normal;font-size:12px;color:#666;">
-                    <?php echo $r['review_text'] ? htmlspecialchars(mb_strimwidth($r['review_text'], 0, 100, '…')) : '<em style="color:#bbb;">No review</em>'; ?>
+                    <?php echo $r['review_text'] ? htmlspecialchars(mb_strimwidth($r['review_text'], 0, 100, '�')) : '<em style="color:#bbb;">No review</em>'; ?>
                 </td>
-                <td><?php echo htmlspecialchars($r['customer_name'] ?? '—'); ?></td>
+                <td><?php echo htmlspecialchars($r['customer_name'] ?? '�'); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
             </tr>
             <?php endforeach; ?>

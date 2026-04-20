@@ -184,7 +184,7 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?php echo BASE_URL; ?>/public/assets/js/jquery-3.6.0.min.js"></script>
     <script>
         let bankAccounts = {};
 

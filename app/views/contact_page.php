@@ -161,7 +161,7 @@ require_once '../config/config.php';
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <label for="email" class="form-label">Email Address</label>
-                                        <input type="email" class="form-control" id="email" name="email" required>
+                                        <input type="email" class="form-control" id="email" name="email" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+" title="Please enter a valid email address">
                                     </div>
                                 </div>
                                 <div class="row">
@@ -245,14 +245,19 @@ require_once '../config/config.php';
             const subject = form.querySelector('[name="subject"]').value.trim();
             const message = form.querySelector('[name="message"]').value.trim();
             
+            // Debug: log the email value
+            console.log('Email value:', email);
+            
             // Validate form
             if (!firstName || !lastName || !email || !subject || !message) {
                 alert('Please fill in all required fields.');
                 return;
             }
             
-            // Validate email format - simplified regex
-            if (!email.includes('@') || !email.includes('.')) {
+            // Validate email format - improved regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            console.log('Email regex test:', emailRegex.test(email));
+            if (!emailRegex.test(email)) {
                 alert('Please enter a valid email address.');
                 return;
             }
