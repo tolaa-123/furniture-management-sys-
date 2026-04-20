@@ -11,7 +11,7 @@ $customerName = $_SESSION['first_name'] ?? $_SESSION['user_name'] ?? 'Customer';
 
 $order = null;
 if ($orderId > 0) {
-    $stmt = $pdo->prepare("SELECT * FROM furn_orders WHERE id = ? AND customer_id = ? AND status = 'cost_estimated'");
+    $stmt = $pdo->prepare("SELECT * FROM furn_orders WHERE id = ? AND customer_id = ? AND status IN ('cost_estimated','deposit_paid','payment_verified','in_production','production_started','ready_for_delivery')");
     $stmt->execute([$orderId, $customerId]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
 }
