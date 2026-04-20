@@ -32,7 +32,6 @@ try {
         FROM furn_orders o
         LEFT JOIN furn_users u ON o.customer_id = u.id
         WHERE (o.status = 'pending_review' OR o.status IS NULL OR o.status = '' OR o.status = 'pending' OR o.status = 'pending_cost_approval')
-        AND (o.estimated_cost IS NULL OR o.estimated_cost = 0)
         ORDER BY o.created_at DESC
     ");
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
