@@ -61,7 +61,7 @@ try {
     $preferredDeliveryDate = $_POST['preferred_delivery_date'] ?? null;
     
     // Validation - Basic fields
-    if (!$furnitureType || !$furnitureName || !$material || !$color || !$designDescription) {
+    if (!$furnitureType || !$color) {
         throw new Exception('All required fields must be filled');
     }
     
