@@ -44,6 +44,34 @@ try {
 
     $pdo->prepare("INSERT INTO contact_messages (first_name, last_name, email, subject, message) VALUES (?,?,?,?,?)")
         ->execute([$firstName, $lastName, $email, $subject, $message]);
+    
+    $messageId = $pdo->lastInsertId();
+    
+    // Create notification for all admins
+    try {
+        // Get all admin user IDs
+        $adminStmt = $pdo->query("SELECT id FROM furn_users WHERE role = 'admin'");
+        $admins = $adminStmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Insert notification for each admin
+        if (!empty($admins)) {
+            $notifStmt = $pdo->prepare("
+                INSERT INTO furn_notifications 
+                (user_id, type, title, message, related_id, link, priority, is_read, created_at) 
+                VALUES (?, 'contact', ?, ?, ?, '/admin/messages', 'medium', 0, NOW())
+            ");
+            
+            $notifTitle = 'New Contact Message';
+            $notifMessage = $firstName . ' ' . $lastName . ' sent: ' . $subject;
+            
+            foreach ($admins as $adminId) {
+                $notifStmt->execute([$adminId, $notifTitle, $notifMessage, $messageId]);
+            }
+        }
+    } catch (PDOException $e2) {
+        // Log but don't fail if notification creation fails
+        error_log("Contact notification error: " . $e2->getMessage());
+    }
 
     echo json_encode(['success' => true, 'message' => 'Your message has been sent. We will get back to you soon.']);
 } catch (PDOException $e) {

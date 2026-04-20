@@ -32,7 +32,7 @@ try {
 } catch (PDOException $e) {}
 
 // ── Quick Alerts (KPI counts — kept separate) ──
-$kpi = ['pending_orders'=>0,'low_stock'=>0,'unread_messages'=>0,'pending_reviews'=>0,'new_users'=>0];
+$kpi = ['pending_orders'=>0,'low_stock'=>0,'unread_messages'=>0,'pending_reviews'=>0,'new_users'=>0,'contact_messages'=>0];
 try {
     $pdo->prepare("SELECT COUNT(*) FROM furn_orders WHERE status IN ('pending_review','pending_cost_approval')")->execute();
     $kpi['pending_orders'] = (int)$pdo->query("SELECT COUNT(*) FROM furn_orders WHERE status IN ('pending_review','pending_cost_approval')")->fetchColumn();
@@ -40,10 +40,12 @@ try {
     try { $s=$pdo->prepare("SELECT COUNT(*) FROM furn_messages WHERE receiver_id=? AND is_read=0"); $s->execute([$adminId]); $kpi['unread_messages']=(int)$s->fetchColumn(); } catch(PDOException $e2){}
     try { $kpi['pending_reviews']=(int)$pdo->query("SELECT COUNT(*) FROM furn_employee_reports WHERE feedback_given=0")->fetchColumn(); } catch(PDOException $e2){}
     try { $s=$pdo->prepare("SELECT COUNT(*) FROM furn_users WHERE role='customer' AND created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)"); $s->execute(); $kpi['new_users']=(int)$s->fetchColumn(); } catch(PDOException $e2){}
+    try { $kpi['contact_messages']=(int)$pdo->query("SELECT COUNT(*) FROM contact_messages WHERE status='new'")->fetchColumn(); } catch(PDOException $e2){}
 } catch (PDOException $e) {}
 
 $csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
-$badgeCount = $unreadCount; // badge = real unread notifications
+// Badge count = unread notifications + new contact messages
+$badgeCount = $unreadCount + $kpi['contact_messages'];
 ?>
 <div class="top-header" style="background:#2c1810;color:white;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:15px;">
@@ -81,6 +83,7 @@ $badgeCount = $unreadCount; // badge = real unread notifications
                         <?php if($kpi['pending_orders']>0): ?><a href="<?php echo BASE_URL; ?>/public/admin/orders" style="background:#fdecea;color:#e74c3c;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><i class="fas fa-shopping-cart me-1"></i><?php echo $kpi['pending_orders']; ?> Orders</a><?php endif; ?>
                         <?php if($kpi['low_stock']>0): ?><a href="<?php echo BASE_URL; ?>/public/admin/materials" style="background:#fff3cd;color:#856404;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><i class="fas fa-boxes me-1"></i><?php echo $kpi['low_stock']; ?> Low Stock</a><?php endif; ?>
                         <?php if($kpi['unread_messages']>0): ?><a href="<?php echo BASE_URL; ?>/public/admin/messages" style="background:#e8f4fd;color:#2980b9;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><i class="fas fa-envelope me-1"></i><?php echo $kpi['unread_messages']; ?> Messages</a><?php endif; ?>
+                        <?php if($kpi['contact_messages']>0): ?><a href="<?php echo BASE_URL; ?>/public/admin/messages" style="background:#fef3e2;color:#e67e22;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><i class="fas fa-envelope-open me-1"></i><?php echo $kpi['contact_messages']; ?> Contact</a><?php endif; ?>
                         <?php if($kpi['new_users']>0): ?><a href="<?php echo BASE_URL; ?>/public/admin/users" style="background:#eafaf1;color:#27ae60;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;text-decoration:none;"><i class="fas fa-users me-1"></i><?php echo $kpi['new_users']; ?> New Users</a><?php endif; ?>
                     </div>
                 </div>

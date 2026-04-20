@@ -115,6 +115,7 @@ function notifIcon($type) {
         'material'   => ['fa-boxes',         '#f39c12'],
         'complaint'  => ['fa-exclamation-circle', '#e74c3c'],
         'message'    => ['fa-envelope',      '#9b59b6'],
+        'contact'    => ['fa-envelope-open', '#e67e22'],
         'payroll'    => ['fa-money-bill-wave','#1abc9c'],
         'rating'     => ['fa-star',          '#f39c12'],
         'system'     => ['fa-cog',           '#7f8c8d'],
