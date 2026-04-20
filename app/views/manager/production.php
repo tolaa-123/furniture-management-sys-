@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                         UPDATE furn_orders o
                         JOIN furn_production_tasks t ON t.order_id = o.id
                         SET o.status = 'ready_for_delivery'
-                        WHERE t.id = ? AND o.status = 'in_production'
+                        WHERE t.id = ? AND o.status IN ('in_production','payment_verified','deposit_paid')
                     ")->execute([$taskId]);
                 } elseif ($stage === 'in_progress') {
                     $pdo->prepare("

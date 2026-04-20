@@ -99,45 +99,17 @@ try {
         throw new Exception('Order not found');
     }
     
-    // Create notification for customer
+    $pdo->commit();
+
+    // Notify customer AFTER commit (outside transaction)
     try {
-        $managerName = $_SESSION['user_name'] ?? 'Manager';
-        
-        $stmtNotif = $pdo->prepare("
-            INSERT INTO furn_notifications (user_id, type, title, message, related_id, link, created_at)
-            VALUES (?, 'order', 'Cost Estimation Ready', ?, ?, '/customer/my-orders', NOW())
-        ");
-        
-        $notifMessage = "Your order {$order['order_number']} has been reviewed. Estimated cost: $" . number_format($estimatedCost, 2) . ". Deposit required: $" . number_format($depositAmount, 2);
-        
-        $stmtNotif->execute([
-            $order['customer_id'],
-            $notifMessage,
-            $orderId
-        ]);
-        
-        // Send SMS to customer
-        try {
-            require_once '../../app/services/SmsService.php';
-            $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
-            
-            $stmtPhone = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
-            $stmtPhone->execute([$order['customer_id']]);
-            $customer = $stmtPhone->fetch(PDO::FETCH_ASSOC);
-            
-            if ($customer && $customer['phone']) {
-                $smsService->sendOrderNotification($customer['phone'], $orderId, 'cost_estimated', $customer['first_name']);
-            }
-        } catch (Exception $e) {
-            error_log("SMS error: " . $e->getMessage());
-        }
-        
+        require_once __DIR__ . '/../../app/includes/notification_helper.php';
+        $notifMessage = "Your order {$order['order_number']} has been reviewed. Estimated cost: ETB " . number_format($estimatedCost, 2) . ". Deposit required: ETB " . number_format($depositAmount, 2);
+        insertNotification($pdo, $order['customer_id'], 'payment', 'Cost Estimation Ready — Pay Deposit',
+            $notifMessage, $orderId, '/customer/pay-deposit', 'high');
     } catch (Exception $e) {
-        // Notification failed but continue
         error_log("Notification error: " . $e->getMessage());
     }
-    
-    $pdo->commit();
     
     echo json_encode([
         'success' => true,
