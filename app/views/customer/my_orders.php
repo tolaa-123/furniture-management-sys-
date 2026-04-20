@@ -281,7 +281,7 @@ if ($customerId > 0) {
                                     if ($status === 'ready_for_delivery') {
                                         $actionButtons .= ' <a href="' . BASE_URL . '/public/customer/pay-remaining?order_id=' . $orderId . '" class="btn-action btn-success-custom" style="font-size: 12px; padding: 6px 12px; background: #e74c3c;"><i class="fas fa-credit-card me-1"></i>Pay Final</a>';
                                     } elseif ($status === 'cost_estimated') {
-                                        $actionButtons .= ' <a href="' . BASE_URL . '/public/customer/payments" class="btn-action btn-success-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-credit-card me-1"></i>Pay Deposit</a>';
+                                        $actionButtons .= ' <a href="' . BASE_URL . '/public/customer/pay-deposit?order_id=' . $orderId . '" class="btn-action btn-success-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-credit-card me-1"></i>Pay Deposit</a>';
                                     }
 
                                     if (in_array($status, ['pending_cost_approval', 'pending_review'])) {

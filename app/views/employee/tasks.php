@@ -222,16 +222,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE furn_orders SET status='ready_for_delivery', production_completed_at=NOW() WHERE id=?")
                 ->execute([$taskData['order_id']]);
 
-            // Notify all managers that task is completed
+            // Commit core transaction before gallery/DDL work
+            $pdo->commit();
+
+            // Notify all managers AFTER commit (notification_helper has DDL that kills active transactions)
             require_once __DIR__ . '/../../../app/includes/notification_helper.php';
             $furnitureName = $taskData['furniture_name'] ?? $taskData['furniture_type'] ?? 'Furniture';
             $orderNum = $taskData['order_number'] ?? '#'.$taskData['order_id'];
             notifyRole($pdo, 'manager', 'production', 'Task Completed — Ready for Delivery',
                 $furnitureName . ' (Order ' . $orderNum . ') has been completed and is ready for delivery.',
                 $_POST['task_id'], '/manager/production', 'high');
-
-            // Commit core transaction before gallery/DDL work
-            $pdo->commit();
 
             if ($finishedImagePath && $taskData) {
                 $furnitureType = strtolower($taskData['furniture_type'] ?? 'custom');
