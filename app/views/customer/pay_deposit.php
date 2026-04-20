@@ -53,15 +53,7 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
 <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
 <div class="sidebar-overlay"></div>
 <?php include_once __DIR__ . '/../../includes/customer_sidebar.php'; ?>
-<div class="top-header">
-    <div class="header-left"><div class="system-status"><i class="fas fa-circle"></i> Customer Portal</div></div>
-    <div class="header-right">
-        <div class="admin-profile">
-            <div class="admin-avatar"><?php echo strtoupper(substr($customerName,0,1)); ?></div>
-            <div><div style="font-weight:600;font-size:14px;"><?php echo htmlspecialchars($customerName); ?></div><div class="admin-role-badge">CUSTOMER</div></div>
-        </div>
-    </div>
-</div>
+<?php $pageTitle = 'Make Payment'; include_once __DIR__ . '/../../includes/customer_header.php'; ?>
 
 <div class="main-content" style="padding:28px;">
     <div class="pay-card">

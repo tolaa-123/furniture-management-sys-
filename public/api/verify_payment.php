@@ -39,7 +39,7 @@ try {
         if ($payment) {
             if ($payment['payment_type'] === 'deposit' || $payment['payment_type'] === 'prepayment') {
                 $pdo->prepare("UPDATE furn_orders SET status = 'payment_verified' WHERE id = ?")->execute([$payment['order_id']]);
-            } elseif ($payment['payment_type'] === 'postpayment' || $payment['payment_type'] === 'final_payment' || $payment['payment_type'] === 'final') {
+            } elseif (in_array($payment['payment_type'], ['postpayment','final_payment','final','full_payment','remaining'])) {
                 $pdo->prepare("UPDATE furn_orders SET status = 'completed' WHERE id = ?")->execute([$payment['order_id']]);
             }
             // Notify customer

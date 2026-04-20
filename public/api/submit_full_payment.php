@@ -22,7 +22,7 @@ try {
     if (!$orderId || !$method) throw new Exception('Missing required fields');
 
     // Fetch order
-    $stmt = $pdo->prepare("SELECT * FROM furn_orders WHERE id = ? AND customer_id = ? AND status = 'cost_estimated'");
+    $stmt = $pdo->prepare("SELECT * FROM furn_orders WHERE id = ? AND customer_id = ? AND status IN ('cost_estimated','deposit_paid','payment_verified','in_production','production_started','ready_for_delivery')");
     $stmt->execute([$orderId, $customerId]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$order) throw new Exception('Order not found or not eligible for payment');

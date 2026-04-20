@@ -71,22 +71,7 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
     <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
     <div class="sidebar-overlay"></div>
     <?php include_once __DIR__ . '/../../includes/customer_sidebar.php'; ?>
-
-    <!-- Top Header -->
-    <div class="top-header">
-        <div class="header-left">
-            <div class="system-status"><i class="fas fa-circle"></i> Customer Portal</div>
-        </div>
-        <div class="header-right">
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($customerName, 0, 1)); ?></div>
-                <div>
-                    <div style="font-weight: 600; font-size: 14px;"><?php echo htmlspecialchars($customerName); ?></div>
-                    <div class="admin-role-badge">CUSTOMER</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php $pageTitle = 'Pay Remaining Balance'; include_once __DIR__ . '/../../includes/customer_header.php'; ?>
     
     <div class="main-content" style="padding: 30px;">
         <div class="page-header" style="background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
