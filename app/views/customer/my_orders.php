@@ -272,10 +272,10 @@ if ($customerId > 0) {
 
                                     // Action buttons
                                     $actionButtons = '';
-                                    $actionButtons .= '<a href="' . BASE_URL . '/public/order-details?id=' . $orderId . '" class="btn-action btn-primary-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-eye me-1"></i>View</a>';
+                                    $actionButtons .= '<a href="' . BASE_URL . '/public/customer/order-details?id=' . $orderId . '" class="btn-action btn-primary-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-eye me-1"></i>View</a>';
 
                                     if (in_array($status, ['deposit_paid', 'payment_verified', 'in_production', 'ready_for_delivery', 'completed'])) {
-                                        $actionButtons .= ' <a href="' . BASE_URL . '/public/order-tracking?id=' . $orderId . '" class="btn-action btn-success-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-chart-line me-1"></i>Track</a>';
+                                        $actionButtons .= ' <a href="' . BASE_URL . '/public/customer/order-tracking?id=' . $orderId . '" class="btn-action btn-success-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-chart-line me-1"></i>Track</a>';
                                     }
 
                                     if ($status === 'ready_for_delivery') {
@@ -286,7 +286,7 @@ if ($customerId > 0) {
 
                                     if (in_array($status, ['pending_cost_approval', 'pending_review'])) {
                                         $actionButtons .= '
-                                        <form method="POST" action="' . BASE_URL . '/public/cancel-order" style="display:inline;" onsubmit="return confirm(\'Cancel this order? This cannot be undone.\')">
+                                        <form method="POST" action="' . BASE_URL . '/public/api/cancel_order.php" style="display:inline;" onsubmit="return confirm(\'Cancel this order? This cannot be undone.\')">
                                             <input type="hidden" name="order_id" value="' . $orderId . '">
                                             <input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? '') . '">
                                             <button type="submit" class="btn-action btn-danger-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-times me-1"></i>Cancel</button>

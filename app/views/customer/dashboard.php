@@ -189,8 +189,8 @@ $pageTitle = 'Customer Dashboard';
                 <a href="<?php echo BASE_URL; ?>/public/customer/payments" style="padding: 10px 8px; background: #F39C12; color: white; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; font-size: 12px; transition: opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                     <i class="fas fa-credit-card" style="font-size:18px;display:block;margin-bottom:5px;"></i>Make Payment
                 </a>
-                <a href="<?php echo BASE_URL; ?>/public/customer/invoices" style="padding: 10px 8px; background: #9B59B6; color: white; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; font-size: 12px; transition: opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                    <i class="fas fa-file-invoice" style="font-size:18px;display:block;margin-bottom:5px;"></i>View Invoices
+                <a href="<?php echo BASE_URL; ?>/public/customer/payments" style="padding: 10px 8px; background: #9B59B6; color: white; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; font-size: 12px; transition: opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-file-invoice" style="font-size:18px;display:block;margin-bottom:5px;"></i>My Payments
                 </a>
                 <a href="<?php echo BASE_URL; ?>/public/customer/gallery" style="padding: 10px 8px; background: #8B4513; color: white; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 600; font-size: 12px; transition: opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                     <i class="fas fa-images" style="font-size:18px;display:block;margin-bottom:5px;"></i>Browse Designs
