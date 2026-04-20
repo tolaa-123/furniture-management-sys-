@@ -200,7 +200,7 @@ $orderId = isset($_GET['order_id']) ? intval($_GET['order_id']) : null;
                         <td class="text-danger">ETB ${remainingBalance.toFixed(2)}</td>
                         <td>${statusBadge}</td>
                         <td>
-                            ${remainingBalance > 0 ? `<button class="btn btn-pay btn-sm" onclick='showPaymentForm(${JSON.stringify(order)})'>Pay</button>` : '<span class="text-success">✓ Paid</span>'}
+                            ${remainingBalance > 0 ? `<button class="btn btn-pay btn-sm" onclick="window.location.href='${BASE_URL}/public/customer/pay-deposit?order_id=${order.id}'">Pay</button>` : '<span class="text-success">✓ Paid</span>'}
                         </td>
                     </tr>
                 `;

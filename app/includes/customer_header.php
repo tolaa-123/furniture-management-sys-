@@ -67,7 +67,11 @@ try {
 
 $totalNotifications = $notificationCounts['unread'];
 $initials = strtoupper(substr($customerName, 0, 1));
-$csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
+// Ensure CSRF token exists
+if (empty($_SESSION[CSRF_TOKEN_NAME])) {
+    $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION[CSRF_TOKEN_NAME];
 ?>
 
 <!-- Top Header -->
