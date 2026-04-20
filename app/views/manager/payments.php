@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         try {
             if ($action === 'approve') {
-                // Update payment status - only use columns that exist
-                $stmt = $pdo->prepare("UPDATE furn_payments SET status = 'approved', verified_by = ?, verified_at = NOW() WHERE payment_id = ?");
+                // Use 'verified' status (consistent with verify_payment.php API)
+                $stmt = $pdo->prepare("UPDATE furn_payments SET status = 'verified', verified_by = ?, verified_at = NOW() WHERE payment_id = ?");
                 $stmt->execute([$_SESSION['user_id'], $paymentId]);
                 
                 // Get payment details
@@ -36,37 +36,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if ($payment) {
                     $isDeposit = in_array($payment['payment_type'], ['deposit', 'prepayment']);
-                    $isFinal = in_array($payment['payment_type'], ['final', 'remaining', 'final_payment', 'postpayment']);
-                    
-                    // If payment_type is prepayment but order already has deposit paid, treat as final
-                    if ($isDeposit) {
-                        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_payments WHERE order_id = ? AND status = 'approved' AND payment_type IN ('prepayment','deposit')");
-                        $checkStmt->execute([$payment['order_id']]);
-                        $approvedDeposits = (int)$checkStmt->fetchColumn();
-                        if ($approvedDeposits > 1) {
-                            $isDeposit = false;
-                            $isFinal = true;
-                        }
-                    }
+                    $isFinal   = in_array($payment['payment_type'], ['final', 'remaining', 'final_payment', 'postpayment', 'full_payment']);
                     
                     if ($isDeposit) {
                         try {
-                            $pdo->prepare("
-                                UPDATE furn_orders 
-                                SET status = 'payment_verified', 
-                                    deposit_paid = ?,
-                                    remaining_balance = COALESCE(estimated_cost, total_amount, 0) - ?
-                                WHERE id = ?
-                            ")->execute([$payment['amount'], $payment['amount'], $payment['order_id']]);
+                            $pdo->prepare("UPDATE furn_orders SET status = 'payment_verified', deposit_paid = ?, remaining_balance = COALESCE(estimated_cost, total_amount, 0) - ? WHERE id = ?")
+                                ->execute([$payment['amount'], $payment['amount'], $payment['order_id']]);
                         } catch (PDOException $e2) {
-                            // Fallback without remaining_balance
                             $pdo->prepare("UPDATE furn_orders SET status = 'payment_verified', deposit_paid = ? WHERE id = ?")
                                 ->execute([$payment['amount'], $payment['order_id']]);
                         }
                     } elseif ($isFinal) {
-                        $pdo->prepare("UPDATE furn_orders SET status = 'completed', remaining_balance = 0 WHERE id = ?")
+                        $pdo->prepare("UPDATE furn_orders SET status = 'completed' WHERE id = ?")
                             ->execute([$payment['order_id']]);
                     }
+
+                    // Notify customer
+                    require_once __DIR__ . '/../../includes/notification_helper.php';
+                    $ptLabel = $isDeposit ? 'Deposit' : 'Final Payment';
+                    $orderStmt = $pdo->prepare("SELECT order_number FROM furn_orders WHERE id = ?");
+                    $orderStmt->execute([$payment['order_id']]);
+                    $orderNum = $orderStmt->fetchColumn() ?: '#'.$payment['order_id'];
+                    insertNotification($pdo, $payment['customer_id'], 'payment', $ptLabel . ' Payment Approved',
+                        'Your ' . strtolower($ptLabel) . ' payment for order ' . $orderNum . ' has been approved.',
+                        $payment['order_id'], '/customer/my-orders', 'high');
                 }
                 
                 $_SESSION['success_message'] = "Payment approved successfully!";

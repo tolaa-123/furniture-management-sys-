@@ -62,13 +62,13 @@ try {
     $pdo->prepare("UPDATE furn_orders SET status = 'final_payment_paid', deposit_paid = ? WHERE id = ? AND customer_id = ?")
         ->execute([$totalAmount, $orderId, $customerId]);
 
-    // Notify ALL managers
+    $pdo->commit();
+
+    // Notify ALL managers AFTER commit (notification_helper has DDL that kills active transactions)
     require_once __DIR__ . '/../../app/includes/notification_helper.php';
     notifyRole($pdo, 'manager', 'payment', 'Full Payment Received',
         'A customer submitted full payment for order #' . $orderId . '.',
         $orderId, '/manager/payments', 'high');
-
-    $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Full payment submitted successfully']);
 
 } catch (Exception $e) {
