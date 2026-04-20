@@ -45,22 +45,12 @@ try {
         $receiptImage = 'uploads/payments/' . $filename;
     }
     
+    // Ensure columns exist BEFORE transaction (DDL causes implicit commit in MySQL)
+    try { $pdo->exec("ALTER TABLE furn_payments ADD COLUMN IF NOT EXISTS receipt_image VARCHAR(255) DEFAULT NULL, ADD COLUMN IF NOT EXISTS transaction_notes TEXT DEFAULT NULL"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS deposit_paid DECIMAL(12,2) DEFAULT 0, ADD COLUMN IF NOT EXISTS estimated_cost DECIMAL(12,2) DEFAULT NULL"); } catch (PDOException $e) {}
+
     $pdo->beginTransaction();
     
-    // Ensure required columns exist in furn_payments
-    try {
-        $pdo->exec("ALTER TABLE furn_payments 
-            ADD COLUMN IF NOT EXISTS receipt_image VARCHAR(255) DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS transaction_notes TEXT DEFAULT NULL");
-    } catch (PDOException $e) { /* ignore */ }
-    
-    // Ensure required columns exist in furn_orders
-    try {
-        $pdo->exec("ALTER TABLE furn_orders 
-            ADD COLUMN IF NOT EXISTS deposit_paid DECIMAL(12,2) DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS estimated_cost DECIMAL(12,2) DEFAULT NULL");
-    } catch (PDOException $e) { /* ignore */ }
-
     // Prevent duplicate deposit rows — only insert if no pending/approved deposit exists
     $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM furn_payments WHERE order_id = ? AND payment_type IN ('deposit','prepayment') AND status IN ('pending','approved','verified')");
     $stmtCheck->execute([$orderId]);

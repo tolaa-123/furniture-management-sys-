@@ -67,6 +67,7 @@ try {
 
 $totalNotifications = $notificationCounts['unread'];
 $initials = strtoupper(substr($customerName, 0, 1));
+$csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
 ?>
 
 <!-- Top Header -->
@@ -99,8 +100,8 @@ $initials = strtoupper(substr($customerName, 0, 1));
                 <div style="max-height: 300px; overflow-y: auto;">
                     <?php if(count($notifications) > 0): ?>
                         <?php foreach($notifications as $notif): ?>
-                        <a href="<?php echo !empty($notif['link']) ? BASE_URL . $notif['link'] : 'javascript:void(0)'; ?>" 
-                           onclick="markNotificationRead(<?php echo $notif['id']; ?>)"
+                        <a href="<?php echo !empty($notif['link']) ? BASE_URL . '/public' . $notif['link'] : 'javascript:void(0)'; ?>" 
+                           onclick="markNotificationRead(<?php echo $notif['id']; ?>, this, event)"
                            style="display: block; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; text-decoration: none; color: #2c3e50; transition: background 0.3s; <?php echo $notif['is_read'] ? 'opacity: 0.7;' : 'background: #f0f8ff;'; ?>" 
                            onmouseover="this.style.background='#f8f9fa'" 
                            onmouseout="this.style.background='<?php echo $notif['is_read'] ? 'white' : '#f0f8ff'; ?>'">
@@ -184,53 +185,39 @@ function toggleProfileDropdown() {
 
 // Mark all notifications as read
 function markAllRead() {
-    // This would need an AJAX call to backend
-    // For now, just hide the badge
-    const badge = document.getElementById('notifBadge');
-    const bellIcon = document.getElementById('bellIcon');
-    if (badge) {
-        badge.style.display = 'none';
-    }
-    if (bellIcon) {
-        bellIcon.style.transform = 'scale(1)';
-        setTimeout(() => {
-            bellIcon.style.transform = 'scale(1.1)';
-        }, 200);
-    }
-    
-    // Close dropdown
-    document.getElementById('notifDropdown').style.display = 'none';
-    
-    // Mark all as read via AJAX
     fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'user_id=<?php echo $customerId; ?>&csrf_token=<?php echo $csrf_token; ?>'
+        body: 'csrf_token=<?php echo urlencode($csrf_token); ?>'
+    }).finally(() => {
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+        document.getElementById('notifDropdown').style.display = 'none';
+        location.reload();
     });
 }
 
-// Mark single notification as read
-function markNotificationRead(notificationId) {
+// Mark single notification as read then navigate
+function markNotificationRead(notificationId, el, event) {
+    if (event) event.preventDefault();
+    const href = el ? el.getAttribute('href') : null;
     fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'notification_id=' + notificationId + '&csrf_token=<?php echo $csrf_token; ?>'
+        body: 'notification_id=' + notificationId + '&csrf_token=<?php echo urlencode($csrf_token); ?>'
+    }).finally(function() {
+        if (href && href !== '#' && href !== 'javascript:void(0)') window.location.href = href;
     });
 }
 
-// Close dropdowns when clicking outside
-document.addEventListener('click', function(event) {
-    const notifDropdown = document.getElementById('notifDropdown');
-    const bellIcon = event.target.closest('[onclick*="toggleNotificationDropdown"]');
-    
-    if (notifDropdown && !bellIcon && !event.target.closest('#notifDropdown')) {
-        notifDropdown.style.display = 'none';
-    }
-});
-
-// Auto-check for new notifications every 30 seconds
+// Auto-refresh badge every 30 seconds
 setInterval(function() {
-    // Could add AJAX call here to refresh notification count
-    console.log('Checking for new notifications...');
+    fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count', { credentials: 'same-origin' })
+    .then(r => r.json()).then(data => {
+        if (data.count !== undefined) {
+            const b = document.getElementById('notifBadge');
+            if (b) { if (data.count > 0) { b.textContent = data.count > 9 ? '9+' : data.count; b.style.display = 'flex'; } else b.style.display = 'none'; }
+        }
+    }).catch(() => {});
 }, 30000);
 </script>

@@ -147,7 +147,7 @@ require_once '../config/config.php';
                         <div class="card-body">
                             <h3 class="mb-4">Send Us a Message</h3>
                             
-                            <form id="contactForm" onsubmit="sendContactMessage(event)">
+                            <form id="contactForm" onsubmit="sendContactMessage(event)" novalidate>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="firstName" class="form-label">First Name</label>
@@ -161,7 +161,7 @@ require_once '../config/config.php';
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <label for="email" class="form-label">Email Address</label>
-                                        <input type="email" class="form-control" id="email" name="email" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+" title="Please enter a valid email address">
+                                        <input type="email" class="form-control" id="email" name="email" required>
                                     </div>
                                 </div>
                                 <div class="row">

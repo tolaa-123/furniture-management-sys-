@@ -26,7 +26,7 @@ require_once '../config/config.php';
         <div class="row mt-5">
             <div class="col-lg-6 mb-5 mb-lg-0">
                 <h2 class="fw-bold mb-4">Send Us a Message</h2>
-                <form id="contactForm">
+                <form id="contactForm" novalidate>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="firstName" class="form-label">First Name</label>
@@ -39,7 +39,7 @@ require_once '../config/config.php';
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required pattern="[^\s@]+@[^\s@]+\.[^\s@]+" title="Please enter a valid email address">
+                        <input type="email" class="form-control" id="email" name="email" required>
                     </div>
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject</label>
@@ -124,14 +124,35 @@ require_once '../config/config.php';
             const emailInput = document.getElementById('email');
             const email = emailInput.value.trim();
             
+            // Debug: log everything
+            console.log('=== DEBUG CONTACT FORM ===');
+            console.log('Email value:', email);
+            console.log('Email length:', email.length);
+            console.log('Email charCodes:', Array.from(email).map(c => c.charCodeAt(0)));
+            
             // Validate email with regex
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
+            const regexTest = emailRegex.test(email);
+            console.log('Regex test result:', regexTest);
+            
+            if (!regexTest) {
+                console.log('Email failed validation');
+                console.log('Testing parts:');
+                const parts = email.split('@');
+                console.log('Parts before @:', parts[0]);
+                console.log('Parts after @:', parts[1]);
+                if (parts.length === 2) {
+                    const domainParts = parts[1].split('.');
+                    console.log('Domain parts:', domainParts);
+                }
+                
                 alertBox.className = 'alert alert-danger mt-3';
-                alertBox.textContent = 'Please enter a valid email address.';
+                alertBox.textContent = 'Please enter a valid email address. Current value: "' + email + '"';
                 emailInput.focus();
                 return;
             }
+            
+            console.log('Email passed validation, proceeding...');
 
             btn.disabled = true;
             btn.textContent = 'Sending...';
@@ -143,6 +164,7 @@ require_once '../config/config.php';
                     body: new FormData(this)
                 });
                 const data = await res.json();
+                console.log('Server response:', data);
 
                 alertBox.className = data.success
                     ? 'alert alert-success mt-3'
@@ -154,6 +176,7 @@ require_once '../config/config.php';
                     setTimeout(() => { alertBox.className = 'd-none'; }, 4000);
                 }
             } catch (err) {
+                console.error('Fetch error:', err);
                 alertBox.className = 'alert alert-danger mt-3';
                 alertBox.textContent = 'Network error. Please try again.';
                 setTimeout(() => { alertBox.className = 'd-none'; }, 4000);
