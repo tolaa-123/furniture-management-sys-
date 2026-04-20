@@ -86,7 +86,7 @@ $rejectedPayments = [];
 try {
     $stmt = $pdo->query("
         SELECT p.payment_id, p.order_id, p.customer_id, p.amount, p.payment_type,
-               p.payment_method, p.receipt_file,
+               p.payment_method, COALESCE(p.receipt_image, p.receipt_file) as receipt_file,
                p.transaction_reference, p.bank_name, p.payment_date, p.status,
                p.created_at,
                o.furniture_type, o.furniture_name, o.order_number,
@@ -120,7 +120,7 @@ try {
 try {
     $stmt = $pdo->query("
         SELECT p.payment_id, p.order_id, p.customer_id, p.amount, p.payment_type,
-               p.payment_method, p.receipt_file, p.payment_date, p.status,
+               p.payment_method, COALESCE(p.receipt_image, p.receipt_file) as receipt_file, p.payment_date, p.status,
                p.verified_by, p.verified_at,
                o.furniture_type, o.furniture_name, o.order_number,
                COALESCE(o.estimated_cost, o.total_amount, 0) as order_total,
@@ -146,7 +146,7 @@ try {
 try {
     $stmt = $pdo->query("
         SELECT p.payment_id, p.order_id, p.customer_id, p.amount, p.payment_type,
-               p.payment_method, p.receipt_file, p.payment_date, p.status,
+               p.payment_method, COALESCE(p.receipt_image, p.receipt_file) as receipt_file, p.payment_date, p.status,
                o.furniture_type, o.furniture_name, o.order_number,
                CONCAT(u.first_name, ' ', u.last_name) as customer_name
         FROM furn_payments p

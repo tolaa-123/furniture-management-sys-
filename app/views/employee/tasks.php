@@ -188,6 +188,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($materialIds as $i => $matId) {
                     $qty = floatval($materialQtys[$i] ?? 0);
                     if ($matId && $qty > 0) {
+                        // Validate: must have approved request for this material
+                        $chkApproved = $pdo->prepare("SELECT COALESCE(SUM(quantity_requested),0) FROM furn_material_requests WHERE employee_id=? AND material_id=? AND status='approved'");
+                        $chkApproved->execute([$employeeId, (int)$matId]);
+                        if (floatval($chkApproved->fetchColumn()) <= 0) {
+                            throw new Exception("No approved request for material ID $matId. Request and get approval first.");
+                        }
                         // 1. Save to order materials (profit tracking)
                         $stmtMat->execute([$taskData['order_id'], $_POST['task_id'], $qty, $qty, (int)$matId]);
 
@@ -330,6 +336,7 @@ try {
         ADD COLUMN IF NOT EXISTS materials_used TEXT DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS completion_notes TEXT DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS actual_hours DECIMAL(5,2) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS production_completed_at DATETIME DEFAULT NULL");
 } catch (PDOException $e) {}
 
 // Auto-create furn_order_materials table for structured cost tracking
@@ -426,15 +433,22 @@ foreach ($tasks as $task) {
 
 $pageTitle = 'My Tasks';
 
-// Fetch materials for the complete task modal — show only those with available stock
+// Fetch materials for the complete task modal — only approved materials for this employee
 $allMaterials = [];
 try {
-    $stmt = $pdo->query("SELECT id, name as material_name, unit, cost_per_unit as unit_price,
-        current_stock, COALESCE(reserved_stock,0) as reserved_stock,
-        (current_stock - COALESCE(reserved_stock,0)) as available_stock
-        FROM furn_materials
-        WHERE (current_stock - COALESCE(reserved_stock,0)) > 0 AND is_active = 1
-        ORDER BY name ASC");
+    $stmt = $pdo->prepare("
+        SELECT m.id, m.name as material_name, m.unit, m.cost_per_unit as unit_price,
+               m.current_stock, COALESCE(m.reserved_stock,0) as reserved_stock,
+               (m.current_stock - COALESCE(m.reserved_stock,0)) as available_stock,
+               SUM(mr.quantity_requested) as approved_qty
+        FROM furn_material_requests mr
+        JOIN furn_materials m ON m.id = mr.material_id
+        WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
+        GROUP BY m.id, m.name, m.unit, m.cost_per_unit, m.current_stock, m.reserved_stock
+        HAVING approved_qty > 0
+        ORDER BY m.name ASC
+    ");
+    $stmt->execute([$employeeId]);
     $allMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Materials fetch error: " . $e->getMessage());

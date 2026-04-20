@@ -36,7 +36,7 @@ if ($customerId > 0) {
                 COALESCE(o.deposit_amount, o.total_amount * 0.4, 0) as deposit_amount,
                 COALESCE(o.remaining_balance, o.total_amount, 0) as remaining_balance,
                 o.status, o.created_at, o.updated_at,
-                COALESCE(SUM(CASE WHEN p.status = 'approved' THEN p.amount ELSE 0 END), 0) as amount_paid
+                COALESCE(SUM(CASE WHEN p.status IN ('approved','verified') THEN p.amount ELSE 0 END), 0) as amount_paid
             FROM furn_orders o
             LEFT JOIN furn_payments p ON p.order_id = o.id
             WHERE o.customer_id = ?
