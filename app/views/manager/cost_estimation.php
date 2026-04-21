@@ -295,19 +295,6 @@ $pageTitle = 'Cost Estimation - Review Orders';
     $pageTitle = 'Cost Estimation';
     include_once __DIR__ . '/../../includes/manager_header.php'; 
     ?>
-        <div class="header-left">
-            <div class="system-status"><i class="fas fa-circle"></i> Workshop Manager</div>
-        </div>
-        <div class="header-right">
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($managerName, 0, 1)); ?></div>
-                <div>
-                    <div style="font-weight: 600; font-size: 14px;"><?php echo htmlspecialchars($managerName); ?></div>
-                    <div class="admin-role-badge">MANAGER</div>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <div class="main-content">
         <?php
