@@ -22,7 +22,7 @@ if (!$notificationId || !$userId) {
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE furn_notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
+    $stmt = $pdo->prepare("UPDATE furn_notifications SET is_read = 1, read_at = NOW() WHERE id = ? AND user_id = ?");
     $stmt->execute([$notificationId, $userId]);
     
     echo json_encode(['success' => true]);
