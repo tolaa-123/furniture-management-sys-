@@ -112,13 +112,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete' && isset($_POST['material_id'])) {
         try {
-            $stmt = $pdo->prepare("DELETE FROM furn_materials WHERE id = ?");
+            // Soft delete — preserve all history (transactions, usage, reservations)
+            $stmt = $pdo->prepare("UPDATE furn_materials SET is_active = 0, updated_at = NOW() WHERE id = ?");
             $stmt->execute([$_POST['material_id']]);
-            $message = 'Material deleted successfully';
+            $message = 'Material deactivated successfully';
             $messageType = 'success';
         } catch (PDOException $e) {
-            $message = 'Error deleting material: ' . $e->getMessage();
+            $message = 'Error deactivating material: ' . $e->getMessage();
             $messageType = 'danger';
+        }
+    }
+
+    // Admin approve/reject material requests
+    if ($action === 'approve_request' && isset($_POST['request_id'])) {
+        $request_id = intval($_POST['request_id']);
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM furn_material_requests WHERE id = ? AND status = 'pending'");
+            $stmt->execute([$request_id]);
+            $req = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$req) { $message = 'Request not found or already processed.'; $messageType = 'danger'; }
+            else {
+                $stockStmt = $pdo->prepare("SELECT current_stock, COALESCE(reserved_stock,0) as reserved FROM furn_materials WHERE id = ?");
+                $stockStmt->execute([$req['material_id']]);
+                $mat = $stockStmt->fetch(PDO::FETCH_ASSOC);
+                $available = floatval($mat['current_stock']) - floatval($mat['reserved']);
+                if ($available < $req['quantity_requested']) {
+                    $message = "Insufficient stock (available: {$available})."; $messageType = 'danger';
+                } else {
+                    try { $pdo->exec("ALTER TABLE furn_materials ADD COLUMN IF NOT EXISTS reserved_stock DECIMAL(10,2) NOT NULL DEFAULT 0"); } catch (PDOException $e2) {}
+                    $pdo->beginTransaction();
+                    $pdo->prepare("UPDATE furn_materials SET reserved_stock = COALESCE(reserved_stock,0) + ?, updated_at = NOW() WHERE id = ?")->execute([$req['quantity_requested'], $req['material_id']]);
+                    $pdo->prepare("UPDATE furn_material_requests SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?")->execute([$_SESSION['user_id'], $request_id]);
+                    $pdo->commit();
+                    require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+                    $mn = $pdo->prepare("SELECT name FROM furn_materials WHERE id=?"); $mn->execute([$req['material_id']]); $matName = $mn->fetchColumn() ?: 'material';
+                    insertNotification($pdo, $req['employee_id'], 'material', 'Material Request Approved', 'Your request for ' . $req['quantity_requested'] . ' ' . $matName . ' has been approved by Admin.', $request_id, '/employee/materials', 'normal');
+                    $message = 'Request approved.'; $messageType = 'success';
+                }
+            }
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            $message = 'Error: ' . $e->getMessage(); $messageType = 'danger';
+        }
+    }
+
+    if ($action === 'reject_request' && isset($_POST['request_id'])) {
+        $request_id = intval($_POST['request_id']);
+        $reason = trim($_POST['rejection_reason'] ?? '');
+        try {
+            $stmt = $pdo->prepare("SELECT employee_id FROM furn_material_requests WHERE id = ? AND status = 'pending'");
+            $stmt->execute([$request_id]);
+            $req = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($req) {
+                $pdo->prepare("UPDATE furn_material_requests SET status = 'rejected', approved_by = ?, approved_at = NOW(), rejection_reason = ? WHERE id = ?")->execute([$_SESSION['user_id'], $reason, $request_id]);
+                require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+                insertNotification($pdo, $req['employee_id'], 'material', 'Material Request Rejected', 'Your material request was rejected by Admin' . ($reason ? ': ' . $reason : '.'), $request_id, '/employee/materials', 'normal');
+                $message = 'Request rejected.'; $messageType = 'success';
+            }
+        } catch (PDOException $e) {
+            $message = 'Error: ' . $e->getMessage(); $messageType = 'danger';
+        }
+    }
+
+    // Resolve low stock alert
+    if ($action === 'resolve_alert' && isset($_POST['alert_id'])) {
+        try {
+            $pdo->prepare("UPDATE furn_low_stock_alerts SET is_resolved = 1, resolved_at = NOW(), resolved_by = ? WHERE id = ?")->execute([$_SESSION['user_id'], intval($_POST['alert_id'])]);
+            $message = 'Alert resolved.'; $messageType = 'success';
+        } catch (PDOException $e) {
+            $message = 'Error: ' . $e->getMessage(); $messageType = 'danger';
         }
     }
 }
@@ -156,6 +218,130 @@ try {
     $message = 'Error loading materials: ' . $e->getMessage();
     $messageType = 'danger';
 }
+
+// Fetch pending material requests
+$pendingRequests = [];
+$allRequests = [];
+try {
+    $stmt = $pdo->query("
+        SELECT mr.*, m.name as material_name, m.unit, m.current_stock,
+               (m.current_stock - COALESCE(m.reserved_stock,0)) as available_stock,
+               COALESCE(m.reserved_stock,0) as reserved_stock,
+               CONCAT(u.first_name,' ',u.last_name) as employee_name,
+               o.order_number
+        FROM furn_material_requests mr
+        LEFT JOIN furn_materials m ON mr.material_id = m.id
+        LEFT JOIN furn_users u ON mr.employee_id = u.id
+        LEFT JOIN furn_orders o ON mr.order_id = o.id
+        WHERE mr.status = 'pending'
+        ORDER BY mr.created_at ASC
+    ");
+    $pendingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt2 = $pdo->query("
+        SELECT mr.*, m.name as material_name, m.unit,
+               CONCAT(u.first_name,' ',u.last_name) as employee_name,
+               o.order_number,
+               CONCAT(a.first_name,' ',a.last_name) as approved_by_name
+        FROM furn_material_requests mr
+        LEFT JOIN furn_materials m ON mr.material_id = m.id
+        LEFT JOIN furn_users u ON mr.employee_id = u.id
+        LEFT JOIN furn_orders o ON mr.order_id = o.id
+        LEFT JOIN furn_users a ON mr.approved_by = a.id
+        WHERE mr.status != 'pending'
+        ORDER BY mr.updated_at DESC LIMIT 50
+    ");
+    $allRequests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Requests error: " . $e->getMessage()); }
+
+// Fetch purchase history
+$purchaseHistory = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS furn_material_purchases (
+        id INT AUTO_INCREMENT PRIMARY KEY, material_id INT NOT NULL, manager_id INT NOT NULL,
+        action ENUM('restock','adjustment') NOT NULL DEFAULT 'restock',
+        quantity DECIMAL(10,2) NOT NULL, unit_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+        total_cost DECIMAL(10,2) NOT NULL DEFAULT 0, invoice_number VARCHAR(100) DEFAULT NULL,
+        supplier VARCHAR(255) DEFAULT NULL, purchase_date DATE NOT NULL, notes TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX(material_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $stmt = $pdo->query("
+        SELECT fp.*, m.name as material_name, m.unit,
+               CONCAT(u.first_name,' ',u.last_name) as recorded_by
+        FROM furn_material_purchases fp
+        LEFT JOIN furn_materials m ON fp.material_id = m.id
+        LEFT JOIN furn_users u ON fp.manager_id = u.id
+        ORDER BY fp.purchase_date DESC, fp.created_at DESC LIMIT 100
+    ");
+    $purchaseHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Purchase history error: " . $e->getMessage()); }
+
+// Fetch usage reports
+$usageReports = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS furn_material_usage (
+        id INT AUTO_INCREMENT PRIMARY KEY, employee_id INT NOT NULL, task_id INT DEFAULT NULL,
+        material_id INT NOT NULL, quantity_used DECIMAL(10,2) NOT NULL,
+        waste_amount DECIMAL(10,2) DEFAULT 0, notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX(employee_id), INDEX(material_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $stmt = $pdo->query("
+        SELECT mu.*, m.name as material_name, m.unit,
+               CONCAT(u.first_name,' ',u.last_name) as employee_name,
+               o.order_number
+        FROM furn_material_usage mu
+        LEFT JOIN furn_materials m ON mu.material_id = m.id
+        LEFT JOIN furn_users u ON mu.employee_id = u.id
+        LEFT JOIN furn_production_tasks t ON mu.task_id = t.id
+        LEFT JOIN furn_orders o ON t.order_id = o.id
+        ORDER BY mu.created_at DESC LIMIT 100
+    ");
+    $usageReports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Usage reports error: " . $e->getMessage()); }
+
+// Fetch low stock alerts
+$activeAlerts = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS furn_low_stock_alerts (
+        id INT AUTO_INCREMENT PRIMARY KEY, material_id INT NOT NULL,
+        current_stock DECIMAL(10,2) NOT NULL, minimum_stock DECIMAL(10,2) NOT NULL,
+        alert_level ENUM('low','critical') NOT NULL, is_resolved TINYINT(1) NOT NULL DEFAULT 0,
+        resolved_at TIMESTAMP NULL DEFAULT NULL, resolved_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY(material_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $stmt = $pdo->query("
+        SELECT lsa.*, m.name as material_name, m.unit,
+               CONCAT(u.first_name,' ',u.last_name) as resolved_by_name
+        FROM furn_low_stock_alerts lsa
+        JOIN furn_materials m ON lsa.material_id = m.id
+        LEFT JOIN furn_users u ON lsa.resolved_by = u.id
+        WHERE lsa.is_resolved = 0
+        ORDER BY CASE WHEN lsa.alert_level='critical' THEN 1 ELSE 2 END, lsa.created_at DESC
+    ");
+    $activeAlerts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Alerts error: " . $e->getMessage()); }
+
+// Auto-generate low stock alerts for materials below threshold
+try {
+    $lowMats = $pdo->query("SELECT id, current_stock, COALESCE(reserved_stock,0) as reserved, minimum_stock FROM furn_materials WHERE is_active=1 AND (current_stock - COALESCE(reserved_stock,0)) <= minimum_stock")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($lowMats as $lm) {
+        $avail = $lm['current_stock'] - $lm['reserved'];
+        $existing = $pdo->prepare("SELECT id FROM furn_low_stock_alerts WHERE material_id=? AND is_resolved=0 LIMIT 1");
+        $existing->execute([$lm['id']]);
+        if (!$existing->fetch()) {
+            $level = ($avail <= $lm['minimum_stock'] * 0.5) ? 'critical' : 'low';
+            $pdo->prepare("INSERT INTO furn_low_stock_alerts (material_id, current_stock, minimum_stock, alert_level) VALUES (?,?,?,?)")->execute([$lm['id'], $avail, $lm['minimum_stock'], $level]);
+        }
+    }
+    // Refresh alerts after auto-generate
+    $stmt = $pdo->query("SELECT lsa.*, m.name as material_name, m.unit FROM furn_low_stock_alerts lsa JOIN furn_materials m ON lsa.material_id = m.id WHERE lsa.is_resolved = 0 ORDER BY CASE WHEN lsa.alert_level='critical' THEN 1 ELSE 2 END, lsa.created_at DESC");
+    $activeAlerts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) { error_log("Auto-alert error: " . $e->getMessage()); }
+
+$stats['pending_requests'] = count($pendingRequests);
+$stats['active_alerts'] = count($activeAlerts);
 
 $pageTitle = 'Raw Materials Management';
 ?>
@@ -332,12 +518,12 @@ $pageTitle = 'Raw Materials Management';
                                 <button class="btn-action btn-primary-custom" onclick='editMaterial(<?php echo json_encode($material); ?>)'>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this material?');">
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Deactivate this material? It will be hidden but history is preserved.');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="material_id" value="<?php echo $material['id'] ?? ''; ?>">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? (($_SESSION['csrf_token'] = bin2hex(random_bytes(32))) ? $_SESSION['csrf_token'] : bin2hex(random_bytes(32)))); ?>">
                                     <button type="submit" class="btn-action btn-danger-custom">
-                                        <i class="fas fa-trash"></i> Delete
+                                        <i class="fas fa-ban"></i> Deactivate
                                     </button>
                                 </form>
                             </td>
@@ -347,9 +533,222 @@ $pageTitle = 'Raw Materials Management';
                 </table>
             </div>
         </div>
+
+        <!-- ===== PENDING MATERIAL REQUESTS ===== -->
+        <?php if (!empty($pendingRequests)): ?>
+        <div class="section-card" style="border-left:4px solid #E74C3C;">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-bell" style="color:#E74C3C;"></i> Pending Material Requests
+                    <span style="background:#E74C3C;color:white;border-radius:50%;padding:2px 8px;font-size:13px;margin-left:8px;"><?php echo count($pendingRequests); ?></span>
+                </h2>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Employee</th><th>Material</th><th>Qty Requested</th><th>Available</th><th>Order</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($pendingRequests as $req): ?>
+                        <tr>
+                            <td>#<?php echo str_pad($req['id'],4,'0',STR_PAD_LEFT); ?></td>
+                            <td><strong><?php echo htmlspecialchars($req['employee_name']); ?></strong></td>
+                            <td><?php echo htmlspecialchars($req['material_name']); ?></td>
+                            <td><strong><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></strong></td>
+                            <td>
+                                <?php $avail = floatval($req['available_stock'] ?? ($req['current_stock'] - $req['reserved_stock'])); ?>
+                                <?php if ($avail < $req['quantity_requested']): ?>
+                                    <span style="color:#E74C3C;font-weight:600;"><?php echo number_format($avail,2); ?> ⚠ Low</span>
+                                <?php else: ?>
+                                    <span style="color:#27AE60;"><?php echo number_format($avail,2); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
+                            <td><?php echo date('M d, Y', strtotime($req['created_at'])); ?></td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="approve_request">
+                                    <input type="hidden" name="request_id" value="<?php echo $req['id']; ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                    <button type="submit" class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;"><i class="fas fa-check"></i> Approve</button>
+                                </form>
+                                <button class="btn-action btn-danger-custom" style="padding:5px 10px;font-size:12px;margin-top:4px;" onclick="adminRejectRequest(<?php echo $req['id']; ?>)"><i class="fas fa-times"></i> Reject</button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ===== ALL REQUESTS HISTORY ===== -->
+        <?php if (!empty($allRequests)): ?>
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-history"></i> Material Request History</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Employee</th><th>Material</th><th>Qty</th><th>Order</th><th>Status</th><th>Processed By</th><th>Date</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($allRequests as $req): ?>
+                        <tr>
+                            <td>#<?php echo str_pad($req['id'],4,'0',STR_PAD_LEFT); ?></td>
+                            <td><?php echo htmlspecialchars($req['employee_name']); ?></td>
+                            <td><?php echo htmlspecialchars($req['material_name']); ?></td>
+                            <td><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></td>
+                            <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
+                            <td>
+                                <?php $sc = ['approved'=>'success','rejected'=>'danger','pending'=>'warning']; ?>
+                                <span class="badge badge-<?php echo $sc[$req['status']] ?? 'secondary'; ?>"><?php echo ucfirst($req['status']); ?></span>
+                                <?php if ($req['status']==='rejected' && !empty($req['rejection_reason'])): ?>
+                                    <br><small style="color:#E74C3C;"><?php echo htmlspecialchars($req['rejection_reason']); ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo !empty($req['approved_by_name']) ? htmlspecialchars($req['approved_by_name']) : '<span style="color:#aaa;">—</span>'; ?></td>
+                            <td><?php echo date('M d, Y', strtotime($req['created_at'])); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ===== LOW STOCK ALERTS ===== -->
+        <?php if (!empty($activeAlerts)): ?>
+        <div class="section-card" style="border-left:4px solid #E74C3C;">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-exclamation-triangle" style="color:#E74C3C;"></i> Active Low Stock Alerts
+                    <span style="background:#E74C3C;color:white;border-radius:50%;padding:2px 8px;font-size:13px;margin-left:8px;"><?php echo count($activeAlerts); ?></span>
+                </h2>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Material</th><th>Current Stock</th><th>Minimum</th><th>Level</th><th>Created</th><th>Action</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($activeAlerts as $alert): ?>
+                        <tr style="<?php echo $alert['alert_level']==='critical' ? 'background:#fff0f0;' : 'background:#fffbf0;'; ?>">
+                            <td><strong><?php echo htmlspecialchars($alert['material_name']); ?></strong></td>
+                            <td style="color:#E74C3C;font-weight:600;"><?php echo number_format($alert['current_stock'],2); ?> <?php echo $alert['unit']; ?></td>
+                            <td><?php echo number_format($alert['minimum_stock'],2); ?></td>
+                            <td>
+                                <?php if ($alert['alert_level']==='critical'): ?>
+                                    <span style="background:#E74C3C;color:white;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:600;">CRITICAL</span>
+                                <?php else: ?>
+                                    <span style="background:#F39C12;color:white;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:600;">LOW</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo date('M d, Y', strtotime($alert['created_at'])); ?></td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="resolve_alert">
+                                    <input type="hidden" name="alert_id" value="<?php echo $alert['id']; ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                    <button type="submit" class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;"><i class="fas fa-check"></i> Resolve</button>
+                                </form>
+                                <button class="btn-action btn-warning-custom" style="padding:5px 10px;font-size:12px;" onclick="showRestockModal(<?php echo $alert['material_id']; ?>, '<?php echo htmlspecialchars($alert['material_name']); ?>')"><i class="fas fa-plus"></i> Restock</button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ===== PURCHASE HISTORY ===== -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-receipt"></i> Purchase History (Restock Log)</h2>
+            </div>
+            <?php if (empty($purchaseHistory)): ?>
+                <p style="text-align:center;padding:40px;color:#aaa;">No purchase records yet.</p>
+            <?php else: ?>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Material</th><th>Qty</th><th>Unit Price</th><th>Total Cost</th><th>Invoice #</th><th>Supplier</th><th>Recorded By</th></tr></thead>
+                    <tbody>
+                        <?php $totalPurchase = 0; foreach ($purchaseHistory as $p): $totalPurchase += floatval($p['total_cost']); ?>
+                        <tr>
+                            <td><?php echo date('M d, Y', strtotime($p['purchase_date'])); ?></td>
+                            <td><strong><?php echo htmlspecialchars($p['material_name']); ?></strong> <small style="color:#aaa;">(<?php echo $p['unit']; ?>)</small></td>
+                            <td><?php echo number_format($p['quantity'],2); ?></td>
+                            <td>ETB <?php echo number_format($p['unit_price'],2); ?></td>
+                            <td><strong>ETB <?php echo number_format($p['total_cost'],2); ?></strong></td>
+                            <td><?php echo $p['invoice_number'] ? htmlspecialchars($p['invoice_number']) : '<span style="color:#aaa;">—</span>'; ?></td>
+                            <td><?php echo $p['supplier'] ? htmlspecialchars($p['supplier']) : '<span style="color:#aaa;">—</span>'; ?></td>
+                            <td><?php echo htmlspecialchars($p['recorded_by'] ?? 'N/A'); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <tr style="background:#f8f9fa;font-weight:700;">
+                            <td colspan="4" style="text-align:right;">Total:</td>
+                            <td>ETB <?php echo number_format($totalPurchase,2); ?></td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- ===== USAGE REPORTS ===== -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-chart-bar"></i> Employee Material Usage Reports</h2>
+            </div>
+            <?php if (empty($usageReports)): ?>
+                <p style="text-align:center;padding:40px;color:#aaa;">No usage reports yet.</p>
+            <?php else: ?>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead><tr><th>Date</th><th>Employee</th><th>Material</th><th>Used</th><th>Waste</th><th>Total Consumed</th><th>Order</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($usageReports as $u): ?>
+                        <tr>
+                            <td><?php echo date('M d, Y', strtotime($u['created_at'])); ?></td>
+                            <td><strong><?php echo htmlspecialchars($u['employee_name'] ?? 'N/A'); ?></strong></td>
+                            <td><?php echo htmlspecialchars($u['material_name'] ?? 'N/A'); ?> <small style="color:#aaa;">(<?php echo $u['unit']; ?>)</small></td>
+                            <td><?php echo number_format($u['quantity_used'],2); ?></td>
+                            <td style="color:<?php echo floatval($u['waste_amount'])>0?'#E74C3C':'#27AE60'; ?>">
+                                <?php echo number_format($u['waste_amount'],2); ?>
+                            </td>
+                            <td><strong><?php echo number_format($u['quantity_used'] + $u['waste_amount'],2); ?></strong></td>
+                            <td><?php echo !empty($u['order_number']) ? htmlspecialchars($u['order_number']) : '<span style="color:#aaa;">N/A</span>'; ?></td>
+                            <td style="font-size:12px;color:#666;"><?php echo htmlspecialchars($u['notes'] ?? ''); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
+
     </div>
 
-    <!-- Add Material Modal -->
+    <!-- Admin Reject Request Modal -->
+    <div id="adminRejectModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;padding:0;width:90%;max-width:460px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);">
+            <div style="background:linear-gradient(135deg,#e74c3c,#c0392b);padding:16px 22px;display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;color:white;font-size:16px;"><i class="fas fa-times-circle"></i> Reject Material Request</h3>
+                <button onclick="document.getElementById('adminRejectModal').style.display='none'" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">&times;</button>
+            </div>
+            <div style="padding:22px;">
+                <form method="POST">
+                    <input type="hidden" name="action" value="reject_request">
+                    <input type="hidden" name="request_id" id="admin_reject_request_id">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px;">Rejection Reason</label>
+                        <textarea name="rejection_reason" rows="3" placeholder="Explain why this request is rejected..."
+                            style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;resize:vertical;"></textarea>
+                    </div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button type="button" onclick="document.getElementById('adminRejectModal').style.display='none'" style="padding:10px 20px;background:#95a5a6;color:white;border:none;border-radius:8px;cursor:pointer;">Cancel</button>
+                        <button type="submit" style="padding:10px 20px;background:#e74c3c;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-times"></i> Reject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <div id="addModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
         <div style="background:white;border-radius:14px;padding:0;width:90%;max-width:520px;margin:20px auto;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.2);">
             <div style="background:linear-gradient(135deg,#27ae60,#1e8449);padding:16px 22px;display:flex;justify-content:space-between;align-items:center;">
@@ -596,6 +995,11 @@ $pageTitle = 'Raw Materials Management';
             } else {
                 disp.style.display = 'none';
             }
+        }
+
+        function adminRejectRequest(requestId) {
+            document.getElementById('admin_reject_request_id').value = requestId;
+            document.getElementById('adminRejectModal').style.display = 'flex';
         }
     </script>
     <!-- Mobile Menu Script -->

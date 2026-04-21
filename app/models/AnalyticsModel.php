@@ -16,22 +16,28 @@ class AnalyticsModel extends BaseModel {
                         return json_decode($cachedData, true);
                     }
 
-                    $stmt = $this->db->prepare("
-                        SELECT 
-                            u.id as employee_id,
-                            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
-                            COUNT(pa.id) as completed_orders,
-                            AVG(DATEDIFF(pa.completed_at, pa.assigned_at)) as avg_completion_days
-                        FROM furn_users u
-                        JOIN furn_production_assignments pa ON FIND_IN_SET(u.id, pa.assigned_employee_ids)
-                        WHERE pa.status = 'completed'
-                            AND pa.completed_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
-                        GROUP BY u.id, u.first_name, u.last_name
-                        ORDER BY completed_orders DESC, avg_completion_days ASC
-                        LIMIT ?
-                    ");
-                    $stmt->execute([$months, $limit]);
-                    $data = $stmt->fetchAll();
+                    // Use furn_production_tasks (employee_id, completed_at, created_at)
+                    try {
+                        $stmt = $this->db->prepare("
+                            SELECT 
+                                u.id as employee_id,
+                                CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+                                COUNT(t.id) as completed_orders,
+                                ROUND(AVG(DATEDIFF(t.completed_at, t.created_at)), 1) as avg_completion_days
+                            FROM furn_users u
+                            JOIN furn_production_tasks t ON u.id = t.employee_id
+                            WHERE t.status = 'completed'
+                                AND t.completed_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                            GROUP BY u.id, u.first_name, u.last_name
+                            ORDER BY completed_orders DESC, avg_completion_days ASC
+                            LIMIT ?
+                        ");
+                        $stmt->execute([$months, $limit]);
+                        $data = $stmt->fetchAll();
+                    } catch (PDOException $e) {
+                        error_log("getEmployeeProductivityData error: " . $e->getMessage());
+                        $data = [];
+                    }
 
                     $result = [
                         'labels' => array_column($data, 'employee_name'),
@@ -68,21 +74,26 @@ class AnalyticsModel extends BaseModel {
                     return json_decode($cachedData, true);
                 }
 
-                // Query: Sum of material usage per month for top N materials
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        m.id as material_id,
-                        m.name as material_name,
-                        DATE_FORMAT(ul.used_at, '%Y-%m') as month,
-                        SUM(ul.quantity_used) as total_used
-                    FROM furn_material_usage_logs ul
-                    JOIN furn_materials m ON ul.material_id = m.id
-                    WHERE ul.used_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
-                    GROUP BY m.id, month
-                    ORDER BY m.id, month
-                ");
-                $stmt->execute([$months]);
-                $data = $stmt->fetchAll();
+                // Fixed: use furn_material_usage table with created_at column
+                try {
+                    $stmt = $this->db->prepare("
+                        SELECT 
+                            m.id as material_id,
+                            m.name as material_name,
+                            DATE_FORMAT(mu.created_at, '%Y-%m') as month,
+                            SUM(mu.quantity_used) as total_used
+                        FROM furn_material_usage mu
+                        JOIN furn_materials m ON mu.material_id = m.id
+                        WHERE mu.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                        GROUP BY m.id, m.name, DATE_FORMAT(mu.created_at, '%Y-%m')
+                        ORDER BY m.id, month
+                    ");
+                    $stmt->execute([$months]);
+                    $data = $stmt->fetchAll();
+                } catch (PDOException $e) {
+                    error_log("getMaterialUsageTrends error: " . $e->getMessage());
+                    $data = [];
+                }
 
                 // Pivot data for Chart.js (labels: months, datasets: materials)
                 $monthsArr = [];
@@ -145,24 +156,31 @@ class AnalyticsModel extends BaseModel {
                 return json_decode($cachedData, true);
             }
 
-            $stmt = $this->db->prepare("
-                SELECT 
-                    c.id as customer_id,
-                    CONCAT(c.first_name, ' ', c.last_name) as customer_name,
-                    c.email,
-                    c.phone,
-                    COUNT(o.id) as orders_count,
-                    SUM(o.total_amount) as total_revenue
-                FROM furn_customers c
-                JOIN furn_orders o ON c.id = o.customer_id
-                WHERE o.status IN ('completed', 'delivered', 'paid')
-                    AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
-                GROUP BY c.id, c.first_name, c.last_name, c.email, c.phone
-                ORDER BY total_revenue DESC
-                LIMIT ?
-            ");
-            $stmt->execute([$months, $limit]);
-            $data = $stmt->fetchAll();
+            // Customers are in furn_users with role='customer'
+            try {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        u.id as customer_id,
+                        CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+                        u.email,
+                        u.phone,
+                        COUNT(o.id) as orders_count,
+                        SUM(COALESCE(o.total_amount, o.estimated_cost, 0)) as total_revenue
+                    FROM furn_users u
+                    JOIN furn_orders o ON u.id = o.customer_id
+                    WHERE u.role = 'customer'
+                        AND o.status IN ('completed', 'ready_for_delivery')
+                        AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                    GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone
+                    ORDER BY total_revenue DESC
+                    LIMIT ?
+                ");
+                $stmt->execute([$months, $limit]);
+                $data = $stmt->fetchAll();
+            } catch (PDOException $e) {
+                error_log("getTopCustomers error: " . $e->getMessage());
+                $data = [];
+            }
 
             $result = [
                 'labels' => array_column($data, 'customer_name'),
@@ -209,7 +227,7 @@ class AnalyticsModel extends BaseModel {
                 SUM(total_amount) as revenue,
                 COUNT(id) as order_count
             FROM furn_orders 
-            WHERE status IN ('completed', 'delivered', 'paid')
+            WHERE status IN ('completed', 'ready_for_delivery', 'deposit_paid', 'in_production')
                 AND created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
             GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC
@@ -307,22 +325,28 @@ class AnalyticsModel extends BaseModel {
             return json_decode($cachedData, true);
         }
         
-        $stmt = $this->db->prepare("
-            SELECT 
-                CONCAT(u.first_name, ' ', u.last_name) as employee_name,
-                COUNT(a.id) as days_worked,
-                SUM(a.hours_worked) as total_hours,
-                AVG(a.hours_worked) as avg_daily_hours
-            FROM furn_users u
-            JOIN furn_attendance a ON u.id = a.user_id
-            WHERE u.role = 'employee' AND a.status = 'present'
-                AND a.date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-            GROUP BY u.id, u.first_name, u.last_name
-            ORDER BY total_hours DESC
-            LIMIT ?
-        ");
-        $stmt->execute([$limit]);
-        $data = $stmt->fetchAll();
+        // furn_attendance uses employee_id and check_in_time (no hours_worked column)
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+                    COUNT(a.id) as days_worked,
+                    COUNT(a.id) as total_hours,
+                    ROUND(COUNT(a.id) / 30.0 * 8, 1) as avg_daily_hours
+                FROM furn_users u
+                JOIN furn_attendance a ON u.id = a.employee_id
+                WHERE u.role = 'employee' AND a.status = 'present'
+                    AND a.check_in_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                GROUP BY u.id, u.first_name, u.last_name
+                ORDER BY days_worked DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$limit]);
+            $data = $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("getEmployeeHoursData error: " . $e->getMessage());
+            $data = [];
+        }
         
         $result = [
             'labels' => array_column($data, 'employee_name'),
@@ -363,15 +387,15 @@ class AnalyticsModel extends BaseModel {
             SELECT 
                 name,
                 current_stock,
-                min_stock_level,
+                minimum_stock as min_stock_level,
                 unit,
                 CASE 
-                    WHEN current_stock <= min_stock_level THEN 'critical'
-                    WHEN current_stock <= (min_stock_level * 1.5) THEN 'warning'
+                    WHEN current_stock <= minimum_stock THEN 'critical'
+                    WHEN current_stock <= (minimum_stock * 1.5) THEN 'warning'
                     ELSE 'normal'
                 END as stock_status
             FROM furn_materials
-            WHERE current_stock <= (min_stock_level * 2) AND is_active = 1
+            WHERE current_stock <= (minimum_stock * 2) AND is_active = 1
             ORDER BY current_stock ASC
             LIMIT 15
         ");
@@ -430,7 +454,7 @@ class AnalyticsModel extends BaseModel {
                 FROM furn_products p
                 JOIN furn_order_customizations oc ON p.id = oc.product_id
                 JOIN furn_orders o ON oc.order_id = o.id
-                WHERE o.status IN ('completed', 'delivered', 'paid')
+                WHERE o.status IN ('completed', 'ready_for_delivery')
                     AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
                 GROUP BY p.id, p.name, p.category
                 ORDER BY total_revenue DESC
@@ -451,7 +475,7 @@ class AnalyticsModel extends BaseModel {
                         SUM(o.total_amount) as total_revenue
                     FROM furn_order_customizations oc
                     JOIN furn_orders o ON oc.order_id = o.id
-                    WHERE o.status IN ('completed', 'delivered', 'paid')
+                    WHERE o.status IN ('completed', 'ready_for_delivery')
                         AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
                     GROUP BY oc.product_id
                     ORDER BY total_revenue DESC
@@ -576,7 +600,7 @@ class AnalyticsModel extends BaseModel {
         $stmt = $this->db->prepare("
             SELECT SUM(total_amount) as revenue 
             FROM furn_orders 
-            WHERE status IN ('completed', 'delivered', 'paid')
+            WHERE status IN ('completed', 'ready_for_delivery', 'deposit_paid', 'in_production')
                 AND MONTH(created_at) = MONTH(NOW()) 
                 AND YEAR(created_at) = YEAR(NOW())
         ");
@@ -589,7 +613,7 @@ class AnalyticsModel extends BaseModel {
         $stats['active_employees'] = $stmt->fetch()['total'];
         
         // Low stock items
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM furn_materials WHERE current_stock <= min_stock_level AND is_active = 1");
+        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM furn_materials WHERE current_stock <= minimum_stock AND is_active = 1");
         $stmt->execute();
         $stats['low_stock_items'] = $stmt->fetch()['total'];
         
@@ -639,6 +663,63 @@ class AnalyticsModel extends BaseModel {
         $stmt->execute([$cacheKey, $data, $dataType, $expiresAt]);
     }
     
+    /**
+     * Get weekly orders data (last N weeks)
+     */
+    public function getWeeklyOrdersData($weeks = 12) {
+        $cacheKey = "weekly_orders_{$weeks}";
+        $cachedData = $this->getCachedData($cacheKey);
+        if ($cachedData) {
+            return json_decode($cachedData, true);
+        }
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    YEARWEEK(created_at, 1) as yw,
+                    DATE_FORMAT(MIN(created_at), 'W%v %Y') as week_label,
+                    COUNT(*) as order_count,
+                    SUM(CASE WHEN status IN ('completed','ready_for_delivery','deposit_paid') THEN COALESCE(total_amount,0) ELSE 0 END) as revenue
+                FROM furn_orders
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? WEEK)
+                GROUP BY YEARWEEK(created_at, 1)
+                ORDER BY yw ASC
+            ");
+            $stmt->execute([$weeks]);
+            $data = $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("getWeeklyOrdersData error: " . $e->getMessage());
+            $data = [];
+        }
+
+        $result = [
+            'labels' => array_column($data, 'week_label'),
+            'datasets' => [
+                [
+                    'label' => 'Orders per Week',
+                    'data' => array_column($data, 'order_count'),
+                    'backgroundColor' => 'rgba(54, 162, 235, 0.6)',
+                    'borderColor' => 'rgba(54, 162, 235, 1)',
+                    'borderWidth' => 2,
+                    'tension' => 0.1
+                ],
+                [
+                    'label' => 'Revenue (ETB)',
+                    'data' => array_column($data, 'revenue'),
+                    'backgroundColor' => 'rgba(75, 192, 192, 0.3)',
+                    'borderColor' => 'rgba(75, 192, 192, 1)',
+                    'borderWidth' => 2,
+                    'tension' => 0.1,
+                    'yAxisID' => 'y1'
+                ]
+            ],
+            'detailed_data' => $data
+        ];
+
+        $this->cacheData($cacheKey, json_encode($result), 'chart_data', 600);
+        return $result;
+    }
+
     /**
      * Clear expired cache
      */

@@ -13,7 +13,8 @@ $notificationCounts = [
     'low_stock' => 0,
     'pending_payments' => 0,
     'unread_messages' => 0,
-    'pending_reviews' => 0
+    'pending_reviews' => 0,
+    'pending_material_requests' => 0
 ];
 
 try {
@@ -25,6 +26,12 @@ try {
     // Low stock materials
     $stmt = $pdo->query("SELECT COUNT(*) FROM furn_materials WHERE current_stock < minimum_stock");
     $notificationCounts['low_stock'] = $stmt->fetchColumn();
+
+    // Pending material requests
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM furn_material_requests WHERE status = 'pending'");
+        $notificationCounts['pending_material_requests'] = $stmt->fetchColumn();
+    } catch (PDOException $e2) { $notificationCounts['pending_material_requests'] = 0; }
 
     // Pending payments
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_payments WHERE status = 'pending'");
@@ -110,7 +117,25 @@ function isActive($page) {
                 <span>Raw Materials</span>
                 <?php if($notificationCounts['low_stock'] > 0): ?>
                     <span class="menu-badge badge-danger"><?php echo $notificationCounts['low_stock']; ?></span>
+                <?php elseif($notificationCounts['pending_material_requests'] > 0): ?>
+                    <span class="menu-badge badge-warning"><?php echo $notificationCounts['pending_material_requests']; ?></span>
                 <?php endif; ?>
+            </a>
+        </li>
+
+        <!-- Material Report -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/admin/material-report" class="<?php echo isActive('/admin/material-report'); ?>" style="padding-left:32px;font-size:13px;">
+                <i class="fas fa-chart-bar"></i>
+                <span>Material Report</span>
+            </a>
+        </li>
+
+        <!-- Analytics Dashboard -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/analytics/dashboard" class="<?php echo isActive('/analytics/dashboard'); ?>">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
             </a>
         </li>
 

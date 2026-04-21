@@ -126,6 +126,14 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Analytics Dashboard -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/analytics/dashboard" class="<?php echo isActive('/analytics/dashboard'); ?>">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+
         <!-- Gallery Products -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/manager/manage-products" class="<?php echo isActive('/manager/manage-products'); ?>">

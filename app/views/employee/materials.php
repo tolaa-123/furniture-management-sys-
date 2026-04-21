@@ -226,7 +226,6 @@ try {
         FROM furn_materials WHERE is_active = 1 ORDER BY name ASC");
     $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Materials error: " . $e->getMessage()); }
-
 // Tasks assigned to this employee (pending or in_progress)
 $tasks = [];
 try {

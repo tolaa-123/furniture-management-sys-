@@ -1,721 +1,150 @@
-        <!-- Fifth Row Charts -->
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">Employee Productivity</h4>
-                        <div class="card-options">
-                            <select id="employeeProductivityMonths" class="form-select form-select-sm" style="width: auto;">
-                                <option value="3">Last 3 Months</option>
-                                <option value="6" selected>Last 6 Months</option>
-                                <option value="12">Last 12 Months</option>
-                            </select>
-                            <select id="employeeProductivityLimit" class="form-select form-select-sm ms-2" style="width: auto;">
-                                <option value="5">Top 5 Employees</option>
-                                <option value="8" selected>Top 8 Employees</option>
-                                <option value="12">Top 12 Employees</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="employeeProductivityChart" height="180"></canvas>
-                        <div id="employeeProductivityDetails" class="mt-3"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    let employeeProductivityChart;
-        // Employee Productivity Chart
-        const employeeProductivityCtx = document.getElementById('employeeProductivityChart').getContext('2d');
-        employeeProductivityChart = new Chart(employeeProductivityCtx, {
-            type: 'bar',
-            data: <?php echo json_encode($chartData['employeeProductivity']); ?>,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Orders Completed'
-                        }
-                    },
-                    y1: {
-                        position: 'right',
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Avg Completion Days'
-                        },
-                        grid: {
-                            drawOnChartArea: false
-                        }
-                    }
-                }
-            }
-        });
-        // Employee productivity filters
-        document.getElementById('employeeProductivityMonths').addEventListener('change', function() {
-            updateChart('employee_productivity', employeeProductivityChart, {months: this.value, limit: document.getElementById('employeeProductivityLimit').value});
-        });
-        document.getElementById('employeeProductivityLimit').addEventListener('change', function() {
-            updateChart('employee_productivity', employeeProductivityChart, {months: document.getElementById('employeeProductivityMonths').value, limit: this.value});
-        });
-    // Render employee productivity details table
-    function renderEmployeeProductivityDetails(data) {
-        if (!data || !data.detailed_data || data.detailed_data.length === 0) {
-            document.getElementById('employeeProductivityDetails').innerHTML = '<div class="text-muted">No data available.</div>';
-            return;
-        }
-        let html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Name</th><th>Orders Completed</th><th>Avg Completion Days</th></tr></thead><tbody>';
-        data.detailed_data.forEach((row, idx) => {
-            html += `<tr><td>${idx+1}</td><td>${row.employee_name}</td><td>${row.completed_orders}</td><td>${Number(row.avg_completion_days).toFixed(2)}</td></tr>`;
-        });
-        html += '</tbody></table></div>';
-        document.getElementById('employeeProductivityDetails').innerHTML = html;
-    }
-        // Initial render of employee productivity details
-        renderEmployeeProductivityDetails(<?php echo json_encode($chartData['employeeProductivity']); ?>);
-        if (chartType === 'employee_productivity') {
-            renderEmployeeProductivityDetails(data.data);
-        }
-    <!-- Fourth Row Charts -->
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Material Usage Trends</h4>
-                    <div class="card-options">
-                        <select id="materialUsageMonths" class="form-select form-select-sm" style="width: auto;">
-                            <option value="6">Last 6 Months</option>
-                            <option value="12" selected>Last 12 Months</option>
-                            <option value="24">Last 24 Months</option>
-                        </select>
-                        <select id="materialUsageLimit" class="form-select form-select-sm ms-2" style="width: auto;">
-                            <option value="3">Top 3 Materials</option>
-                            <option value="6" selected>Top 6 Materials</option>
-                            <option value="10">Top 10 Materials</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="materialUsageChart" height="180"></canvas>
-                    <div id="materialUsageDetails" class="mt-3"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-let materialUsageChart;
-    // Material Usage Chart
-    const materialUsageCtx = document.getElementById('materialUsageChart').getContext('2d');
-    materialUsageChart = new Chart(materialUsageCtx, {
-        type: 'line',
-        data: <?php echo json_encode($chartData['materialUsage']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Quantity Used'
-                    }
-                }
-            }
-        }
-    });
-    // Material usage filters
-    document.getElementById('materialUsageMonths').addEventListener('change', function() {
-        updateChart('material_usage', materialUsageChart, {months: this.value, limit: document.getElementById('materialUsageLimit').value});
-    });
-    document.getElementById('materialUsageLimit').addEventListener('change', function() {
-        updateChart('material_usage', materialUsageChart, {months: document.getElementById('materialUsageMonths').value, limit: this.value});
-    });
-// Render material usage details table
-function renderMaterialUsageDetails(data) {
-    if (!data || !data.detailed_data || data.detailed_data.length === 0) {
-        document.getElementById('materialUsageDetails').innerHTML = '<div class="text-muted">No data available.</div>';
-        return;
-    }
-    let html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Material</th><th>Month</th><th>Quantity Used</th></tr></thead><tbody>';
-    data.detailed_data.forEach(row => {
-        html += `<tr><td>${row.material_name}</td><td>${row.month}</td><td>${Number(row.total_used).toLocaleString()}</td></tr>`;
-    });
-    html += '</tbody></table></div>';
-    document.getElementById('materialUsageDetails').innerHTML = html;
+﻿<?php
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['manager', 'admin'])) {
+    header('Location: ' . BASE_URL . '/public/login');
+    exit();
 }
-    // Initial render of material usage details
-    renderMaterialUsageDetails(<?php echo json_encode($chartData['materialUsage']); ?>);
-    if (chartType === 'material_usage') {
-        renderMaterialUsageDetails(data.data);
-    }
-<?php require_once APP_DIR . '/includes/header.php'; ?>
-
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box d-flex align-items-center justify-content-between">
-                <h4 class="mb-0">Analytics Dashboard</h4>
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Analytics</li>
-                    </ol>
-                </div>
-            </div>
+$role = $_SESSION['user_role'];
+$pageTitle = 'Analytics Dashboard';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - FurnitureCraft</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
+    <style>
+        .ch-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:20px;}
+        .ch-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+        .ch-title{font-size:14px;font-weight:600;color:#2c3e50;margin:0;}
+        .ch-head select{padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none;}
+        .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+        @media(max-width:768px){.g2{grid-template-columns:1fr;}}
+        .dt{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+        .dt th{background:#f8f9fa;padding:6px 10px;text-align:left;font-weight:600;color:#555;border-bottom:2px solid #e0e0e0;}
+        .dt td{padding:6px 10px;border-bottom:1px solid #f0f0f0;color:#444;}
+    </style>
+</head>
+<body>
+<button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
+<div class="sidebar-overlay"></div>
+<?php
+if ($role === 'admin') {
+    include_once __DIR__ . '/../../includes/admin_sidebar.php';
+    $pageTitle = 'Analytics';
+    include_once __DIR__ . '/../../includes/admin_header.php';
+} else {
+    include_once __DIR__ . '/../../includes/manager_sidebar.php';
+    $pageTitle = 'Analytics';
+    include_once __DIR__ . '/../../includes/manager_header.php';
+}
+?>
+<div class="main-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px;">
+        <h1 style="margin:0;font-size:22px;color:#2c3e50;"><i class="fas fa-chart-line" style="color:#3498DB;margin-right:8px;"></i>Analytics Dashboard</h1>
+        <?php if ($role === 'admin'): ?>
+        <button onclick="doRefreshCache()" style="padding:8px 16px;background:#e67e22;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;"><i class="fas fa-sync-alt"></i> Refresh Cache</button>
+        <?php endif; ?>
+    </div>
+    <div class="stats-grid" style="margin-bottom:22px;">
+        <div class="stat-card" style="border-left:4px solid #3498DB;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_total_orders"><?php echo number_format($stats['total_orders']??0); ?></div><div class="stat-label">Total Orders</div></div><i class="fas fa-box" style="font-size:28px;color:#3498DB;opacity:.2;align-self:center;"></i></div></div>
+        <div class="stat-card" style="border-left:4px solid #F39C12;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_pending"><?php echo number_format($stats['pending_orders']??0); ?></div><div class="stat-label">Pending Orders</div></div><i class="fas fa-hourglass-half" style="font-size:28px;color:#F39C12;opacity:.2;align-self:center;"></i></div></div>
+        <div class="stat-card" style="border-left:4px solid #27AE60;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_revenue" style="font-size:16px;">ETB <?php echo number_format($stats['this_month_revenue']??0,0); ?></div><div class="stat-label">This Month Revenue</div></div><i class="fas fa-money-bill" style="font-size:28px;color:#27AE60;opacity:.2;align-self:center;"></i></div></div>
+        <div class="stat-card" style="border-left:4px solid #9B59B6;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_profit" style="font-size:16px;">ETB <?php echo number_format($stats['this_month_profit']??0,0); ?></div><div class="stat-label">This Month Profit</div></div><i class="fas fa-chart-line" style="font-size:28px;color:#9B59B6;opacity:.2;align-self:center;"></i></div></div>
+        <div class="stat-card" style="border-left:4px solid #1ABC9C;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_employees"><?php echo number_format($stats['active_employees']??0); ?></div><div class="stat-label">Active Employees</div></div><i class="fas fa-users" style="font-size:28px;color:#1ABC9C;opacity:.2;align-self:center;"></i></div></div>
+        <div class="stat-card" style="border-left:4px solid #E74C3C;"><div style="display:flex;justify-content:space-between;"><div><div class="stat-value" id="s_lowstock" style="color:#E74C3C;"><?php echo number_format($stats['low_stock_items']??0); ?></div><div class="stat-label">Low Stock Items</div></div><i class="fas fa-exclamation-triangle" style="font-size:28px;color:#E74C3C;opacity:.2;align-self:center;"></i></div></div>
+    </div>
+    <div class="ch-card">
+        <div class="ch-head">
+            <h3 class="ch-title"><i class="fas fa-calendar-week" style="color:#3498DB;margin-right:6px;"></i>Weekly Orders &amp; Revenue</h3>
+            <select id="weeklyWeeks" onchange="upd('weekly_orders',weeklyChart,{limit:this.value})"><option value="8">Last 8 Weeks</option><option value="12" selected>Last 12 Weeks</option><option value="24">Last 24 Weeks</option></select>
+        </div>
+        <canvas id="weeklyChart" height="80"></canvas>
+    </div>
+    <div class="g2">
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-chart-area" style="color:#27AE60;margin-right:6px;"></i>Monthly Revenue</h3><select id="revMonths" onchange="upd('monthly_revenue',revChart,{months:this.value})"><option value="6">6 Mo</option><option value="12" selected>12 Mo</option><option value="24">24 Mo</option></select></div>
+            <canvas id="revChart" height="150"></canvas>
+        </div>
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-chart-pie" style="color:#9B59B6;margin-right:6px;"></i>Orders by Status</h3></div>
+            <canvas id="statusChart" height="150"></canvas>
         </div>
     </div>
-
-    <!-- Dashboard Stats -->
-    <div class="row">
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">Total Orders</p>
-                            <h4 class="mb-0" id="totalOrders"><?php echo number_format($stats['total_orders'] ?? 0); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-primary">
-                                <span class="avatar-title">
-                                    <i class="bx bx-cart font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="ch-card">
+        <div class="ch-head"><h3 class="ch-title"><i class="fas fa-chart-line" style="color:#E74C3C;margin-right:6px;"></i>Monthly Profit Trend</h3><select id="profitMonths" onchange="upd('monthly_profit',profitChart,{months:this.value})"><option value="6">6 Mo</option><option value="12" selected>12 Mo</option><option value="24">24 Mo</option></select></div>
+        <canvas id="profitChart" height="80"></canvas>
+    </div>
+    <div class="g2">
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-couch" style="color:#F39C12;margin-right:6px;"></i>Top Selling Products</h3><select id="prodLimit" onchange="upd('top_products',prodChart,{limit:this.value})"><option value="5">Top 5</option><option value="10" selected>Top 10</option></select></div>
+            <canvas id="prodChart" height="150"></canvas><div id="prodDetails"></div>
         </div>
-
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">Pending Orders</p>
-                            <h4 class="mb-0" id="pendingOrders"><?php echo number_format($stats['pending_orders'] ?? 0); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-warning">
-                                <span class="avatar-title">
-                                    <i class="bx bx-time font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">This Month Revenue</p>
-                            <h4 class="mb-0" id="monthRevenue">ETB <?php echo number_format($stats['this_month_revenue'] ?? 0, 2); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-success">
-                                <span class="avatar-title">
-                                    <i class="bx bx-money font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">Active Employees</p>
-                            <h4 class="mb-0" id="activeEmployees"><?php echo number_format($stats['active_employees'] ?? 0); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-info">
-                                <span class="avatar-title">
-                                    <i class="bx bx-user font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">Low Stock Items</p>
-                            <h4 class="mb-0" id="lowStock"><?php echo number_format($stats['low_stock_items'] ?? 0); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-danger">
-                                <span class="avatar-title">
-                                    <i class="bx bx-error font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex">
-                        <div class="flex-grow-1">
-                            <p class="text-muted mb-1">This Month Profit</p>
-                            <h4 class="mb-0" id="monthProfit">ETB <?php echo number_format($stats['this_month_profit'] ?? 0, 2); ?></h4>
-                        </div>
-                        <div class="flex-shrink-0 align-self-center">
-                            <div class="avatar-sm rounded-circle bg-success">
-                                <span class="avatar-title">
-                                    <i class="bx bx-trending-up font-size-24"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-users" style="color:#1ABC9C;margin-right:6px;"></i>Top Customers</h3><div style="display:flex;gap:6px;"><select id="custLimit" onchange="upd('top_customers',custChart,{limit:this.value,months:document.getElementById('custMonths').value})"><option value="5">Top 5</option><option value="10" selected>Top 10</option></select><select id="custMonths" onchange="upd('top_customers',custChart,{limit:document.getElementById('custLimit').value,months:this.value})"><option value="6">6 Mo</option><option value="12" selected>12 Mo</option></select></div></div>
+            <canvas id="custChart" height="150"></canvas><div id="custDetails"></div>
         </div>
     </div>
-
-    <!-- Main Charts Row -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Monthly Revenue Trend</h4>
-                    <div class="card-options">
-                        <select id="revenueMonths" class="form-select form-select-sm" style="width: auto;">
-                            <option value="6">Last 6 Months</option>
-                            <option value="12" selected>Last 12 Months</option>
-                            <option value="24">Last 24 Months</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="monthlyRevenueChart" height="100"></canvas>
-                </div>
-            </div>
+    <div class="g2">
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-clock" style="color:#3498DB;margin-right:6px;"></i>Employee Hours (30 Days)</h3><select id="empLimit" onchange="upd('employee_hours',empChart,{limit:this.value})"><option value="5">Top 5</option><option value="8" selected>Top 8</option><option value="10">Top 10</option></select></div>
+            <canvas id="empChart" height="150"></canvas>
         </div>
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Orders by Status</h4>
-                </div>
-                <div class="card-body">
-                    <canvas id="ordersByStatusChart" height="200"></canvas>
-                </div>
-            </div>
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-exclamation-triangle" style="color:#E74C3C;margin-right:6px;"></i>Low Stock Alerts</h3></div>
+            <canvas id="stockChart" height="150"></canvas><div id="stockDetails"></div>
         </div>
     </div>
-
-    <!-- Second Row Charts -->
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Employee Working Hours</h4>
-                    <div class="card-options">
-                        <select id="employeeLimit" class="form-select form-select-sm" style="width: auto;">
-                            <option value="5">Top 5</option>
-                            <option value="8" selected>Top 8</option>
-                            <option value="10">Top 10</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="employeeHoursChart" height="120"></canvas>
-                </div>
-            </div>
+    <div class="g2">
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-boxes" style="color:#8E44AD;margin-right:6px;"></i>Material Usage Trends</h3><div style="display:flex;gap:6px;"><select id="matMonths" onchange="upd('material_usage',matChart,{months:this.value,limit:document.getElementById('matLimit').value})"><option value="6">6 Mo</option><option value="12" selected>12 Mo</option></select><select id="matLimit" onchange="upd('material_usage',matChart,{months:document.getElementById('matMonths').value,limit:this.value})"><option value="3">Top 3</option><option value="6" selected>Top 6</option><option value="10">Top 10</option></select></div></div>
+            <canvas id="matChart" height="150"></canvas>
         </div>
-
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Low Stock Alerts</h4>
-                </div>
-                <div class="card-body">
-                    <canvas id="lowStockChart" height="120"></canvas>
-                    <div id="lowStockDetails" class="mt-3"></div>
-                </div>
-            </div>
+        <div class="ch-card">
+            <div class="ch-head"><h3 class="ch-title"><i class="fas fa-user-check" style="color:#27AE60;margin-right:6px;"></i>Employee Productivity</h3><div style="display:flex;gap:6px;"><select id="epMonths" onchange="upd('employee_productivity',epChart,{months:this.value,limit:document.getElementById('epLimit').value})"><option value="3">3 Mo</option><option value="6" selected>6 Mo</option><option value="12">12 Mo</option></select><select id="epLimit" onchange="upd('employee_productivity',epChart,{months:document.getElementById('epMonths').value,limit:this.value})"><option value="5">Top 5</option><option value="8" selected>Top 8</option></select></div></div>
+            <canvas id="epChart" height="150"></canvas><div id="epDetails"></div>
         </div>
     </div>
-
-    <!-- Third Row Charts -->
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Top Selling Products</h4>
-                    <div class="card-options">
-                        <select id="productLimit" class="form-select form-select-sm" style="width: auto;">
-                            <option value="5">Top 5</option>
-                            <option value="10" selected>Top 10</option>
-                            <option value="15">Top 15</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="topProductsChart" height="150"></canvas>
-                    <div id="topProductsDetails" class="mt-3"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Top Customers</h4>
-                    <div class="card-options">
-                        <select id="customerLimit" class="form-select form-select-sm" style="width: auto;">
-                            <option value="5">Top 5</option>
-                            <option value="10" selected>Top 10</option>
-                            <option value="15">Top 15</option>
-                        </select>
-                        <select id="customerMonths" class="form-select form-select-sm ms-2" style="width: auto;">
-                            <option value="6">Last 6 Months</option>
-                            <option value="12" selected>Last 12 Months</option>
-                            <option value="24">Last 24 Months</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <canvas id="topCustomersChart" height="150"></canvas>
-                    <div id="topCustomersDetails" class="mt-3"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Quick Actions</h4>
-                </div>
-                <div class="card-body">
-                    <div class="btn-group" role="group">
-                        <a href="/analytics/export?type=summary" class="btn btn-outline-primary">
-                            <i class="bx bx-download me-1"></i>Export Summary
-                        </a>
-                        <a href="/analytics/export?type=detailed&data=revenue" class="btn btn-outline-success">
-                            <i class="bx bx-bar-chart me-1"></i>Export Revenue Data
-                        </a>
-                        <a href="/analytics/export?type=detailed&data=products" class="btn btn-outline-info">
-                            <i class="bx bx-package me-1"></i>Export Product Data
-                        </a>
-                        <?php if ($this->isAdmin()): ?>
-                        <button type="button" class="btn btn-outline-warning" onclick="refreshCache()">
-                            <i class="bx bx-refresh me-1"></i>Refresh Cache
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
+    <div class="ch-card">
+        <div class="ch-head"><h3 class="ch-title"><i class="fas fa-download" style="margin-right:6px;"></i>Export Data</h3></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="<?php echo BASE_URL; ?>/public/analytics/export?type=summary" class="btn-action btn-primary-custom"><i class="fas fa-file-csv"></i> Summary CSV</a>
+            <a href="<?php echo BASE_URL; ?>/public/analytics/export?type=detailed&data=revenue" class="btn-action btn-success-custom"><i class="fas fa-chart-bar"></i> Revenue CSV</a>
+            <a href="<?php echo BASE_URL; ?>/public/analytics/export?type=detailed&data=products" class="btn-action btn-warning-custom"><i class="fas fa-couch"></i> Products CSV</a>
         </div>
     </div>
 </div>
-
-<!-- Chart.js and initialization -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Chart instances
-let monthlyRevenueChart, ordersByStatusChart, employeeHoursChart;
-let lowStockChart, topProductsChart, monthlyProfitChart, topCustomersChart;
-
-// Initialize charts with PHP data
-document.addEventListener('DOMContentLoaded', function() {
-    // Monthly Revenue Chart
-    const revenueCtx = document.getElementById('monthlyRevenueChart').getContext('2d');
-    monthlyRevenueChart = new Chart(revenueCtx, {
-        type: 'line',
-        data: <?php echo json_encode($chartData['monthlyRevenue']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Revenue (ETB)'
-                    }
-                },
-                y1: {
-                    position: 'right',
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Orders Count'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
-    });
-
-    // Orders by Status Chart
-    const ordersCtx = document.getElementById('ordersByStatusChart').getContext('2d');
-    ordersByStatusChart = new Chart(ordersCtx, {
-        type: 'pie',
-        data: <?php echo json_encode($chartData['ordersByStatus']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-    // Employee Hours Chart
-    const employeeCtx = document.getElementById('employeeHoursChart').getContext('2d');
-    employeeHoursChart = new Chart(employeeCtx, {
-        type: 'bar',
-        data: <?php echo json_encode($chartData['employeeHours']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Low Stock Chart
-    const lowStockCtx = document.getElementById('lowStockChart').getContext('2d');
-    lowStockChart = new Chart(lowStockCtx, {
-        type: 'doughnut',
-        data: <?php echo json_encode($chartData['lowStockAlerts']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-
-
-    // Top Products Chart
-    const productsCtx = document.getElementById('topProductsChart').getContext('2d');
-    topProductsChart = new Chart(productsCtx, {
-        type: 'bar',
-        data: <?php echo json_encode($chartData['topProducts']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Revenue (ETB)'
-                    }
-                },
-                y1: {
-                    position: 'right',
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Quantity Sold'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
-    });
-
-    // Top Customers Chart
-    const customersCtx = document.getElementById('topCustomersChart').getContext('2d');
-    topCustomersChart = new Chart(customersCtx, {
-        type: 'bar',
-        data: <?php echo json_encode($chartData['topCustomers']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Revenue (ETB)'
-                    }
-                },
-                y1: {
-                    position: 'right',
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Orders Count'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
-    });
-
-    // Monthly Profit Chart
-    const profitCtx = document.getElementById('monthlyProfitChart').getContext('2d');
-    monthlyProfitChart = new Chart(profitCtx, {
-        type: 'line',
-        data: <?php echo json_encode($chartData['monthlyProfit']); ?>,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Amount (ETB)'
-                    }
-                },
-                y1: {
-                    position: 'right',
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Profit Margin %'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
-                }
-            }
-        }
-    });
-
-    // Setup event listeners for dynamic updates
-    setupEventListeners();
-    
-    // Start real-time updates
-    setInterval(updateDashboard, 30000); // Update every 30 seconds
+const BASE='<?php echo BASE_URL; ?>';
+let weeklyChart,revChart,statusChart,profitChart,prodChart,custChart,empChart,stockChart,matChart,epChart;
+document.addEventListener('DOMContentLoaded',function(){
+    const D=<?php echo json_encode($chartData); ?>;
+    const sc2=(ya,yb)=>({y:{beginAtZero:true,title:{display:true,text:ya}},y1:{position:'right',beginAtZero:true,title:{display:true,text:yb},grid:{drawOnChartArea:false}}});
+    weeklyChart=mk('weeklyChart','bar',D.weeklyOrders,sc2('Orders','Revenue (ETB)'));
+    revChart=mk('revChart','line',D.monthlyRevenue,sc2('Revenue (ETB)','Orders'));
+    statusChart=new Chart(document.getElementById('statusChart'),{type:'pie',data:D.ordersByStatus,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+    profitChart=mk('profitChart','line',D.monthlyProfit,sc2('ETB','Margin %'));
+    prodChart=mk('prodChart','bar',D.topProducts,sc2('Revenue (ETB)','Qty'));
+    tbl('prodDetails',D.topProducts.detailed_data||[],['product_name','category','orders_count','total_revenue'],['Product','Category','Orders','Revenue']);
+    custChart=mk('custChart','bar',D.topCustomers,sc2('Revenue (ETB)','Orders'));
+    tbl('custDetails',D.topCustomers.detailed_data||[],['customer_name','orders_count','total_revenue'],['Customer','Orders','Revenue (ETB)']);
+    empChart=mk('empChart','bar',D.employeeHours,{y:{beginAtZero:true}});
+    stockChart=new Chart(document.getElementById('stockChart'),{type:'doughnut',data:D.lowStockAlerts,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+    tbl('stockDetails',D.lowStockAlerts.detailed_data||[],['name','current_stock','min_stock_level','unit','stock_status'],['Material','Stock','Min','Unit','Status']);
+    matChart=mk('matChart','line',D.materialUsage,{y:{beginAtZero:true,title:{display:true,text:'Qty Used'}}});
+    epChart=mk('epChart','bar',D.employeeProductivity,sc2('Completed','Avg Days'));
+    tbl('epDetails',D.employeeProductivity.detailed_data||[],['employee_name','completed_orders','avg_completion_days'],['Employee','Completed','Avg Days']);
+    setInterval(liveStats,30000);
 });
-
-function setupEventListeners() {
-    // Revenue months filter
-    document.getElementById('revenueMonths').addEventListener('change', function() {
-        updateChart('monthly_revenue', monthlyRevenueChart, {months: this.value});
-    });
-
-    // Employee limit filter
-    document.getElementById('employeeLimit').addEventListener('change', function() {
-        updateChart('employee_hours', employeeHoursChart, {limit: this.value});
-    });
-
-    // Product limit filter
-    document.getElementById('productLimit').addEventListener('change', function() {
-        updateChart('top_products', topProductsChart, {limit: this.value});
-    });
-
-    // Profit months filter
-    document.getElementById('profitMonths').addEventListener('change', function() {
-        updateChart('monthly_profit', monthlyProfitChart, {months: this.value});
-    });
-
-    // Top customers filters
-    document.getElementById('customerLimit').addEventListener('change', function() {
-        updateChart('top_customers', topCustomersChart, {limit: this.value, months: document.getElementById('customerMonths').value});
-    });
-    document.getElementById('customerMonths').addEventListener('change', function() {
-        updateChart('top_customers', topCustomersChart, {limit: document.getElementById('customerLimit').value, months: this.value});
-    });
-}
-// Render top customers details table
-function renderTopCustomersDetails(data) {
-    if (!data || !data.detailed_data || data.detailed_data.length === 0) {
-        document.getElementById('topCustomersDetails').innerHTML = '<div class="text-muted">No data available.</div>';
-        return;
-    }
-    let html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Revenue (ETB)</th></tr></thead><tbody>';
-    data.detailed_data.forEach((row, idx) => {
-        html += `<tr><td>${idx+1}</td><td>${row.customer_name}</td><td>${row.email}</td><td>${row.phone}</td><td>${row.orders_count}</td><td>${Number(row.total_revenue).toLocaleString()}</td></tr>`;
-    });
-    html += '</tbody></table></div>';
-    document.getElementById('topCustomersDetails').innerHTML = html;
-}
-
-function updateChart(chartType, chartInstance, params = {}) {
-    fetch(`/analytics/get-chart-data?chart=${chartType}&${new URLSearchParams(params)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                chartInstance.data = data.data;
-                chartInstance.update();
-                if (chartType === 'top_customers') {
-                    renderTopCustomersDetails(data.data);
-                }
-            }
-        })
-        .catch(error => console.error('Error updating chart:', error));
-}
-    // Initial render of top customers details
-    renderTopCustomersDetails(<?php echo json_encode($chartData['topCustomers']); ?>);
-
-function updateDashboard() {
-    fetch('/analytics/get-updates')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update stats
-                document.getElementById('totalOrders').textContent = data.stats.total_orders?.toLocaleString() || '0';
-                document.getElementById('pendingOrders').textContent = data.stats.pending_orders?.toLocaleString() || '0';
-                document.getElementById('monthRevenue').textContent = 'ETB ' + (data.stats.this_month_revenue?.toLocaleString() || '0.00');
-                document.getElementById('activeEmployees').textContent = data.stats.active_employees?.toLocaleString() || '0';
-                document.getElementById('lowStock').textContent = data.stats.low_stock_items?.toLocaleString() || '0';
-                document.getElementById('monthProfit').textContent = 'ETB ' + (data.stats.this_month_profit?.toLocaleString() || '0.00');
-            }
-        })
-        .catch(error => console.error('Error updating dashboard:', error));
-}
-
-function refreshCache() {
-    if (confirm('Are you sure you want to refresh the analytics cache?')) {
-        fetch('/analytics/refresh-cache', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            }
-        })
-        .catch(error => console.error('Error refreshing cache:', error));
-    }
-}
+function mk(id,type,data,scales){return new Chart(document.getElementById(id),{type,data,options:{responsive:true,maintainAspectRatio:false,scales:scales||{}}});}
+function tbl(id,rows,cols,heads){if(!rows||!rows.length)return;let h='<table class="dt"><thead><tr>'+heads.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>';rows.forEach(r=>{h+='<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>';});h+='</tbody></table>';const el=document.getElementById(id);if(el)el.innerHTML=h;}
+function upd(type,chart,params){fetch(`${BASE}/public/analytics/get-chart-data?chart=${type}&${new URLSearchParams(params)}`).then(r=>r.json()).then(d=>{if(!d.success)return;chart.data=d.data;chart.update();if(type==='top_products')tbl('prodDetails',d.data.detailed_data||[],['product_name','category','orders_count','total_revenue'],['Product','Category','Orders','Revenue']);if(type==='top_customers')tbl('custDetails',d.data.detailed_data||[],['customer_name','orders_count','total_revenue'],['Customer','Orders','Revenue (ETB)']);if(type==='employee_productivity')tbl('epDetails',d.data.detailed_data||[],['employee_name','completed_orders','avg_completion_days'],['Employee','Completed','Avg Days']);}).catch(()=>{});}
+function liveStats(){fetch(`${BASE}/public/analytics/get-updates`).then(r=>r.json()).then(d=>{if(!d.success)return;const s=d.stats;document.getElementById('s_total_orders').textContent=Number(s.total_orders??0).toLocaleString();document.getElementById('s_pending').textContent=Number(s.pending_orders??0).toLocaleString();document.getElementById('s_revenue').textContent='ETB '+Number(s.this_month_revenue??0).toLocaleString();document.getElementById('s_profit').textContent='ETB '+Number(s.this_month_profit??0).toLocaleString();document.getElementById('s_employees').textContent=Number(s.active_employees??0).toLocaleString();document.getElementById('s_lowstock').textContent=Number(s.low_stock_items??0).toLocaleString();}).catch(()=>{});}
+function doRefreshCache(){if(!confirm('Refresh analytics cache?'))return;fetch(`${BASE}/public/analytics/refresh-cache`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf_token=<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION["csrf_token"] ?? ""); ?>'}).then(r=>r.json()).then(d=>alert(d.message||d.error||'Done')).catch(()=>alert('Error'));}
 </script>
-
-<?php require_once APP_DIR . '/includes/footer.php'; ?>
+<script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
+</body>
+</html>

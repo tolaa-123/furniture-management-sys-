@@ -56,6 +56,7 @@ $legacyRouteMap = [
     'employee/feedback_detail'    => 'employee/feedback-detail',
     'admin/profit_report'         => 'admin/profit-report',
     'admin/submit_report'         => 'admin/submit-report',
+    'admin/material_report'       => 'admin/material-report',
     'customer/pay_deposit'        => 'customer/pay-deposit',
     'customer/pay_remaining'      => 'customer/pay-remaining',
     'customer/orders/create'      => 'customer/create-order',
@@ -683,6 +684,72 @@ switch ($route) {
             exit();
         }
         include_once '../app/views/manager/material_report.php';
+        break;
+
+    case 'admin/material-report':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/material_report.php';
+        break;
+
+    // Analytics dashboard (manager + admin)
+    case 'analytics/dashboard':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        require_once '../app/controllers/AnalyticsController.php';
+        $analyticsCtrl = new AnalyticsController();
+        $analyticsCtrl->dashboard();
+        break;
+
+    // AJAX: get chart data
+    case 'analytics/get-chart-data':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit();
+        }
+        require_once '../app/controllers/AnalyticsController.php';
+        $analyticsCtrl = new AnalyticsController();
+        $analyticsCtrl->getChartData();
+        break;
+
+    // AJAX: get real-time updates
+    case 'analytics/get-updates':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit();
+        }
+        require_once '../app/controllers/AnalyticsController.php';
+        $analyticsCtrl = new AnalyticsController();
+        $analyticsCtrl->getUpdates();
+        break;
+
+    // Analytics export
+    case 'analytics/export':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        require_once '../app/controllers/AnalyticsController.php';
+        $analyticsCtrl = new AnalyticsController();
+        $analyticsCtrl->export();
+        break;
+
+    // Analytics refresh cache
+    case 'analytics/refresh-cache':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthorized']);
+            exit();
+        }
+        require_once '../app/controllers/AnalyticsController.php';
+        $analyticsCtrl = new AnalyticsController();
+        $analyticsCtrl->refreshCache();
         break;
         
     case 'manager/payments':

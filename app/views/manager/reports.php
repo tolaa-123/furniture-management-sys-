@@ -404,6 +404,8 @@ if ($report === 'profit') {
            style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Month</a>
         <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-01-01'); ?>&to=<?php echo date('Y-m-d'); ?>"
            style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Year</a>
+        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-m-d', strtotime('monday this week')); ?>&to=<?php echo date('Y-m-d', strtotime('sunday this week')); ?>"
+           style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Week</a>
     </form>
 
     <!-- ══ SALES & REVENUE ══ -->
