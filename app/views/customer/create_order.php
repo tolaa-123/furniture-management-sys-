@@ -67,104 +67,53 @@ $pageTitle = 'Create Custom Furniture Order';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?> - SmartWorkshop</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title><?php echo $pageTitle; ?> - FurnitureCraft</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
-        
-        /* Header */
-        .top-header {
-            background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%);
-            color: white;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .top-header { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; z-index: 1998 !important; }
+        @media (min-width: 1024px) { .top-header { left: 260px !important; width: calc(100% - 260px) !important; } }
+        .form-section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        .section-title { font-size: 16px; font-weight: 600; color: #4a2c2a; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid #d4a574; }
+        .form-label { font-weight: 600; color: #2c3e50; margin-bottom: 6px; display: block; font-size: 13px; }
+        .form-control, .form-select {
+            width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px;
+            font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box;
+            transition: border-color .2s;
         }
-        .logo-section { display: flex; align-items: center; gap: 15px; }
-        .logo-icon { font-size: 28px; color: #d4a574; }
-        .brand-name { font-size: 20px; font-weight: 600; }
-        .header-title { font-size: 18px; color: #d4a574; }
-        .header-right { display: flex; align-items: center; gap: 20px; }
-        .status-badge { background: #28a745; padding: 6px 15px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 5px; }
-        .notification-icon { position: relative; font-size: 20px; cursor: pointer; }
-        .notification-badge { position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; }
-        .user-profile { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 25px; cursor: pointer; }
-        .user-avatar { width: 35px; height: 35px; border-radius: 50%; background: #d4a574; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #4a2c2a; }
-        .user-role { background: #ffc107; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        
-        /* Layout */
-        .dashboard-container { display: flex; min-height: calc(100vh - 70px); }
-        
-        /* Sidebar */
-        .sidebar { width: 250px; background: linear-gradient(180deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 20px 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .sidebar-menu { list-style: none; padding: 0; }
-        .sidebar-menu li { margin: 5px 15px; }
-        .sidebar-menu a { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: rgba(255,255,255,0.8); text-decoration: none; border-radius: 8px; transition: all 0.3s; }
-        .sidebar-menu a:hover { background: rgba(255,255,255,0.1); color: white; }
-        .sidebar-menu a.active { background: white; color: #4a2c2a; font-weight: 600; }
-        .sidebar-menu a i { width: 20px; text-align: center; }
-        .create-order-btn { background: white !important; color: #4a2c2a !important; font-weight: 600; margin: 10px 15px 20px; text-align: center; justify-content: center; }
-        .sidebar-menu a[href*="logout"] { margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
-        .sidebar-menu a[href*="logout"]:hover { background: rgba(220, 53, 69, 0.2); color: #ff6b6b; }
-        
-        /* Main Content */
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; background: #f8f9fa; }
-        .page-header { background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .page-title { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
-        .page-description { color: #7f8c8d; font-size: 15px; }
-        
-        /* Form Sections */
-        .form-section { background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .section-title { font-size: 18px; font-weight: 600; color: #4a2c2a; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #d4a574; }
-        .form-label { font-weight: 600; color: #2c3e50; margin-bottom: 8px; }
-        .form-control, .form-select { border: 2px solid #e9ecef; border-radius: 8px; padding: 10px 15px; transition: all 0.3s; }
-        .form-control:focus, .form-select:focus { border-color: #4a2c2a; box-shadow: 0 0 0 0.2rem rgba(74, 44, 42, 0.15); }
+        .form-control:focus, .form-select:focus { border-color: #8B4513; }
         .required { color: #dc3545; }
-        
-        /* Order Summary */
-        .summary-card { background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 20px; border-radius: 15px; }
-        .summary-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
-        .summary-item:last-child { border-bottom: none; }
-        .summary-label { opacity: 0.8; }
-        .summary-value { font-weight: 600; }
-        
-        /* Buttons */
-        .btn-submit { background: linear-gradient(135deg, #4a2c2a 0%, #3d1f1d 100%); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; transition: all 0.3s; }
-        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(74, 44, 42, 0.3); color: white; }
-        .btn-reset { background: #6c757d; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; }
-        .btn-cancel { background: white; color: #4a2c2a; padding: 12px 30px; border: 2px solid #4a2c2a; border-radius: 8px; font-weight: 600; }
-        
-        /* File Upload */
-        .file-upload-area { border: 2px dashed #d4a574; border-radius: 10px; padding: 30px; text-align: center; background: #fafafa; transition: all 0.3s; cursor: pointer; }
-        .file-upload-area:hover { background: #f0f0f0; border-color: #4a2c2a; }
-        .file-upload-icon { font-size: 48px; color: #d4a574; margin-bottom: 15px; }
-        .file-name { margin-top: 10px; color: #28a745; font-weight: 600; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .row.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+        @media(max-width:768px) { .row, .row.row-3 { grid-template-columns: 1fr; } }
+        .col { }
+        .file-upload-area { border: 2px dashed #d4a574; border-radius: 10px; padding: 30px; text-align: center; background: #fafafa; cursor: pointer; transition: all .2s; }
+        .file-upload-area:hover { background: #f0f0f0; border-color: #8B4513; }
+        .file-name { margin-top: 10px; color: #28a745; font-weight: 600; font-size: 13px; }
+        .btn-submit { background: linear-gradient(135deg,#4a2c2a,#3d1f1d); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%; margin-bottom: 10px; font-family: inherit; }
+        .btn-submit:hover { opacity: .9; }
+        .btn-reset { background: #6c757d; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%; margin-bottom: 10px; font-family: inherit; }
+        .btn-cancel { background: white; color: #4a2c2a; padding: 12px 30px; border: 2px solid #4a2c2a; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; display: block; text-align: center; font-family: inherit; }
+        .alert-info { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1565c0; }
+        .alert-steps { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 8px; padding: 14px 18px; font-size: 13px; color: #2e7d32; }
+        .alert-steps ol { margin: 8px 0 0 16px; line-height: 2; }
+        small.hint { color: #7f8c8d; font-size: 12px; display: block; margin-top: 3px; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle" aria-label="Toggle Menu">
-        <i class="fas fa-bars"></i>
-    </button>
+    <button class="mobile-menu-toggle" aria-label="Toggle Menu"><i class="fas fa-bars"></i></button>
     <div class="sidebar-overlay"></div>
 
     <?php
     $pageTitle = 'Create Order';
+    include_once __DIR__ . '/../../includes/customer_sidebar.php';
     include_once __DIR__ . '/../../includes/customer_header.php';
     ?>
 
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <?php include_once __DIR__ . '/../../includes/customer_sidebar.php'; ?>
-
-        <!-- Main Content -->
-        <div class="main-content">
+    <div class="main-content">
             <!-- Page Header -->
             <div class="page-header">
                 <h1 class="page-title"><i class="fas fa-plus-circle me-2"></i>Create Custom Furniture Order</h1>
@@ -175,8 +124,8 @@ $pageTitle = 'Create Custom Furniture Order';
                 <!-- CSRF Token for Security -->
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 
-                <div class="row justify-content-center">
-                    <div class="col-12">
+                <div>
+                    <div>
                         <!-- Section 1: Furniture Information -->
                         <div class="form-section">
                             <?php if ($prefilledProduct): ?>
@@ -186,9 +135,9 @@ $pageTitle = 'Create Custom Furniture Order';
                                     <br><small>You can modify any details below to customize your order.</small>
                                 </div>
                             <?php endif; ?>
-                            <h3 class="section-title"><i class="fas fa-couch me-2"></i>Furniture Information</h3>
+                            <h3 class="section-title"><i class="fas fa-couch" style="margin-right:8px;"></i>Furniture Information</h3>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col">
                                     <label class="form-label">Furniture Type <span class="required">*</span></label>
                                     <select class="form-select" name="furniture_type" required>
                                         <option value="">Select Type...</option>
@@ -204,7 +153,7 @@ $pageTitle = 'Create Custom Furniture Order';
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col">
                                     <label class="form-label">Furniture Name</label>
                                     <input type="text" class="form-control" name="furniture_name"
                                            placeholder="e.g. Living Room Sofa, Office Desk"
@@ -213,7 +162,7 @@ $pageTitle = 'Create Custom Furniture Order';
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col">
                                     <label class="form-label">Primary Material</label>
                                     <select class="form-select" name="material">
                                         <option value="">Select Material...</option>
@@ -227,7 +176,7 @@ $pageTitle = 'Create Custom Furniture Order';
                                         ?>
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col">
                                     <label class="form-label">Color/Finish <span class="required">*</span></label>
                                     <select class="form-select" name="color" required>
                                         <option value="">Select Color...</option>
@@ -246,7 +195,7 @@ $pageTitle = 'Create Custom Furniture Order';
 
                         <!-- Section 2: Dimensions -->
                         <div class="form-section">
-                            <h3 class="section-title"><i class="fas fa-ruler-combined me-2"></i>Dimensions</h3>
+                            <h3 class="section-title"><i class="fas fa-ruler-combined" style="margin-right:8px;"></i>Dimensions</h3>
                             <?php 
                             // Parse dimensions if prefilled (format: "1.2m x 0.6m x 0.75m")
                             $length = $width = $height = '';
@@ -260,20 +209,20 @@ $pageTitle = 'Create Custom Furniture Order';
                                 }
                             }
                             ?>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
+                            <div class="row row-3">
+                                <div class="col">
                                     <label class="form-label">Length m <span class="required">*</span></label>
                                     <input type="number" class="form-control" name="length" id="length" 
                                            placeholder="1.2" min="0.01" step="0.01" 
                                            value="<?php echo $length; ?>" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col">
                                     <label class="form-label">Width m <span class="required">*</span></label>
                                     <input type="number" class="form-control" name="width" id="width" 
                                            placeholder="0.6" min="0.01" step="0.01" 
                                            value="<?php echo $width; ?>" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col">
                                     <label class="form-label">Height m <span class="required">*</span></label>
                                     <input type="number" class="form-control" name="height" id="height" 
                                            placeholder="0.75" min="0.01" step="0.01" 
@@ -281,14 +230,13 @@ $pageTitle = 'Create Custom Furniture Order';
                                 </div>
                             </div>
                             
-                            <!-- NEW ERP FIELDS -->
-                            <div class="row mt-3">
-                                <div class="col-md-4 mb-3">
+                            <div class="row row-3" style="margin-top:16px;">
+                                <div class="col">
                                     <label class="form-label">Quantity <span class="required">*</span></label>
                                     <input type="number" class="form-control" name="quantity" id="quantity" min="1" value="1" required>
-                                    <small class="text-muted">Number of items</small>
+                                    <small class="hint">Number of items</small>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col">
                                     <label class="form-label">Budget Range <span class="required">*</span></label>
                                     <select class="form-select" name="budget_range" id="budget_range" required>
                                         <option value="">Select Budget...</option>
@@ -314,18 +262,18 @@ $pageTitle = 'Create Custom Furniture Order';
                                         ?>
                                     </select>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col">
                                     <label class="form-label">Preferred Delivery Date</label>
                                     <input type="date" class="form-control" name="preferred_delivery_date" id="preferred_delivery_date" min="<?php echo date('Y-m-d', strtotime('+7 days')); ?>">
-                                    <small class="text-muted">Minimum 7 days</small>
+                                    <small class="hint">Minimum 7 days from today</small>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Section 3: Design Details -->
                         <div class="form-section">
-                            <h3 class="section-title"><i class="fas fa-pencil-ruler me-2"></i>Design Details</h3>
-                            <div class="mb-3">
+                            <h3 class="section-title"><i class="fas fa-pencil-ruler" style="margin-right:8px;"></i>Design Details</h3>
+                            <div>
                                 <label class="form-label">Design Description</label>
                                 <textarea class="form-control" name="design_description" rows="5" placeholder="Describe your furniture design in detail. Example: I want a modern desk with two drawers and cable holes for computer wires."><?php echo $prefilledProduct ? htmlspecialchars($prefilledProduct['description'] ?? '') : ''; ?></textarea>
                                 <small class="text-muted">Be as detailed as possible to help our craftsmen understand your vision.</small>
@@ -334,7 +282,7 @@ $pageTitle = 'Create Custom Furniture Order';
 
                         <!-- Section 5: Upload Design -->
                         <div class="form-section">
-                            <h3 class="section-title"><i class="fas fa-image me-2"></i>Upload Design Image</h3>
+                            <h3 class="section-title"><i class="fas fa-image" style="margin-right:8px;"></i>Upload Design Image</h3>
                             <?php
                             $galleryImageUrl = '';
                             if ($prefilledProduct && !empty($prefilledProduct['image_url'])) {
@@ -343,7 +291,7 @@ $pageTitle = 'Create Custom Furniture Order';
                             ?>
                             <?php if ($galleryImageUrl): ?>
                             <div id="galleryImagePreview" style="margin-bottom:15px; padding:15px; background:#f8f4e9; border-radius:10px; border:2px solid #d4a574;">
-                                <p style="margin:0 0 10px; font-weight:600; color:#4a2c2a;"><i class="fas fa-images me-2"></i>Inspiration Image (from Gallery)</p>
+                                <p style="margin:0 0 10px; font-weight:600; color:#4a2c2a;"><i class="fas fa-images" style="margin-right:8px;"></i>Inspiration Image (from Gallery)</p>
                                 <img src="<?php echo htmlspecialchars($galleryImageUrl); ?>"
                                      alt="Gallery inspiration"
                                      style="max-width:100%; max-height:200px; border-radius:8px; object-fit:cover; display:block;">
@@ -366,25 +314,22 @@ $pageTitle = 'Create Custom Furniture Order';
                         <input type="hidden" name="order_number" value="<?php echo $orderNumber; ?>">
                         <input type="hidden" name="customer_id" value="<?php echo $customerId; ?>">
 
-                        <!-- Submit Buttons -->
                         <div class="form-section" style="margin-top:10px;">
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-submit">
-                                    <i class="fas fa-paper-plane me-2"></i>Submit Order
-                                </button>
-                                <button type="reset" class="btn btn-reset">
-                                    <i class="fas fa-redo me-2"></i>Reset Form
-                                </button>
-                                <a href="<?php echo BASE_URL; ?>/public/customer/dashboard" class="btn btn-cancel">
-                                    <i class="fas fa-times me-2"></i>Cancel
-                                </a>
-                            </div>
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order
+                            </button>
+                            <button type="reset" class="btn-reset">
+                                <i class="fas fa-redo" style="margin-right:8px;"></i>Reset Form
+                            </button>
+                            <a href="<?php echo BASE_URL; ?>/public/customer/dashboard" class="btn-cancel">
+                                <i class="fas fa-times" style="margin-right:8px;"></i>Cancel
+                            </a>
+                        </div>
                         </div>
 
-                        <!-- What Happens Next -->
-                        <div class="alert alert-info" style="border-radius:12px;">
-                            <h6 style="font-weight:700;margin-bottom:10px;"><i class="fas fa-info-circle me-2"></i>What Happens Next?</h6>
-                            <ol class="mb-0 ps-3" style="font-size:13px;line-height:2;">
+                        <div class="alert-steps">
+                            <h6 style="font-weight:700;margin-bottom:10px;"><i class="fas fa-info-circle" style="margin-right:8px;"></i>What Happens Next?</h6>
+                            <ol style="font-size:13px;line-height:2;margin:0 0 0 16px;padding:0;">
                                 <li>Manager reviews your order</li>
                                 <li>Cost estimation provided</li>
                                 <li>You pay 40% deposit</li>
@@ -395,16 +340,11 @@ $pageTitle = 'Create Custom Furniture Order';
                         </div>
 
                     </div>
-
-                    <div class="col-lg-4" style="display:none;">
-                        <!-- sidebar removed -->
-                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/assets/js/jquery-3.6.0.min.js"></script>
     <script>
         function showFileName() {
@@ -469,7 +409,7 @@ $pageTitle = 'Create Custom Furniture Order';
                 const formData = new FormData(this);
                 const submitBtn = $(this).find('button[type="submit"]');
                 
-                submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
+                submitBtn.prop('disabled', true).html('<span class="spinner"></span>Submitting...');
                 
                 $.ajax({
                     url: '<?php echo BASE_URL; ?>/public/api/submit_custom_order.php',
@@ -483,12 +423,12 @@ $pageTitle = 'Create Custom Furniture Order';
                             window.location.href = '<?php echo BASE_URL; ?>/public/customer/my-orders';
                         } else {
                             alert('Error: ' + response.message);
-                            submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Submit Order');
+                            submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order');
                         }
                     },
                     error: function() {
                         alert('Error submitting order. Please try again.');
-                        submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Submit Order');
+                        submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order');
                     }
                 });
             });
