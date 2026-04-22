@@ -93,9 +93,8 @@ $pageTitle = 'Order Details';
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; margin: 0; padding: 0; overflow: hidden; }
-        .dashboard-container { display: flex; height: 100vh; }
-        .main-content { flex: 1; margin-left: 250px; padding: 30px; overflow-y: auto; height: 100vh; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .main-content { padding: 30px; }
         .order-header { background: linear-gradient(135deg, #8B4513, #5D4037); color: #fff; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 8px 25px rgba(139, 69, 19, 0.2); }
         .detail-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .detail-row { display: flex; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
@@ -177,25 +176,10 @@ $pageTitle = 'Order Details';
     <div class="sidebar-overlay"></div>
 
     <?php include_once __DIR__ . '/../../includes/customer_sidebar.php'; ?>
-
-    <!-- Top Header -->
-    <div class="top-header">
-        <div class="header-left">
-            <div class="system-status"><i class="fas fa-circle"></i> Customer Portal</div>
-        </div>
-        <div class="header-right">
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($customerName, 0, 1)); ?></div>
-                <div>
-                    <div style="font-weight: 600; font-size: 14px;"><?php echo htmlspecialchars($customerName); ?></div>
-                    <div class="admin-role-badge">CUSTOMER</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php $pageTitle = 'Order Details'; include_once __DIR__ . '/../../includes/customer_header.php'; ?>
 
         <!-- Main Content -->
-        <div class="main-content" style="margin-left:250px;padding:30px;overflow-y:auto;height:100vh;">
+        <div class="main-content">
 
             <!-- Print-only header (hidden on screen) -->
             <div class="print-header" style="text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #8B4513;">
