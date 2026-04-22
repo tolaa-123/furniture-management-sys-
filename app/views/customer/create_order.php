@@ -18,7 +18,7 @@ $prefilledProduct = null;
 
 if ($productId) {
     if (isset($_GET['product_name'])) {
-        // Data passed directly via URL params from gallery
+        // Data passed directly via URL params from gallery/wishlist
         $prefilledProduct = [
             'product_id'      => $productId,
             'product_name'    => $_GET['product_name'] ?? '',
@@ -30,6 +30,18 @@ if ($productId) {
             'estimated_price' => floatval($_GET['estimated_price'] ?? 0),
             'image_url'       => $_GET['image_url'] ?? '',
         ];
+        // If category is empty, fetch it from DB using product_id
+        if (empty($prefilledProduct['category'])) {
+            require_once __DIR__ . '/../../../config/db_config.php';
+            try {
+                $stmt = $pdo->prepare("SELECT p.category, c.name as cat_name FROM furn_products p LEFT JOIN furn_categories c ON p.category_id = c.id WHERE p.id = ? LIMIT 1");
+                $stmt->execute([$productId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $prefilledProduct['category'] = $row['category'] ?: $row['cat_name'] ?: '';
+                }
+            } catch (PDOException $e) {}
+        }
     } else {
         // Fallback: fetch from DB
         require_once __DIR__ . '/../../../config/db_config.php';
