@@ -141,6 +141,22 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Notifications -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/employee/notifications" class="<?php echo isActive('/employee/notifications'); ?>">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+                <?php
+                try {
+                    $stmtN = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id = ? AND is_read = 0");
+                    $stmtN->execute([$_SESSION['user_id']]);
+                    $unreadNotifCount = (int)$stmtN->fetchColumn();
+                    if ($unreadNotifCount > 0) echo '<span class="menu-badge badge-danger">' . ($unreadNotifCount > 9 ? '9+' : $unreadNotifCount) . '</span>';
+                } catch (PDOException $e) {}
+                ?>
+            </a>
+        </li>
+
         <!-- Reports -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/employee/reports" class="<?php echo isActive('/employee/reports'); ?>">

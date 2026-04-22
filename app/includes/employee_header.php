@@ -122,16 +122,70 @@ $kpiTotal   = array_sum($kpi);
 </div>
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} #bellIcon:hover{transform:scale(1.2)}</style>
 <script>
-function toggleNotificationDropdown(){const d=document.getElementById('notifDropdown');d.style.display=d.style.display==='none'?'block':'none';}
-function markNotifRead(id,el,event){
-    if(event)event.preventDefault();
-    const href=el?el.getAttribute('href'):null;
-    fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'notification_id='+id+'&csrf_token=<?php echo urlencode($csrf_token); ?>'}).finally(function(){if(href&&href!=='#')window.location.href=href;});
-    const b=document.getElementById('notifBadge');if(b){const c=parseInt(b.textContent)||0;if(c<=1)b.style.display='none';else b.textContent=c-1;}
+const NOTIF_API_EMP = '<?php echo BASE_URL; ?>/public/api/notifications.php';
+const CSRF_EMP = '<?php echo urlencode($csrf_token); ?>';
+
+function toggleNotificationDropdown(){
+    const d=document.getElementById('notifDropdown');
+    d.style.display=d.style.display==='none'?'block':'none';
 }
-function markAllRead(){
-    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf_token=<?php echo urlencode($csrf_token); ?>'}).finally(()=>{const b=document.getElementById('notifBadge');if(b)b.style.display='none';document.getElementById('notifDropdown').style.display='none';location.reload();});
+
+function markNotifRead(id, el, event) {
+    if (event) event.preventDefault();
+    const href = el ? el.getAttribute('href') : null;
+    // Mark visually immediately
+    el.style.background = 'white';
+    const dot = el.querySelector('span[style*="e74c3c"]');
+    if (dot) dot.remove();
+    const title = el.querySelector('div[style*="font-weight:600"]') || el.querySelector('div[style*="font-weight: 600"]');
+    if (title) title.style.fontWeight = '400';
+    // Update badge
+    const b = document.getElementById('notifBadge');
+    if (b) { const c = parseInt(b.textContent) || 0; if (c <= 1) b.style.display = 'none'; else b.textContent = c - 1; }
+    // Call API
+    fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'notification_id=' + id + '&csrf_token=' + CSRF_EMP
+    }).then(r => r.json()).then(d => {
+        if (href && href !== '#' && href.indexOf('javascript') === -1) {
+            window.location.href = href;
+        }
+    }).catch(() => {
+        if (href && href !== '#' && href.indexOf('javascript') === -1) {
+            window.location.href = href;
+        }
+    });
 }
-document.addEventListener('click',function(e){const d=document.getElementById('notifDropdown');if(d&&!e.target.closest('[onclick*="toggleNotificationDropdown"]')&&!e.target.closest('#notifDropdown'))d.style.display='none';});
-setInterval(function(){fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.count!==undefined){const b=document.getElementById('notifBadge');if(b){if(data.count>0){b.textContent=data.count>9?'9+':data.count;b.style.display='flex';}else b.style.display='none';}}}).catch(()=>{});},30000);
+
+function markAllRead() {
+    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + CSRF_EMP
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            const b = document.getElementById('notifBadge');
+            if (b) b.style.display = 'none';
+            document.getElementById('notifDropdown').style.display = 'none';
+            location.reload();
+        }
+    }).catch(() => { location.reload(); });
+}
+
+document.addEventListener('click', function(e) {
+    const d = document.getElementById('notifDropdown');
+    if (d && !e.target.closest('[onclick*="toggleNotificationDropdown"]') && !e.target.closest('#notifDropdown'))
+        d.style.display = 'none';
+});
+
+setInterval(function() {
+    fetch(NOTIF_API_EMP + '?action=unread_count', {credentials: 'same-origin'})
+    .then(r => r.json()).then(data => {
+        if (data.count !== undefined) {
+            const b = document.getElementById('notifBadge');
+            if (b) { if (data.count > 0) { b.textContent = data.count > 9 ? '9+' : data.count; b.style.display = 'flex'; } else b.style.display = 'none'; }
+        }
+    }).catch(() => {});
+}, 30000);
 </script>
