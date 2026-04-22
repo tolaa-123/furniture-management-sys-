@@ -80,10 +80,10 @@ if (!$customer) {
         .btn-save { background: linear-gradient(135deg, #4a2c2a, #d4a574); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; }
         .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(74, 44, 42, 0.3); color: white; }
         .btn-cancel { background: #6c757d; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; }
-        .info-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #e9ecef; }
+        .info-row { padding: 14px 0; border-bottom: 1px solid #e9ecef; }
         .info-row:last-child { border-bottom: none; }
-        .info-label { color: #7f8c8d; font-weight: 500; }
-        .info-value { color: #2c3e50; font-weight: 600; }
+        .info-label { color: #7f8c8d; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .info-value { color: #2c3e50; font-weight: 600; font-size: 15px; }
         .edit-mode { display: none; }
         .view-mode { display: block; }
     </style>
@@ -145,32 +145,32 @@ if (!$customer) {
                 <div id="viewMode" class="view-mode">
                     <h3 class="section-title"><i class="fas fa-info-circle me-2"></i>Personal Information</h3>
                     <div class="info-row">
-                        <span class="info-label">Username</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['username']); ?></span>
+                        <div class="info-label">Username</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['username']); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">First Name</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['first_name']); ?></span>
+                        <div class="info-label">First Name</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['first_name']); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Last Name</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['last_name']); ?></span>
+                        <div class="info-label">Last Name</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['last_name']); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Email Address</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['email']); ?></span>
+                        <div class="info-label">Email Address</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['email']); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Phone Number</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['phone'] ?? 'Not provided'); ?></span>
+                        <div class="info-label">Phone Number</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['phone'] ?? 'Not provided'); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Address</span>
-                        <span class="info-value"><?php echo htmlspecialchars($customer['address'] ?? 'Not provided'); ?></span>
+                        <div class="info-label">Address</div>
+                        <div class="info-value"><?php echo htmlspecialchars($customer['address'] ?? 'Not provided'); ?></div>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Member Since</span>
-                        <span class="info-value"><?php echo date('F d, Y', strtotime($customer['created_at'])); ?></span>
+                        <div class="info-label">Member Since</div>
+                        <div class="info-value"><?php echo date('F d, Y', strtotime($customer['created_at'])); ?></div>
                     </div>
                 </div>
 
