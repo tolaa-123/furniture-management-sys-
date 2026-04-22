@@ -18,9 +18,13 @@ try {
             p.base_price as estimated_price,
             p.materials_used as material,
             p.image_main,
-            p.is_active
+            p.is_active,
+            p.dimensions,
+            p.color,
+            c.name as category
         FROM furn_wishlist w
         LEFT JOIN furn_products p ON w.product_id = p.id
+        LEFT JOIN furn_categories c ON p.category_id = c.id
         WHERE w.customer_id = ?
         ORDER BY w.created_at DESC
     ");
@@ -150,7 +154,31 @@ $pageTitle = 'My Wishlist';
                         <small style="color:#888;">Est. Price</small>
                     </div>
                     <div class="item-actions">
-                        <a href="<?php echo BASE_URL; ?>/public/customer/create-order?product_id=<?php echo $item['product_id']; ?>&product_name=<?php echo urlencode($item['product_name']); ?>&material=<?php echo urlencode($item['material'] ?? ''); ?>&description=<?php echo urlencode($item['description'] ?? ''); ?>&estimated_price=<?php echo $item['estimated_price']; ?>" class="btn-order">
+                        <?php
+                        $wImg = $item['image_main'] ?? '';
+                        if (!empty($wImg)) {
+                            if (strpos($wImg, 'http') === 0) {
+                                $imageUrl = $wImg;
+                            } elseif (strpos($wImg, 'uploads/') === 0 || strpos($wImg, 'assets/') === 0) {
+                                $imageUrl = BASE_URL . '/public/' . $wImg;
+                            } else {
+                                $imageUrl = BASE_URL . '/public/assets/images/products/' . $wImg;
+                            }
+                        } else {
+                            $imageUrl = '';
+                        }
+                        ?>
+                        <a href="<?php echo BASE_URL; ?>/public/customer/create-order?<?php echo http_build_query([
+                            'product_id'      => $item['product_id'],
+                            'product_name'    => $item['product_name'],
+                            'category'        => $item['category'] ?? '',
+                            'material'        => $item['material'] ?? '',
+                            'dimensions'      => $item['dimensions'] ?? '',
+                            'description'     => $item['description'] ?? '',
+                            'color'           => $item['color'] ?? '',
+                            'estimated_price' => $item['estimated_price'],
+                            'image_url'       => $imageUrl,
+                        ]); ?>" class="btn-order">
                             <i class="fas fa-shopping-cart" style="margin-right:6px;"></i>Order Now
                         </a>
                         <button class="btn-remove" onclick="removeFromWishlist(<?php echo $item['wishlist_id']; ?>, <?php echo $item['product_id']; ?>)">
