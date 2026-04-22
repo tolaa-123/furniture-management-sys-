@@ -56,9 +56,9 @@ try {
     $stmt->execute([$customerId]);
     $stats['pending_payment'] = (int)$stmt->fetchColumn();
 
-    // Wishlist count
+    // Wishlist count — only count items where product still exists and is active (matches wishlist page)
     try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_wishlist WHERE customer_id = ?");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_wishlist w JOIN furn_products p ON w.product_id = p.id WHERE w.customer_id = ? AND p.is_active = 1");
         $stmt->execute([$customerId]);
         $stats['wishlist_count'] = (int)$stmt->fetchColumn();
     } catch(PDOException $e2) {}

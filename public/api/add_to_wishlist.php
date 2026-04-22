@@ -26,31 +26,26 @@ if (!$productId) {
 }
 
 try {
-    // Check if product exists
-    $checkStmt = $pdo->prepare("SELECT id FROM furn_products WHERE id = ? AND is_active = 1");
-    $checkStmt->execute([$productId]);
-    if (!$checkStmt->fetch()) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Product not found']);
-        exit;
-    }
-    
-    // Check if already in wishlist
+    // Check if already in wishlist (don't require product to exist for removal)
     $wishlistStmt = $pdo->prepare("SELECT id FROM furn_wishlist WHERE customer_id = ? AND product_id = ?");
     $wishlistStmt->execute([$customerId, $productId]);
     $existing = $wishlistStmt->fetch();
     
     if ($existing) {
-        // Remove from wishlist
+        // Remove from wishlist — always allow removal even if product deleted
         $deleteStmt = $pdo->prepare("DELETE FROM furn_wishlist WHERE customer_id = ? AND product_id = ?");
         $deleteStmt->execute([$customerId, $productId]);
         echo json_encode(['success' => true, 'action' => 'removed', 'message' => 'Removed from wishlist']);
     } else {
-        // Add to wishlist
-        $insertStmt = $pdo->prepare("
-            INSERT INTO furn_wishlist (customer_id, product_id)
-            VALUES (?, ?)
-        ");
+        // Add to wishlist — only allow if product exists and is active
+        $checkStmt = $pdo->prepare("SELECT id FROM furn_products WHERE id = ? AND is_active = 1");
+        $checkStmt->execute([$productId]);
+        if (!$checkStmt->fetch()) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Product not found']);
+            exit;
+        }
+        $insertStmt = $pdo->prepare("INSERT INTO furn_wishlist (customer_id, product_id) VALUES (?, ?)");
         $insertStmt->execute([$customerId, $productId]);
         echo json_encode(['success' => true, 'action' => 'added', 'message' => 'Added to wishlist']);
     }
