@@ -67,52 +67,30 @@ if ($currentIndex === false) $currentIndex = 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?> - FurnitureCraft</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title><?php echo $pageTitle; ?> - SmartWorkshop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .top-header { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; z-index: 1998 !important; }
-        @media (min-width: 1024px) { .top-header { left: 260px !important; width: calc(100% - 260px) !important; } }
-        .tracking-header { background: linear-gradient(135deg, #8B4513, #5D4037); color: #fff; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(139,69,19,0.2); }
+        .tracking-header { background: linear-gradient(135deg, #8B4513, #5D4037); color: #fff; border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(139, 69, 19, 0.2); }
         .tracking-card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .timeline { position: relative; padding: 20px 0; }
         .timeline-item { position: relative; padding: 30px 0 30px 80px; }
         .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 30px; top: 60px; bottom: -30px; width: 3px; background: #e0e0e0; }
         .timeline-icon { position: absolute; left: 0; top: 30px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; z-index: 1; }
         .timeline-content { background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #e0e0e0; }
-        .timeline-item.completed .timeline-icon { box-shadow: 0 0 0 4px rgba(46,204,113,0.2); }
+        .timeline-item.completed .timeline-icon { box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.2); }
         .timeline-item.completed .timeline-content { border-left-color: #27ae60; background: #e8f8f5; }
-        .timeline-item.active .timeline-icon { box-shadow: 0 0 0 4px rgba(52,152,219,0.3); animation: tpulse 2s infinite; }
+        .timeline-item.active .timeline-icon { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.3); animation: pulse 2s infinite; }
         .timeline-item.active .timeline-content { border-left-color: #3498db; background: #ebf5fb; }
         .timeline-item.pending .timeline-icon { background: #bdc3c7; }
         .timeline-item.pending .timeline-content { opacity: 0.6; }
-        @keyframes tpulse { 0%,100%{box-shadow:0 0 0 4px rgba(52,152,219,0.3);}50%{box-shadow:0 0 0 8px rgba(52,152,219,0.1);} }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.1); } }
         .order-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .summary-item { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
         .summary-label { font-size: 12px; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; }
         .summary-value { font-size: 18px; font-weight: 700; color: #2c3e50; }
-        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: none; cursor: pointer; font-family: inherit; }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-info    { background: #17a2b8; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn-light   { background: white; color: #4a2c2a; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-        .bg-primary { background: #3498db; color: white; }
-        .text-success { color: #27ae60; }
-        .d-flex { display: flex; }
-        .justify-content-between { justify-content: space-between; }
-        .justify-content-center { justify-content: center; }
-        .align-items-center { align-items: center; }
-        .flex-wrap { flex-wrap: wrap; }
-        .gap-3 { gap: 12px; }
-        .mb-1 { margin-bottom: 4px; }
-        .mb-3 { margin-bottom: 16px; }
-        .mb-4 { margin-bottom: 20px; }
-        .ms-2 { margin-left: 8px; }
-        .opacity-75 { opacity: .75; }
-        .h2 { font-size: 1.5rem; font-weight: 700; margin: 0; }
     </style>
 </head>
 <body>
@@ -123,17 +101,17 @@ if ($currentIndex === false) $currentIndex = 0;
     <?php $pageTitle = 'Track Order'; include_once __DIR__ . '/../../includes/customer_header.php'; ?>
 
     <div class="main-content">
-            <div class="tracking-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1 class="h2 mb-1"><i class="fas fa-map-marker-alt me-2"></i>Track Your Order</h1>
-                        <div class="opacity-75">Order #<?php echo htmlspecialchars($order['order_number']); ?></div>
-                    </div>
-                    <a href="<?php echo BASE_URL; ?>/public/customer/my-orders" class="btn btn-light">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Orders
-                    </a>
+        <div class="tracking-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 mb-1"><i class="fas fa-map-marker-alt me-2"></i>Track Your Order</h1>
+                    <div class="opacity-75">Order #<?php echo htmlspecialchars($order['order_number']); ?></div>
                 </div>
+                <a href="<?php echo BASE_URL; ?>/public/customer/my-orders" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Orders
+                </a>
             </div>
+        </div>
 
             <!-- Order Summary -->
             <div class="tracking-card">
@@ -242,6 +220,7 @@ if ($currentIndex === false) $currentIndex = 0;
                     </a>
                 </div>
             </div>
+        </div>
     </div>
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
 </body>
