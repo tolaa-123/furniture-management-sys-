@@ -20,11 +20,9 @@ try {
             p.image_main,
             p.is_active,
             p.dimensions,
-            p.color,
-            c.name as category
+            p.category as category
         FROM furn_wishlist w
         LEFT JOIN furn_products p ON w.product_id = p.id
-        LEFT JOIN furn_categories c ON p.category_id = c.id
         WHERE w.customer_id = ?
         ORDER BY w.created_at DESC
     ");
@@ -175,7 +173,6 @@ $pageTitle = 'My Wishlist';
                             'material'        => $item['material'] ?? '',
                             'dimensions'      => $item['dimensions'] ?? '',
                             'description'     => $item['description'] ?? '',
-                            'color'           => $item['color'] ?? '',
                             'estimated_price' => $item['estimated_price'],
                             'image_url'       => $imageUrl,
                         ]); ?>" class="btn-order">
