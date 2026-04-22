@@ -11,6 +11,7 @@ RewriteRule ^ %1 [L,R=301]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/NEWkoder/public/uploads/
 RewriteRule ^(.*)$ index.php [QSA,L]
 
 # Set proper headers

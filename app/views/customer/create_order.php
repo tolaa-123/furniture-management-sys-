@@ -205,6 +205,29 @@ $pageTitle = 'Create Custom Furniture Order';
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
+                                    <label class="form-label">Furniture Name</label>
+                                    <input type="text" class="form-control" name="furniture_name"
+                                           placeholder="e.g. Living Room Sofa, Office Desk"
+                                           value="<?php echo htmlspecialchars($prefilledProduct['product_name'] ?? ''); ?>">
+                                    <small class="text-muted">Optional — give your piece a name</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Primary Material</label>
+                                    <select class="form-select" name="material">
+                                        <option value="">Select Material...</option>
+                                        <?php
+                                        $materials = ['Oak Wood','Teak Wood','Pine Wood','Mahogany','Plywood','MDF','Metal Frame','Stainless Steel','Premium Leather','Fabric Upholstery','Glass','Bamboo','Other'];
+                                        $prefilledMat = $prefilledProduct ? ($prefilledProduct['material'] ?? '') : '';
+                                        foreach ($materials as $m) {
+                                            $selected = (strcasecmp($m, $prefilledMat) === 0) ? 'selected' : '';
+                                            echo "<option value=\"$m\" $selected>$m</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label">Color/Finish <span class="required">*</span></label>
                                     <select class="form-select" name="color" required>
                                         <option value="">Select Color...</option>
