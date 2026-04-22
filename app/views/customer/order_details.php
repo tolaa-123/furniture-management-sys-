@@ -105,6 +105,66 @@ $pageTitle = 'Order Details';
         .section-title { font-size: 1.25rem; font-weight: 600; color: #4a2c2a; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #8B4513; }
         .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; }
         .btn-back:hover { background: #5a6268; color: white; }
+
+        /* ── PRINT STYLES ── */
+        @media print {
+            /* Hide everything that is not order content */
+            .sidebar, .sidebar-overlay, .mobile-menu-toggle,
+            .top-header, .order-header .btn,
+            .detail-card:has(.star-rating),
+            #ratingForm, .star-rating,
+            .btn-back, .btn-success, .btn-warning, .btn-primary,
+            .d-flex.gap-3,
+            script { display: none !important; }
+
+            /* Reset layout — no sidebar offset */
+            body { background: #fff !important; overflow: visible !important; }
+            .dashboard-container { display: block !important; }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 10px 20px !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            /* Order header — keep but simplify */
+            .order-header {
+                background: #4a2c2a !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-radius: 0 !important;
+                margin-bottom: 15px !important;
+                padding: 14px 20px !important;
+            }
+
+            /* Cards */
+            .detail-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                margin-bottom: 12px !important;
+                page-break-inside: avoid;
+            }
+
+            /* Hide rating card entirely */
+            .detail-card:has(#ratingForm),
+            .detail-card:has(.star-btn) { display: none !important; }
+
+            /* Hide action-required warning banners */
+            div[style*="fff3cd"] { display: none !important; }
+
+            /* Completed / status banners — keep */
+            .detail-card:has(.fa-flag-checkered),
+            .detail-card:has(.fa-hourglass-half) { display: block !important; }
+
+            /* Print header branding */
+            .print-header { display: block !important; }
+
+            /* Page setup */
+            @page { margin: 15mm; size: A4; }
+        }
+
+        /* Hidden on screen, shown only when printing */
+        .print-header { display: none; }
     </style>
 </head>
 <body>
@@ -136,6 +196,12 @@ $pageTitle = 'Order Details';
 
         <!-- Main Content -->
         <div class="main-content" style="margin-left:250px;padding:30px;overflow-y:auto;height:100vh;">
+
+            <!-- Print-only header (hidden on screen) -->
+            <div class="print-header" style="text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #8B4513;">
+                <h2 style="color:#4a2c2a;margin:0 0 4px;">FurnitureCraft — SmartWorkshop</h2>
+                <div style="color:#666;font-size:13px;">Order Receipt &nbsp;|&nbsp; Printed: <?php echo date('F j, Y, g:i a'); ?></div>
+            </div>
             <div class="order-header d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="h2 mb-1"><i class="fas fa-file-alt me-2"></i>Order Details</h1>
@@ -504,7 +570,7 @@ $pageTitle = 'Order Details';
                     <?php elseif ($status === 'completed'): ?>
                         <span class="btn btn-success" style="cursor:default;"><i class="fas fa-check-circle me-2"></i>Order Completed</span>
                     <?php endif; ?>
-                    <a href="<?php echo BASE_URL; ?>/public/customer/order-details?id=<?php echo $orderId; ?>" class="btn btn-primary" onclick="window.print(); return false;">
+                    <a href="#" class="btn btn-primary" onclick="printOrder(); return false;">
                         <i class="fas fa-print me-2"></i>Print Order
                     </a>
                 </div>
@@ -512,5 +578,24 @@ $pageTitle = 'Order Details';
         </div>
 
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
+    <script>
+    function printOrder() {
+        // Hide rating section temporarily if present
+        const ratingCard = document.querySelector('#ratingForm');
+        if (ratingCard) {
+            const card = ratingCard.closest('.detail-card');
+            if (card) card.style.display = 'none';
+        }
+        window.print();
+        // Restore after print dialog closes
+        setTimeout(function() {
+            const ratingCard2 = document.querySelector('#ratingForm');
+            if (ratingCard2) {
+                const card = ratingCard2.closest('.detail-card');
+                if (card) card.style.display = '';
+            }
+        }, 1000);
+    }
+    </script>
 </body>
 </html>
