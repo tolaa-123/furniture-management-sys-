@@ -1,9 +1,8 @@
 <?php
-// Customer authentication check
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'customer') {
-    header('Location: ' . BASE_URL . '/public/login');
-    exit();
-}
+// Redirect to profile — settings functionality is covered by profile page
+header('Location: ' . BASE_URL . '/public/customer/profile');
+exit();
+
 
 require_once __DIR__ . '/../../../config/db_config.php';
 
