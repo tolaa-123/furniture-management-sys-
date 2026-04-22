@@ -16,7 +16,7 @@ if ($orderId > 0 && $customerId > 0) {
         $stmt = $pdo->prepare("
             SELECT 
                 o.*,
-                u.full_name as customer_name,
+                CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                 u.email as customer_email
             FROM furn_orders o
             LEFT JOIN furn_users u ON o.customer_id = u.id
