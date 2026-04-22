@@ -102,6 +102,23 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         </li>
 
         <li>
+            <a href="<?php echo BASE_URL; ?>/public/customer/notifications" class="<?php echo $currentPage === 'notifications' ? 'active' : ''; ?>">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+                <?php
+                if (isset($pdo) && isset($_SESSION['user_id'])) {
+                    try {
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id = ? AND is_read = 0");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $unreadNotifs = (int)$stmt->fetchColumn();
+                        if ($unreadNotifs > 0) echo '<span class="menu-badge badge-danger">' . ($unreadNotifs > 9 ? '9+' : $unreadNotifs) . '</span>';
+                    } catch (Exception $e) {}
+                }
+                ?>
+            </a>
+        </li>
+
+        <li>
             <a href="<?php echo BASE_URL; ?>/public/customer/profile" class="<?php echo $currentPage === 'profile' ? 'active' : ''; ?>">
                 <i class="fas fa-user"></i>
                 <span>My Profile</span>
