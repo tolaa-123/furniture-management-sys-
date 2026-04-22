@@ -332,8 +332,6 @@ $pageTitle = 'Manage Orders';
                                 <th>Order Number</th>
                                 <th>Customer</th>
                                 <th>Furniture</th>
-                                <th>Total Amount</th>
-                                <th>Deposit</th>
                                 <th>Status</th>
                                 <th>Created Date</th>
                                 <th>Actions</th>
@@ -348,8 +346,6 @@ $pageTitle = 'Manage Orders';
                                         <small style="color: #7f8c8d;"><?php echo htmlspecialchars($order['email']); ?></small>
                                     </td>
                                     <td><?php echo htmlspecialchars($order['furniture_name'] ?? $order['furniture_type'] ?? '—'); ?></td>
-                                    <td><strong>ETB <?php echo number_format($order['display_total'] ?? $order['estimated_cost'] ?? $order['total_amount'] ?? 0, 2); ?></strong></td>
-                                    <td>ETB <?php echo number_format($order['deposit_amount'], 2); ?></td>
                                     <td>
                                         <?php
                                         $statusColors = [
@@ -509,12 +505,6 @@ $pageTitle = 'Manage Orders';
                         </div>
                         <div>
                             <strong>Phone:</strong><br>${order.phone || 'N/A'}
-                        </div>
-                        <div>
-                            <strong>Total Amount:</strong><br>ETB ${parseFloat(order.display_total || order.estimated_cost || order.total_amount || 0).toFixed(2)}
-                        </div>
-                        <div>
-                            <strong>Deposit Amount:</strong><br>ETB ${parseFloat(order.deposit_amount || 0).toFixed(2)}
                         </div>
                         <div>
                             <strong>Furniture:</strong><br>${order.furniture_name || order.furniture_type || '—'}
