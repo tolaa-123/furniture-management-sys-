@@ -53,7 +53,7 @@ try {
         FROM furn_orders o
         LEFT JOIN furn_users u ON o.customer_id = u.id
         LEFT JOIN furn_ratings r ON r.order_id = o.id
-        ORDER BY o.created_at DESC LIMIT 5
+        ORDER BY o.created_at DESC LIMIT 50
     ");
     $recentOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -222,6 +222,9 @@ $pageTitle = 'Admin Dashboard';
                         <i class="fas fa-times"></i>
                     </button>
                     <span id="dashOrderCount" style="padding:7px 0; font-size:13px; color:#7f8c8d; align-self:center;"></span>
+                    <button id="viewAllOrdersBtn" onclick="toggleAllOrders()" style="padding:7px 14px;background:#3498db;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+                        <i class="fas fa-list" style="margin-right:5px;"></i>View All
+                    </button>
                 </div>
             </div>
             <?php if (empty($recentOrders)): ?>
@@ -245,8 +248,8 @@ $pageTitle = 'Admin Dashboard';
                             </tr>
                         </thead>
                         <tbody id="dashOrderBody">
-                            <?php foreach ($recentOrders as $order): ?>
-                            <tr data-status="<?php echo trim($order['status']); ?>">
+                            <?php foreach ($recentOrders as $idx => $order): ?>
+                            <tr data-status="<?php echo trim($order['status']); ?>" data-index="<?php echo $idx; ?>" style="<?php echo $idx >= 5 ? 'display:none;' : ''; ?>">
                                 <td><strong><?php echo htmlspecialchars($order['order_number']); ?></strong></td>
                                 <td><?php echo htmlspecialchars($order['customer_name'] ?: 'N/A'); ?></td>
                                 <td><?php echo htmlspecialchars($order['furniture_name']); ?></td>
@@ -367,6 +370,28 @@ $pageTitle = 'Admin Dashboard';
     </div>
 
     <script>
+        // View All / Show Less toggle for Recent Orders
+        let ordersExpanded = false;
+        function toggleAllOrders() {
+            ordersExpanded = !ordersExpanded;
+            const rows = document.querySelectorAll('#dashOrderBody tr[data-index]');
+            rows.forEach(row => {
+                const idx = parseInt(row.getAttribute('data-index'));
+                if (idx >= 5) {
+                    row.style.display = ordersExpanded ? '' : 'none';
+                }
+            });
+            const btn = document.getElementById('viewAllOrdersBtn');
+            if (btn) {
+                btn.innerHTML = ordersExpanded
+                    ? '<i class="fas fa-chevron-up" style="margin-right:5px;"></i>Show Less'
+                    : '<i class="fas fa-list" style="margin-right:5px;"></i>View All';
+                btn.style.background = ordersExpanded ? '#e74c3c' : '#3498db';
+            }
+            // Re-run filter so hidden rows respect current search/status
+            if (typeof runDashOrderFilter === 'function') runDashOrderFilter();
+        }
+
         // Dashboard recent orders search + status filter
         (function() {
             const inp   = document.getElementById('dashOrderSearch');
