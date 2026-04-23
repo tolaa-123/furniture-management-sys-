@@ -28,12 +28,10 @@ if ($filter === 'read')   { $where[] = 'is_read = 1'; }
 if ($search !== '') { $where[] = '(title LIKE ? OR message LIKE ?)'; $params[] = "%$search%"; $params[] = "%$search%"; }
 $whereStr = implode(' AND ', $where);
 
-$total = (int)$pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE $whereStr")->execute($params) ? $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE $whereStr")->execute($params) : 0;
 $cStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE $whereStr"); $cStmt->execute($params); $total = (int)$cStmt->fetchColumn();
 $pages = max(1, ceil($total / $perPage));
 $nStmt = $pdo->prepare("SELECT * FROM furn_notifications WHERE $whereStr ORDER BY is_read ASC, created_at DESC LIMIT $perPage OFFSET $offset");
 $nStmt->execute($params); $notifications = $nStmt->fetchAll(PDO::FETCH_ASSOC);
-$unread = (int)$pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id=? AND is_read=0")->execute([$userId]) ? 0 : 0;
 $uStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id=? AND is_read=0"); $uStmt->execute([$userId]); $unread = (int)$uStmt->fetchColumn();
 ?>
 <!DOCTYPE html><html lang="en"><head>
@@ -103,7 +101,7 @@ $uStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id=? 
             if($n['related_id']) $link .= '&focus='.$n['type'].'&id='.$n['related_id'];
         ?>
         <a href="<?php echo htmlspecialchars($link); ?>"
-           onclick="markRead(<?php echo (int)$n['id']; ?>, this)"
+           onclick="markRead(<?php echo (int)$n['id']; ?>, this, event, <?php echo $n['is_read'] ? 'true' : 'false'; ?>)"
            class="notif-item <?php echo $n['is_read']?'':'unread'; ?>">
             <div class="notif-icon" style="background:<?php echo $color; ?>22;">
                 <i class="fas <?php echo $icon; ?>" style="color:<?php echo $color; ?>;font-size:16px;"></i>
@@ -133,19 +131,39 @@ $uStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id=? 
 <script>
 const CSRF = '<?php echo htmlspecialchars($csrf_token); ?>';
 const BASE = '<?php echo BASE_URL; ?>';
-function markRead(id, el) {
-    fetch(BASE+'/public/api/notifications.php?action=mark_read', {
-        method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'action=mark_read&notification_id='+id+'&csrf_token='+encodeURIComponent(CSRF)
-    });
-    el.classList.remove('unread');
+
+function markRead(id, el, event, isAlreadyRead) {
+    if (event) event.preventDefault();
+    const href = el ? el.getAttribute('href') : null;
+
+    if (!isAlreadyRead) {
+        // Use sendBeacon so request completes even if page navigates
+        const body = 'notification_id='+id+'&csrf_token='+encodeURIComponent(CSRF);
+        navigator.sendBeacon(BASE+'/public/api/mark_notification_read.php',
+            new Blob([body], {type:'application/x-www-form-urlencoded'}));
+
+        // Update UI in-place
+        el.classList.remove('unread');
+        const dot = el.querySelector('span[style*="border-radius:50%"]');
+        if (dot) dot.style.display = 'none';
+    }
+
+    // Navigate if real link, otherwise stay on page
+    if (href && href !== '#' && href !== '') {
+        window.location.href = href;
+    }
 }
+
 // Focus highlight on page load
 const params = new URLSearchParams(window.location.search);
-const focusId = params.get('id'), focusType = params.get('focus');
-if (focusId && focusType) {
-    document.querySelectorAll('[data-id]').forEach(el => {
-        if (el.dataset.id == focusId) { el.classList.add('highlight-row'); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+const focusNotifId = params.get('notif');
+if (focusNotifId) {
+    document.querySelectorAll('.notif-item').forEach(el => {
+        const href = el.getAttribute('href') || '';
+        if (href.includes('notif='+focusNotifId)) {
+            el.classList.add('highlight-row');
+            el.scrollIntoView({behavior:'smooth', block:'center'});
+        }
     });
 }
 </script>

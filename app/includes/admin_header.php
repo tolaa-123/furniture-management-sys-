@@ -8,6 +8,9 @@ $adminId   = $_SESSION['user_id'];
 $adminName = $_SESSION['first_name'] ?? $_SESSION['user_name'] ?? 'Admin';
 $pageTitle = $pageTitle ?? 'Admin Portal';
 
+if (!defined('BASE_URL')) {
+    require_once __DIR__ . '/../../config/config.php';
+}
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/notification_helper.php';
 
@@ -44,6 +47,7 @@ try {
 } catch (PDOException $e) {}
 
 $csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
+$initials   = strtoupper(substr($adminName, 0, 1));
 // Badge count = unread notifications + new contact messages
 $badgeCount = $unreadCount + $kpi['contact_messages'];
 ?>
@@ -105,7 +109,7 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
                         if($n['related_id']) $link .= '&focus='.$n['type'].'&id='.$n['related_id'];
                     ?>
                     <a href="<?php echo htmlspecialchars($link); ?>"
-                       onclick="markNotifRead(<?php echo (int)$n['id']; ?>, this, event)"
+                       onclick="markNotifRead(<?php echo (int)$n['id']; ?>, this, event, <?php echo $n['is_read'] ? 'true' : 'false'; ?>)"
                        style="display:block;padding:11px 14px;border-bottom:1px solid #f0f0f0;text-decoration:none;color:#2c3e50;background:<?php echo $bg; ?>;transition:background .2s;"
                        onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='<?php echo $bg; ?>'">
                         <div style="display:flex;align-items:flex-start;gap:10px;">
@@ -148,18 +152,73 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} #bellIcon:hover{transform:scale(1.2)}</style>
 <script>
 function toggleNotificationDropdown(){const d=document.getElementById('notifDropdown');d.style.display=d.style.display==='none'?'block':'none';}
-function markNotifRead(id,el,event){
+
+function markNotifRead(id, el, event, isAlreadyRead) {
     if(event) event.preventDefault();
     const href = el ? el.getAttribute('href') : null;
-    fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'notification_id='+id+'&csrf_token=<?php echo urlencode($csrf_token); ?>'}).finally(function(){
-        if(href && href !== '#') window.location.href = href;
-    });
-    const badge=document.getElementById('notifBadge');
-    if(badge){const c=parseInt(badge.textContent)||0; if(c<=1)badge.style.display='none'; else badge.textContent=c-1;}
+    const csrfToken = '<?php echo addslashes($csrf_token); ?>';
+
+    // Use sendBeacon so the request completes even if page navigates away
+    const body = 'notification_id='+id+'&csrf_token='+encodeURIComponent(csrfToken);
+    navigator.sendBeacon('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php',
+        new Blob([body], {type:'application/x-www-form-urlencoded'}));
+
+    // Only decrement badge if this notification was unread
+    if (!isAlreadyRead) {
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+            const c = parseInt(badge.textContent) || 0;
+            if (c <= 1) { badge.style.display = 'none'; }
+            else { badge.textContent = c - 1; }
+        }
+        // Update UI in-place: remove red dot, lighten background, normal font-weight
+        if (el) {
+            el.style.background = 'white';
+            el.setAttribute('onmouseout', "this.style.background='white'");
+            const dot = el.querySelector('span[style*="border-radius:50%"]');
+            if (dot) dot.style.display = 'none';
+            const titleEl = el.querySelector('div[style*="font-weight"]');
+            if (titleEl) titleEl.style.fontWeight = '400';
+        }
+    }
+
+    // Navigate if there's a real link
+    if (href && href !== '#' && href !== '') {
+        window.location.href = href;
+    }
 }
+
 function markAllRead(){
-    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'csrf_token=<?php echo urlencode($csrf_token); ?>'}).finally(()=>{const b=document.getElementById('notifBadge');if(b)b.style.display='none';document.getElementById('notifDropdown').style.display='none';location.reload();});
+    const csrfToken = '<?php echo addslashes($csrf_token); ?>';
+    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'csrf_token='+encodeURIComponent(csrfToken)
+    }).finally(()=>{
+        const b = document.getElementById('notifBadge');
+        if(b) b.style.display = 'none';
+        document.getElementById('notifDropdown').style.display = 'none';
+        location.reload();
+    });
 }
-document.addEventListener('click',function(e){const d=document.getElementById('notifDropdown');if(d&&!e.target.closest('[onclick*="toggleNotificationDropdown"]')&&!e.target.closest('#notifDropdown'))d.style.display='none';});
-setInterval(function(){fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.count!==undefined){const b=document.getElementById('notifBadge');if(b){if(data.count>0){b.textContent=data.count>9?'9+':data.count;b.style.display='flex';}else b.style.display='none';}}}).catch(()=>{});},30000);
+
+document.addEventListener('click',function(e){
+    const d=document.getElementById('notifDropdown');
+    if(d && !e.target.closest('[onclick*="toggleNotificationDropdown"]') && !e.target.closest('#notifDropdown'))
+        d.style.display='none';
+});
+
+setInterval(function(){
+    fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'})
+        .then(r=>r.json())
+        .then(data=>{
+            if(data.count !== undefined){
+                const b = document.getElementById('notifBadge');
+                if(b){
+                    if(data.count > 0){ b.textContent = data.count>9?'9+':data.count; b.style.display='flex'; }
+                    else b.style.display='none';
+                }
+            }
+        }).catch(()=>{});
+}, 30000);
 </script>

@@ -55,9 +55,11 @@ try {
     error_log("Admin notification counts error: " . $e->getMessage());
 }
 
-function isActive($page) {
-    global $currentPage;
-    return strpos($currentPage, $page) !== false ? 'active' : '';
+if (!function_exists('isActive')) {
+    function isActive($page) {
+        global $currentPage;
+        return strpos($currentPage, $page) !== false ? 'active' : '';
+    }
 }
 ?>
 
@@ -185,6 +187,22 @@ function isActive($page) {
                 if($totalMsgBadge > 0): ?>
                     <span class="menu-badge badge-info"><?php echo $totalMsgBadge; ?></span>
                 <?php endif; ?>
+            </a>
+        </li>
+
+        <!-- Notifications -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/admin/notifications" class="<?php echo isActive('/admin/notifications'); ?>">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+                <?php
+                try {
+                    $nStmt = $pdo->prepare("SELECT COUNT(*) FROM furn_notifications WHERE user_id = ? AND is_read = 0");
+                    $nStmt->execute([$_SESSION['user_id']]);
+                    $sidebarUnread = (int)$nStmt->fetchColumn();
+                    if ($sidebarUnread > 0) echo '<span class="menu-badge badge-danger">'.($sidebarUnread > 9 ? '9+' : $sidebarUnread).'</span>';
+                } catch (PDOException $e2) {}
+                ?>
             </a>
         </li>
 
