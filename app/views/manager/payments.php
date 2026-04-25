@@ -49,6 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } elseif ($isFinal) {
                         $pdo->prepare("UPDATE furn_orders SET status = 'completed' WHERE id = ?")
                             ->execute([$payment['order_id']]);
+                        
+                        // Auto-calculate profit when order is completed
+                        try {
+                            require_once __DIR__ . '/../../models/ProfitModel.php';
+                            $profitModel = new ProfitModel();
+                            // Check if profit already calculated
+                            $checkStmt = $pdo->prepare("SELECT profit_calculated FROM furn_orders WHERE id = ?");
+                            $checkStmt->execute([$payment['order_id']]);
+                            $orderData = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                            if (!$orderData || !$orderData['profit_calculated']) {
+                                $profitModel->calculateOrderProfit($payment['order_id']);
+                            }
+                        } catch (Exception $e) {
+                            error_log('Auto profit calculation failed for order #' . $payment['order_id'] . ': ' . $e->getMessage());
+                        }
                     }
 
                     // Notify customer

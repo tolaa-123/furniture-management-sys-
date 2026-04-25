@@ -171,8 +171,8 @@ class ProfitController extends BaseController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $settings = [
                 'labor_hourly_rate' => $_POST['labor_hourly_rate'] ?? '50.00',
-                'production_time_cost_rate' => $_POST['production_time_cost_rate'] ?? '30.00',
                 'profit_margin_target' => $_POST['profit_margin_target'] ?? '25.00'
+                // production_time_cost_rate removed - no longer used
             ];
             
             foreach ($settings as $key => $value) {

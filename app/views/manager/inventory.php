@@ -95,6 +95,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stock'])) {
             $pdo->prepare("UPDATE furn_materials SET current_stock = GREATEST(0, current_stock - ?), updated_at = NOW() WHERE id = ?")
                 ->execute([$quantity_change, $material_id]);
         }
+        
+        // LOW STOCK ALERT AUTOMATION: Check and create alerts after stock update
+        try {
+            require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+            
+            // Get updated material info
+            $matStmt = $pdo->prepare("SELECT name, current_stock, minimum_stock FROM furn_materials WHERE id = ?");
+            $matStmt->execute([$material_id]);
+            $mat = $matStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($mat) {
+                $available = floatval($mat['current_stock']) - floatval($pdo->query("SELECT COALESCE(SUM(quantity_requested),0) FROM furn_material_requests WHERE material_id={$material_id} AND status='approved'")->fetchColumn());
+                
+                // Check if stock is below minimum threshold
+                if ($available < floatval($mat['minimum_stock'])) {
+                    // Create low stock alert
+                    $alertStmt = $pdo->prepare("
+                        INSERT INTO furn_low_stock_alerts (material_id, current_stock, minimum_stock, alert_level, created_at)
+                        VALUES (?, ?, ?, ?, NOW())
+                    ");
+                    $alertLevel = ($available < (floatval($mat['minimum_stock']) * 0.5)) ? 'critical' : 'low';
+                    $alertStmt->execute([$material_id, $available, $mat['minimum_stock'], $alertLevel]);
+                    
+                    // Notify all managers about low stock
+                    notifyRole($pdo, 'manager', 'inventory', 'Low Stock Alert: ' . $mat['name'],
+                        'Material "' . $mat['name'] . '" is running low. Available: ' . number_format($available, 2) . ', Minimum: ' . number_format(floatval($mat['minimum_stock']), 2),
+                        $material_id, '/manager/inventory', 'high');
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Low stock alert error: " . $e->getMessage());
+        }
+        
         $_SESSION['success_message'] = "Stock updated successfully!";
     } catch (PDOException $e) {
         $_SESSION['error_message'] = "Error updating stock: " . $e->getMessage();

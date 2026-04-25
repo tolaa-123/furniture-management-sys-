@@ -10,6 +10,11 @@ $dateFrom = $_GET['from'] ?? date('Y-m-01');
 $dateTo   = $_GET['to']   ?? date('Y-m-d');
 $report   = $_GET['report'] ?? 'sales';
 
+// Comparison mode
+$compareMode = isset($_GET['compare']) && $_GET['compare'] === '1';
+$compareFrom = $_GET['compare_from'] ?? '';
+$compareTo = $_GET['compare_to'] ?? '';
+
 // Clamp dates
 if ($dateFrom > $dateTo) $dateFrom = $dateTo;
 
@@ -38,6 +43,7 @@ $pageTitle = 'Reports';
 // ── 1. SALES & REVENUE ──
 $salesSummary = ['total_orders'=>0,'total_revenue'=>0,'avg_order_value'=>0,'completed'=>0,'cancelled'=>0,'pending'=>0];
 $salesRows = [];
+$salesCompare = null;
 if ($report === 'sales') {
     try {
         $s = $pdo->prepare("
@@ -62,6 +68,25 @@ if ($report === 'sales') {
         }
         $salesSummary['avg_order_value'] = $salesSummary['total_orders'] > 0
             ? $salesSummary['total_revenue'] / $salesSummary['total_orders'] : 0;
+
+        // Comparison data
+        if ($compareMode && $compareFrom && $compareTo) {
+            $s = $pdo->prepare("
+                SELECT COUNT(*) as total_orders,
+                       COALESCE(SUM(p.amount),0) as total_revenue
+                FROM furn_orders o
+                LEFT JOIN furn_payments p ON p.order_id = o.id AND p.status IN ('approved','verified')
+                WHERE DATE(o.created_at) BETWEEN ? AND ?
+            ");
+            $s->execute([$compareFrom, $compareTo]);
+            $compData = $s->fetch(PDO::FETCH_ASSOC);
+            $salesCompare = [
+                'total_orders' => intval($compData['total_orders']),
+                'total_revenue' => floatval($compData['total_revenue']),
+                'orders_change' => $salesSummary['total_orders'] - intval($compData['total_orders']),
+                'revenue_change' => $salesSummary['total_revenue'] - floatval($compData['total_revenue']),
+            ];
+        }
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
@@ -227,6 +252,8 @@ if ($report === 'ratings') {    try {
 // ── 7. PROFIT SUMMARY ──
 $profitSummary = ['revenue'=>0,'material_cost'=>0,'payroll_cost'=>0,'overhead'=>0,'income_tax'=>0,'net_profit'=>0,'margin'=>0];
 $profitByMonth = [];
+$profitByWeek = [];
+$profitView = $_GET['profit_view'] ?? 'monthly'; // 'weekly' or 'monthly'
 if ($report === 'profit') {
     try {
         // Revenue: approved payments in period
@@ -261,6 +288,59 @@ if ($report === 'profit') {
         // Margin %
         $profitSummary['margin'] = $profitSummary['revenue'] > 0
             ? round(($profitSummary['net_profit'] / $profitSummary['revenue']) * 100, 1) : 0;
+
+        if ($profitView === 'weekly') {
+            // Weekly breakdown
+            $s = $pdo->prepare("
+                SELECT YEARWEEK(created_at, 1) as yw,
+                       DATE_FORMAT(MIN(created_at), 'W%v %Y') as week_label,
+                       MIN(created_at) as week_start,
+                       SUM(amount) as revenue
+                FROM furn_payments
+                WHERE status IN ('approved','verified') AND DATE(created_at) BETWEEN ? AND ?
+                GROUP BY YEARWEEK(created_at, 1) ORDER BY yw ASC
+            ");
+            $s->execute([$dateFrom, $dateTo]);
+            $revenueByWeek = [];
+            foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) $revenueByWeek[$r['yw']] = $r;
+
+            $s = $pdo->prepare("
+                SELECT YEARWEEK(created_at, 1) as yw, SUM(total_cost) as mat
+                FROM furn_order_materials WHERE DATE(created_at) BETWEEN ? AND ?
+                GROUP BY YEARWEEK(created_at, 1)
+            ");
+            $s->execute([$dateFrom, $dateTo]);
+            $matByWeek = [];
+            foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) $matByWeek[$r['yw']] = floatval($r['mat']);
+
+            $s = $pdo->prepare("
+                SELECT YEARWEEK(STR_TO_DATE(CONCAT(year,'-',LPAD(month,2,'0'),'-01'),'%Y-%m-%d'), 1) as yw,
+                       SUM(net_salary) as pay
+                FROM furn_payroll WHERE status='approved'
+                AND STR_TO_DATE(CONCAT(year,'-',LPAD(month,2,'0'),'-01'),'%Y-%m-%d') BETWEEN ? AND ?
+                GROUP BY yw
+            ");
+            $s->execute([$dateFrom, $dateTo]);
+            $payByWeek = [];
+            foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $r) $payByWeek[$r['yw']] = floatval($r['pay']);
+
+            foreach ($revenueByWeek as $yw => $data) {
+                $rev  = floatval($data['revenue']);
+                $mat  = $matByWeek[$yw] ?? 0;
+                $pay  = $payByWeek[$yw] ?? 0;
+                $ovh  = $rev * $overheadRate;
+                $net  = $rev - $mat - $pay - $ovh;
+                $profitByWeek[] = [
+                    'label'   => $data['week_label'],
+                    'revenue' => $rev,
+                    'material'=> $mat,
+                    'payroll' => $pay,
+                    'overhead'=> $ovh,
+                    'net'     => $net,
+                    'margin'  => $rev > 0 ? round(($net/$rev)*100,1) : 0,
+                ];
+            }
+        } else {
 
         // Monthly breakdown
         $s = $pdo->prepare("
@@ -310,6 +390,7 @@ if ($report === 'profit') {
                 'margin'  => $rev > 0 ? round(($net/$rev)*100,1) : 0,
             ];
         }
+        } // end else monthly
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
@@ -399,20 +480,51 @@ if ($report === 'profit') {
         <input type="date" name="from" value="<?php echo $dateFrom; ?>">
         <label>To</label>
         <input type="date" name="to" value="<?php echo $dateTo; ?>">
+        
+        <!-- Comparison Mode -->
+        <label style="margin-left: 10px;">
+            <input type="checkbox" name="compare" value="1" <?php echo $compareMode ? 'checked' : ''; ?> onchange="this.form.submit()" style="margin-right: 5px;">
+            Compare
+        </label>
+        <?php if ($compareMode): ?>
+        <label>vs From</label>
+        <input type="date" name="compare_from" value="<?php echo htmlspecialchars($compareFrom); ?>" required>
+        <label>To</label>
+        <input type="date" name="compare_to" value="<?php echo htmlspecialchars($compareTo); ?>" required>
+        <?php endif; ?>
+        
         <button type="submit"><i class="fas fa-filter me-1"></i>Apply</button>
-        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-m-01'); ?>&to=<?php echo date('Y-m-d'); ?>"
+        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-m-01'); ?>&to=<?php echo date('Y-m-d'); ?><?php echo $compareMode ? '&compare=1&compare_from='.$compareFrom.'&compare_to='.$compareTo : ''; ?>"
            style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Month</a>
-        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-01-01'); ?>&to=<?php echo date('Y-m-d'); ?>"
+        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-01-01'); ?>&to=<?php echo date('Y-m-d'); ?><?php echo $compareMode ? '&compare=1&compare_from='.$compareFrom.'&compare_to='.$compareTo : ''; ?>"
            style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Year</a>
-        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-m-d', strtotime('monday this week')); ?>&to=<?php echo date('Y-m-d', strtotime('sunday this week')); ?>"
+        <a href="?report=<?php echo $report; ?>&from=<?php echo date('Y-m-d', strtotime('monday this week')); ?>&to=<?php echo date('Y-m-d', strtotime('sunday this week')); ?><?php echo $compareMode ? '&compare=1&compare_from='.$compareFrom.'&compare_to='.$compareTo : ''; ?>"
            style="padding:9px 16px;background:#f0f0f0;color:#555;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;">This Week</a>
     </form>
 
     <!-- ══ SALES & REVENUE ══ -->
     <?php if ($report === 'sales'): ?>
     <div class="sum-grid">
-        <div class="sum-card" style="border-color:#3498db;"><div class="sum-val" style="color:#3498db;"><?php echo $salesSummary['total_orders']; ?></div><div class="sum-lbl">Total Orders</div></div>
-        <div class="sum-card" style="border-color:#27ae60;"><div class="sum-val" style="color:#27ae60;font-size:17px;">ETB <?php echo number_format($salesSummary['total_revenue'],0); ?></div><div class="sum-lbl">Total Revenue</div></div>
+        <div class="sum-card" style="border-color:#3498db;">
+            <div class="sum-val" style="color:#3498db;"><?php echo $salesSummary['total_orders']; ?></div>
+            <div class="sum-lbl">Total Orders</div>
+            <?php if ($salesCompare): ?>
+            <div style="font-size:11px;margin-top:4px;color:<?php echo $salesCompare['orders_change'] >= 0 ? '#27ae60' : '#e74c3c'; ?>;">
+                <i class="fas fa-<?php echo $salesCompare['orders_change'] >= 0 ? 'arrow-up' : 'arrow-down'; ?>"></i>
+                <?php echo abs($salesCompare['orders_change']); ?> (<?php echo intval($compData['total_orders']) > 0 ? round(($salesCompare['orders_change']/intval($compData['total_orders']))*100,1) : 0; ?>%)
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="sum-card" style="border-color:#27ae60;">
+            <div class="sum-val" style="color:#27ae60;font-size:17px;">ETB <?php echo number_format($salesSummary['total_revenue'],0); ?></div>
+            <div class="sum-lbl">Total Revenue</div>
+            <?php if ($salesCompare): ?>
+            <div style="font-size:11px;margin-top:4px;color:<?php echo $salesCompare['revenue_change'] >= 0 ? '#27ae60' : '#e74c3c'; ?>;">
+                <i class="fas fa-<?php echo $salesCompare['revenue_change'] >= 0 ? 'arrow-up' : 'arrow-down'; ?>"></i>
+                ETB <?php echo number_format(abs($salesCompare['revenue_change']),0); ?> (<?php echo floatval($compData['total_revenue']) > 0 ? round(($salesCompare['revenue_change']/floatval($compData['total_revenue']))*100,1) : 0; ?>%)
+            </div>
+            <?php endif; ?>
+        </div>
         <div class="sum-card" style="border-color:#f39c12;"><div class="sum-val" style="color:#f39c12;font-size:17px;">ETB <?php echo number_format($salesSummary['avg_order_value'],0); ?></div><div class="sum-lbl">Avg Order Value</div></div>
         <div class="sum-card" style="border-color:#27ae60;"><div class="sum-val" style="color:#27ae60;"><?php echo $salesSummary['completed']; ?></div><div class="sum-lbl">Completed</div></div>
         <div class="sum-card" style="border-color:#e74c3c;"><div class="sum-val" style="color:#e74c3c;"><?php echo $salesSummary['cancelled']; ?></div><div class="sum-lbl">Cancelled</div></div>
@@ -713,6 +825,71 @@ if ($report === 'profit') {
 
     <!-- Link to full report removed — everything is here -->
 
+    <!-- View Toggle: Weekly/Monthly -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <a href="?report=profit&from=<?php echo $dateFrom; ?>&to=<?php echo $dateTo; ?>&profit_view=monthly"
+           style="padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;
+                  background:<?php echo $profitView === 'monthly' ? '#8B4513' : '#fff'; ?>;
+                  color:<?php echo $profitView === 'monthly' ? '#fff' : '#555'; ?>;
+                  border:2px solid <?php echo $profitView === 'monthly' ? '#8B4513' : '#e0e0e0'; ?>;">
+            <i class="fas fa-calendar"></i> Monthly
+        </a>
+        <a href="?report=profit&from=<?php echo $dateFrom; ?>&to=<?php echo $dateTo; ?>&profit_view=weekly"
+           style="padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:all .15s;
+                  background:<?php echo $profitView === 'weekly' ? '#8B4513' : '#fff'; ?>;
+                  color:<?php echo $profitView === 'weekly' ? '#fff' : '#555'; ?>;
+                  border:2px solid <?php echo $profitView === 'weekly' ? '#8B4513' : '#e0e0e0'; ?>;">
+            <i class="fas fa-calendar-week"></i> Weekly
+        </a>
+    </div>
+
+    <!-- Weekly breakdown -->
+    <?php if ($profitView === 'weekly'): ?>
+    <div class="section-card" style="padding:0;overflow:hidden;">
+        <?php if (empty($profitByWeek)): ?>
+        <div class="empty-rpt"><i class="fas fa-chart-line"></i>No weekly financial data found for this period.</div>
+        <?php else: ?>
+        <div style="padding:14px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;">
+            <i class="fas fa-calendar-week" style="color:#8B4513;margin-right:6px;"></i>Weekly Breakdown
+        </div>
+        <div class="table-responsive">
+        <table class="rpt-table">
+            <thead>
+                <tr>
+                    <th>Week</th>
+                    <th>Revenue</th>
+                    <th>Material Cost</th>
+                    <th>Payroll</th>
+                    <th>Overhead</th>
+                    <th>Net Profit</th>
+                    <th>Margin</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($profitByWeek as $w):
+                $wc = $w['net'] >= 0 ? '#27ae60' : '#e74c3c';
+            ?>
+            <tr>
+                <td><strong><?php echo htmlspecialchars($w['label']); ?></strong></td>
+                <td style="color:#27ae60;">ETB <?php echo number_format($w['revenue'],0); ?></td>
+                <td style="color:#e74c3c;">ETB <?php echo number_format($w['material'],0); ?></td>
+                <td style="color:#3498db;">ETB <?php echo number_format($w['payroll'],0); ?></td>
+                <td style="color:#f39c12;">ETB <?php echo number_format($w['overhead'],0); ?></td>
+                <td style="font-weight:700;color:<?php echo $wc; ?>;">ETB <?php echo number_format($w['net'],0); ?></td>
+                <td>
+                    <span style="background:<?php echo $wc; ?>18;color:<?php echo $wc; ?>;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;">
+                        <?php echo $w['margin']; ?>%
+                    </span>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php else: ?>
+
     <!-- Monthly breakdown -->
     <div class="section-card" style="padding:0;overflow:hidden;">
         <?php if (empty($profitByMonth)): ?>
@@ -768,6 +945,7 @@ if ($report === 'profit') {
         </div>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
     <?php endif; ?>
 
 </div><!-- end main-content -->

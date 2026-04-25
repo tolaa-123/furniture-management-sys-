@@ -111,11 +111,6 @@
                                             <td class="text-end"><?php echo number_format($profit['labor_cost'], 2); ?></td>
                                             <td class="text-end"><?php echo number_format(($profit['labor_cost'] / $profit['final_selling_price']) * 100, 2); ?>%</td>
                                         </tr>
-                                        <tr>
-                                            <td>Production Time Cost</td>
-                                            <td class="text-end"><?php echo number_format($profit['production_time_cost'], 2); ?></td>
-                                            <td class="text-end"><?php echo number_format(($profit['production_time_cost'] / $profit['final_selling_price']) * 100, 2); ?>%</td>
-                                        </tr>
                                         <tr class="table-primary">
                                             <td><strong>Total Cost</strong></td>
                                             <td class="text-end"><strong><?php echo number_format($profit['total_cost'], 2); ?></strong></td>

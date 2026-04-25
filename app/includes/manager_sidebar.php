@@ -15,7 +15,8 @@ $notificationCounts = [
     'low_stock' => 0,
     'pending_payments' => 0,
     'unread_messages' => 0,
-    'pending_material_requests' => 0
+    'pending_material_requests' => 0,
+    'open_complaints' => 0
 ];
 
 try {
@@ -40,6 +41,12 @@ try {
         $stmt->execute([$_SESSION['user_id']]);
         $notificationCounts['unread_messages'] = $stmt->fetchColumn();
     }
+    
+    // Check open complaints
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM furn_complaints WHERE status='open'");
+        $notificationCounts['open_complaints'] = $stmt->fetchColumn();
+    } catch (PDOException $e2) {}
 } catch (PDOException $e) {
     error_log("Notification counts error: " . $e->getMessage());
 }
@@ -152,6 +159,14 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Employee Performance -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/manager/employee-performance" class="<?php echo isActive('/manager/employee-performance'); ?>">
+                <i class="fas fa-chart-line"></i>
+                <span>Employee Performance</span>
+            </a>
+        </li>
+
         <!-- Payroll -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/manager/payroll" class="<?php echo isActive('/manager/payroll'); ?>">
@@ -186,6 +201,17 @@ function isActive($page) {
                 <span>Messages</span>
                 <?php if($notificationCounts['unread_messages'] > 0): ?>
                     <span class="menu-badge badge-info"><?php echo $notificationCounts['unread_messages']; ?></span>
+                <?php endif; ?>
+            </a>
+        </li>
+
+        <!-- Complaints -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/manager/complaints" class="<?php echo isActive('/manager/complaints'); ?>">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Complaints</span>
+                <?php if($notificationCounts['open_complaints'] > 0): ?>
+                    <span class="menu-badge badge-danger"><?php echo $notificationCounts['open_complaints']; ?></span>
                 <?php endif; ?>
             </a>
         </li>

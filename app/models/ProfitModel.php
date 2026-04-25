@@ -15,6 +15,13 @@ class ProfitModel extends BaseModel {
         try {
             $this->db->beginTransaction();
             
+            // Ensure waste_cost column exists (auto-migration)
+            try {
+                $this->db->exec("ALTER TABLE furn_profit_calculations ADD COLUMN IF NOT EXISTS waste_cost DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER material_cost");
+            } catch (PDOException $e) {
+                // Column might already exist
+            }
+            
             // Get order details
             $order = $this->getOrderDetails($orderId);
             if (!$order) {
@@ -29,14 +36,15 @@ class ProfitModel extends BaseModel {
             // Get material costs
             $materialCost = $this->calculateMaterialCost($orderId);
             
-            // Get labor costs
+            // Get waste costs
+            $wasteCost = $this->calculateWasteCost($orderId);
+            
+            // Get labor costs (includes employee time/salary)
             $laborCost = $this->calculateLaborCost($orderId);
             
-            // Get production time costs
-            $productionTimeCost = $this->calculateProductionTimeCost($orderId);
-            
-            // Calculate total cost
-            $totalCost = $materialCost + $laborCost + $productionTimeCost;
+            // Calculate total cost (material + waste + labor)
+            // Note: Production time cost removed - employee time is already included in labor cost
+            $totalCost = $materialCost + $wasteCost + $laborCost;
             
             // Calculate profit
             $profit = ($order['total_amount'] ?? 0) - $totalCost;
@@ -50,8 +58,9 @@ class ProfitModel extends BaseModel {
                 'product_id' => $order['product_id'] ?? null,
                 'final_selling_price' => $order['total_amount'] ?? 0,
                 'material_cost' => $materialCost,
+                'waste_cost' => $wasteCost,
                 'labor_cost' => $laborCost,
-                'production_time_cost' => $productionTimeCost,
+                'production_time_cost' => 0, // Deprecated - kept for backward compatibility
                 'total_cost' => $totalCost,
                 'profit' => $profit,
                 'profit_margin_percentage' => $profitMargin,
@@ -171,8 +180,8 @@ class ProfitModel extends BaseModel {
                 COUNT(*) as total_calculated_orders,
                 SUM(final_selling_price) as total_revenue,
                 SUM(material_cost) as total_material_cost,
+                SUM(waste_cost) as total_waste_cost,
                 SUM(labor_cost) as total_labor_cost,
-                SUM(production_time_cost) as total_production_cost,
                 SUM(total_cost) as total_cost,
                 SUM(profit) as total_profit,
                 AVG(profit_margin_percentage) as average_profit_margin,
@@ -253,6 +262,37 @@ class ProfitModel extends BaseModel {
     }
     
     /**
+     * Get weekly profit summary
+     */
+    public function getWeeklyProfitSummary($weeks = 12) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    YEARWEEK(pc.calculated_at, 1) as yw,
+                    DATE_FORMAT(MIN(pc.calculated_at), 'W%v %Y') as week_label,
+                    MIN(pc.calculated_at) as week_start,
+                    COUNT(pc.id) as orders_count,
+                    SUM(pc.final_selling_price) as total_revenue,
+                    SUM(pc.material_cost) as total_material_cost,
+                    SUM(pc.waste_cost) as total_waste_cost,
+                    SUM(pc.labor_cost) as total_labor_cost,
+                    SUM(pc.total_cost) as total_cost,
+                    SUM(pc.profit) as total_profit,
+                    AVG(pc.profit_margin_percentage) as avg_profit_margin
+                FROM {$this->table} pc
+                WHERE pc.calculated_at >= DATE_SUB(NOW(), INTERVAL ? WEEK)
+                GROUP BY YEARWEEK(pc.calculated_at, 1)
+                ORDER BY yw ASC
+            ");
+            $stmt->execute([$weeks]);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log('Error fetching weekly profit summary: ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
      * Get profit settings
      */
     public function getProfitSettings() {
@@ -301,8 +341,25 @@ class ProfitModel extends BaseModel {
     
     private function calculateMaterialCost($orderId) {
         try {
+            // First try to use actual material costs from furn_order_materials
             $stmt = $this->db->prepare("
-                SELECT SUM(m.quantity_required * m2.average_cost) as total_material_cost
+                SELECT COALESCE(SUM(total_cost), 0) as actual_material_cost
+                FROM furn_order_materials
+                WHERE order_id = ?
+            ");
+            $stmt->execute([$orderId]);
+            $result = $stmt->fetch();
+            
+            $actualCost = floatval($result['actual_material_cost'] ?? 0);
+            
+            // If actual costs exist, use them
+            if ($actualCost > 0) {
+                return $actualCost;
+            }
+            
+            // Fallback: use estimated BOM costs if no actual data yet
+            $stmt = $this->db->prepare("
+                SELECT SUM(m.quantity_required * m2.cost_per_unit) as estimated_material_cost
                 FROM furn_order_customizations oc
                 LEFT JOIN furn_product_materials m ON oc.product_id = m.product_id
                 LEFT JOIN furn_materials m2 ON m.material_id = m2.id
@@ -310,9 +367,30 @@ class ProfitModel extends BaseModel {
             ");
             $stmt->execute([$orderId]);
             $result = $stmt->fetch();
-            return $result['total_material_cost'] ?? 0;
+            return $result['estimated_material_cost'] ?? 0;
         } catch (PDOException $e) {
             error_log("Error calculating material cost: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Calculate waste cost for an order
+     */
+    private function calculateWasteCost($orderId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COALESCE(SUM(mu.waste_amount * m.cost_per_unit), 0) as waste_cost
+                FROM furn_material_usage mu
+                JOIN furn_production_tasks t ON mu.task_id = t.id
+                JOIN furn_materials m ON mu.material_id = m.id
+                WHERE t.order_id = ?
+            ");
+            $stmt->execute([$orderId]);
+            $result = $stmt->fetch();
+            return floatval($result['waste_cost'] ?? 0);
+        } catch (PDOException $e) {
+            error_log("Error calculating waste cost: " . $e->getMessage());
             return 0;
         }
     }
@@ -339,26 +417,15 @@ class ProfitModel extends BaseModel {
         }
     }
     
+    /**
+     * Calculate production time cost for an order
+     * @deprecated Production time cost removed from calculations - employee time is included in labor cost
+     * This method is kept for backward compatibility with existing records
+     */
     private function calculateProductionTimeCost($orderId) {
-        try {
-            $settings = $this->getProfitSettings();
-            $timeCostRate = floatval($settings['production_time_cost_rate'] ?? 30.00);
-            
-            $stmt = $this->db->prepare("
-                SELECT SUM(pa.actual_hours) as total_production_hours
-                FROM furn_production_assignments pa
-                LEFT JOIN furn_order_customizations oc ON pa.order_id = oc.order_id
-                WHERE oc.order_id = ? AND pa.status = 'completed'
-            ");
-            $stmt->execute([$orderId]);
-            $result = $stmt->fetch();
-            
-            $totalHours = $result['total_production_hours'] ?? 0;
-            return $totalHours * $timeCostRate;
-        } catch (PDOException $e) {
-            error_log("Error calculating production time cost: " . $e->getMessage());
-            return 0;
-        }
+        // Deprecated: Production time cost is no longer calculated
+        // Labor cost already includes employee time compensation
+        return 0;
     }
     
     private function updateOrderProfitStatus($orderId, $calculated) {

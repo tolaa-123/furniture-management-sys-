@@ -84,11 +84,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($matIds)) throw new Exception("Please add at least one material.");
 
             $pdo->beginTransaction();
+            
+            // Get order_id from task_id for furn_order_materials
+            $orderStmt = $pdo->prepare("SELECT order_id FROM furn_production_tasks WHERE id = ?");
+            $orderStmt->execute([$taskId]);
+            $orderId = $orderStmt->fetchColumn();
 
             $stmtIns = $pdo->prepare("
                 INSERT INTO furn_material_usage (employee_id, task_id, material_id, quantity_used, waste_amount, notes, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, NOW())
             ");
+            
+            // Also save to furn_order_materials for profit calculation (CONSOLIDATION)
+            $stmtOrderMat = $pdo->prepare("
+                INSERT INTO furn_order_materials (order_id, task_id, material_id, material_name, quantity_used, unit, unit_price, total_cost)
+                SELECT ?, ?, m.id, m.name, ?, m.unit, m.cost_per_unit, (? * m.cost_per_unit)
+                FROM furn_materials m WHERE m.id = ?
+            ");
+            
             // Reduce approved request qty
             $stmtReduceReq = $pdo->prepare("
                 UPDATE furn_material_requests
@@ -130,12 +143,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $totalConsumed = $qty + $waste;
                 $stmtIns->execute([$employeeId, $taskId ?: null, $matId, $qty, $waste, $notes]);
+                
+                // CONSOLIDATION: Also log to furn_order_materials for profit tracking
+                if ($orderId) {
+                    $stmtOrderMat->execute([$orderId, $taskId, $qty, $qty, $matId]);
+                }
+                
                 $stmtReduceReq->execute([$qty, $employeeId, $matId]);
                 $stmtDeductStock->execute([$totalConsumed, $totalConsumed, $matId]);
                 $count++;
             }
             if ($count === 0) throw new Exception("No valid materials entered.");
             $pdo->commit();
+            
+            // LOW STOCK ALERT AUTOMATION: Check stock levels after usage
+            try {
+                require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+                
+                foreach ($matIds as $i => $matId) {
+                    $matId = intval($matId);
+                    $qty = floatval($matQtys[$i] ?? 0);
+                    $waste = floatval($matWastes[$i] ?? 0);
+                    if (!$matId || $qty <= 0) continue;
+                    
+                    // Check current stock level
+                    $checkStmt = $pdo->prepare("
+                        SELECT m.name, m.current_stock, m.minimum_stock,
+                               (m.current_stock - COALESCE(m.reserved_stock, 0)) as available
+                        FROM furn_materials m WHERE m.id = ?
+                    ");
+                    $checkStmt->execute([$matId]);
+                    $mat = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($mat && floatval($mat['available']) < floatval($mat['minimum_stock'])) {
+                        // Create low stock alert
+                        $alertStmt = $pdo->prepare("
+                            INSERT INTO furn_low_stock_alerts (material_id, current_stock, minimum_stock, alert_level, created_at)
+                            VALUES (?, ?, ?, 'low', NOW())
+                        ");
+                        $alertStmt->execute([$matId, $mat['available'], $mat['minimum_stock']]);
+                        
+                        // Notify managers
+                        notifyRole($pdo, 'manager', 'inventory', 'Low Stock Alert: ' . $mat['name'],
+                            'Material "' . $mat['name'] . '" is running low after usage. Available: ' . number_format(floatval($mat['available']), 2),
+                            $matId, '/manager/inventory', 'high');
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Low stock alert check error: " . $e->getMessage());
+            }
+            
             $success = "$count material(s) usage reported and stock updated successfully!";
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();

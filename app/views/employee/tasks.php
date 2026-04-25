@@ -217,6 +217,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     updated_at = NOW()
                                 WHERE id = ?")
                                 ->execute([$qty, $qty, (int)$matId]);
+                                            
+                            // LOW STOCK ALERT AUTOMATION: Check after deduction
+                            try {
+                                $checkStmt = $pdo->prepare("
+                                    SELECT name, current_stock, minimum_stock,
+                                           (current_stock - COALESCE(reserved_stock, 0)) as available
+                                    FROM furn_materials WHERE id = ?
+                                ");
+                                $checkStmt->execute([(int)$matId]);
+                                $mat = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                                                
+                                if ($mat && floatval($mat['available']) < floatval($mat['minimum_stock'])) {
+                                    require_once __DIR__ . '/../../../app/includes/notification_helper.php';
+                                    $alertStmt = $pdo->prepare("
+                                        INSERT INTO furn_low_stock_alerts (material_id, current_stock, minimum_stock, alert_level, created_at)
+                                        VALUES (?, ?, ?, 'low', NOW())
+                                    ");
+                                    $alertStmt->execute([(int)$matId, $mat['available'], $mat['minimum_stock']]);
+                                    notifyRole($pdo, 'manager', 'inventory', 'Low Stock Alert: ' . $mat['name'],
+                                        'Material "' . $mat['name'] . '" is running low. Available: ' . number_format(floatval($mat['available']), 2),
+                                        (int)$matId, '/manager/inventory', 'high');
+                                }
+                            } catch (Exception $e) {
+                                error_log("Low stock alert error: " . $e->getMessage());
+                            }
                         } catch (PDOException $eStock) {
                             error_log("Stock deduct error: " . $eStock->getMessage());
                         }
@@ -230,6 +255,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Commit core transaction before gallery/DDL work
             $pdo->commit();
+
+            // AUTOMATIC PROFIT CALCULATION TRIGGER
+            // Calculate profit automatically when task is completed
+            try {
+                require_once __DIR__ . '/../../../app/models/ProfitModel.php';
+                $profitModel = new ProfitModel();
+                
+                // Check if profit already calculated for this order
+                $checkStmt = $pdo->prepare("SELECT profit_calculated FROM furn_orders WHERE id = ?");
+                $checkStmt->execute([$taskData['order_id']]);
+                $orderData = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($orderData && !$orderData['profit_calculated']) {
+                    // Calculate profit automatically
+                    $profitModel->calculateOrderProfit($taskData['order_id']);
+                    error_log("Auto profit calculated for order #" . $taskData['order_id']);
+                }
+            } catch (Exception $e) {
+                // Log error but don't fail the task completion
+                error_log("Auto profit calculation failed: " . $e->getMessage());
+            }
 
             // Notify all managers AFTER commit (notification_helper has DDL that kills active transactions)
             require_once __DIR__ . '/../../../app/includes/notification_helper.php';

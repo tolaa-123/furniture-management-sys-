@@ -43,7 +43,6 @@
                                         <th>Revenue</th>
                                         <th>Material Cost</th>
                                         <th>Labor Cost</th>
-                                        <th>Time Cost</th>
                                         <th>Total Cost</th>
                                         <th>Profit</th>
                                         <th>Margin %</th>
@@ -61,7 +60,6 @@
                                         <td>ETB <?php echo number_format($month['total_revenue'], 2); ?></td>
                                         <td>ETB <?php echo number_format($month['total_material_cost'], 2); ?></td>
                                         <td>ETB <?php echo number_format($month['total_labor_cost'], 2); ?></td>
-                                        <td>ETB <?php echo number_format($month['total_production_time_cost'], 2); ?></td>
                                         <td>ETB <?php echo number_format($month['total_cost'], 2); ?></td>
                                         <td>
                                             <span class="text-<?php echo $month['total_profit'] >= 0 ? 'success' : 'danger'; ?>">

@@ -10,6 +10,7 @@ CREATE TABLE `furn_profit_calculations` (
     `product_id` INT(11) NOT NULL,
     `final_selling_price` DECIMAL(12,2) NOT NULL,
     `material_cost` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    `waste_cost` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `labor_cost` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `production_time_cost` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `total_cost` DECIMAL(12,2) NOT NULL DEFAULT 0.00,

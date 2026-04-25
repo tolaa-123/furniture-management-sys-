@@ -687,6 +687,22 @@ switch ($route) {
         include_once '../app/views/manager/completed_tasks.php';
         break;
         
+    case 'manager/employee-performance':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/employee_performance.php';
+        break;
+        
+    case 'manager/complaints':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/complaints.php';
+        break;
+        
     case 'manager/inventory':
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
             header('Location: ' . BASE_URL . '/public/login');
