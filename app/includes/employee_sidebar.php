@@ -4,6 +4,8 @@
  * Reusable sidebar for all employee pages
  */
 
+global $pdo;
+
 $currentPage = $_SERVER['REQUEST_URI'];
 $employeeName = $_SESSION['user_name'] ?? 'Employee User';
 
@@ -174,13 +176,6 @@ function isActive($page) {
                 <i class="fas fa-user-circle"></i>
                 <span>My Profile</span>
             </a>
-        </li>
-
-        <!-- Dark Mode Toggle -->
-        <li style="padding: 10px 15px;">
-            <button id="darkModeToggle" class="dark-mode-toggle w-100">
-                <i class="fas fa-moon"></i> Dark Mode
-            </button>
         </li>
 
         <!-- Logout -->

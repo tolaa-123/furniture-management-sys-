@@ -22,6 +22,15 @@ try {
     $paymentMethod = $_POST['payment_method'] ?? '';
     $paymentNotes = $_POST['payment_notes'] ?? '';
     
+    // Ensure ENUM supports full_payment (MUST be before transaction to avoid implicit commit)
+    if ($paymentType === 'full_payment') {
+        try { 
+            $pdo->exec("ALTER TABLE furn_payments MODIFY COLUMN payment_type ENUM('prepayment','postpayment','deposit','final','final_payment','full_payment') NOT NULL DEFAULT 'prepayment'"); 
+        } catch(PDOException $e2) {
+            // Column might already have this ENUM value, continue
+        }
+    }
+    
     // Validate input
     $validator = new Validator();
     $rules = [
@@ -53,8 +62,6 @@ try {
         $dbPaymentType = 'postpayment';
     } elseif ($paymentType === 'full_payment') {
         $dbPaymentType = 'full_payment';
-        // Ensure ENUM supports full_payment
-        try { $pdo->exec("ALTER TABLE furn_payments MODIFY COLUMN payment_type ENUM('prepayment','postpayment','deposit','final','final_payment','full_payment') NOT NULL DEFAULT 'prepayment'"); } catch(PDOException $e2){}
     }
     
     // Get order details
@@ -100,6 +107,10 @@ try {
         }
         if (!$transactionReference) {
             throw new Exception('Please enter transaction reference number');
+        }
+        // Validate format: must be combination of letters and numbers (e.g., FT2504202612345)
+        if (!preg_match('/^[A-Za-z]{2,}[0-9]{6,}$/', $transactionReference)) {
+            throw new Exception('Invalid transaction reference format. Must be letters followed by numbers (e.g., FT2504202612345)');
         }
         if (!$transferDate) {
             throw new Exception('Please enter transfer date');

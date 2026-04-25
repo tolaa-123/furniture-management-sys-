@@ -48,8 +48,8 @@ try {
 
 $csrf_token = $_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION['csrf_token'] ?? '';
 $initials   = strtoupper(substr($adminName, 0, 1));
-// Badge count = unread notifications + new contact messages
-$badgeCount = $unreadCount + $kpi['contact_messages'];
+// Badge count = only unread furn_notifications (contact_messages shown separately in Quick Alerts)
+$badgeCount = $unreadCount;
 ?>
 <div class="top-header" style="background:#2c1810;color:white;padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:15px;">
@@ -104,12 +104,18 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
                         [$icon,$color] = notifIcon($n['type']);
                         $bg = $n['is_read'] ? 'white' : '#f0f8ff';
                         $fw = $n['is_read'] ? '400' : '600';
-                        $link = !empty($n['link']) ? BASE_URL.'/public'.$n['link'] : '#';
-                        $link .= (strpos($link,'?')===false?'?':'&').'notif='.$n['id'];
-                        if($n['related_id']) $link .= '&focus='.$n['type'].'&id='.$n['related_id'];
+                        $rawLink = !empty($n['link']) ? preg_replace('#^/public#', '', $n['link']) : '';
+                        $link = $rawLink !== '' ? BASE_URL.'/public'.$rawLink : '';
+                        if($link !== '') {
+                            $link .= (strpos($link,'?')===false?'?':'&').'notif='.$n['id'];
+                            if($n['related_id']) $link .= '&focus='.$n['type'].'&id='.$n['related_id'];
+                        }
                     ?>
-                    <a href="<?php echo htmlspecialchars($link); ?>"
-                       onclick="markNotifRead(<?php echo (int)$n['id']; ?>, this, event, <?php echo $n['is_read'] ? 'true' : 'false'; ?>)"
+                    <a href="<?php echo $link !== '' ? htmlspecialchars($link) : 'javascript:void(0)'; ?>"
+                       data-notif-id="<?php echo (int)$n['id']; ?>"
+                       data-is-read="<?php echo $n['is_read'] ? '1' : '0'; ?>"
+                       data-href="<?php echo $link !== '' ? htmlspecialchars($link) : ''; ?>"
+                       onclick="markNotifRead(this, event)"
                        style="display:block;padding:11px 14px;border-bottom:1px solid #f0f0f0;text-decoration:none;color:#2c3e50;background:<?php echo $bg; ?>;transition:background .2s;"
                        onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='<?php echo $bg; ?>'">
                         <div style="display:flex;align-items:flex-start;gap:10px;">
@@ -117,11 +123,11 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
                                 <i class="fas <?php echo $icon; ?>" style="color:<?php echo $color; ?>;font-size:13px;"></i>
                             </div>
                             <div style="flex:1;min-width:0;">
-                                <div style="font-size:13px;font-weight:<?php echo $fw; ?>;color:#2c3e50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($n['title']); ?></div>
+                                <div class="notif-title" style="font-size:13px;font-weight:<?php echo $fw; ?>;color:#2c3e50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($n['title']); ?></div>
                                 <?php if(!empty($n['message'])): ?><div style="font-size:11px;color:#7f8c8d;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($n['message']); ?></div><?php endif; ?>
                                 <div style="font-size:10px;color:#aaa;margin-top:3px;"><?php echo timeAgo($n['created_at']); ?></div>
                             </div>
-                            <?php if(!$n['is_read']): ?><span style="width:8px;height:8px;background:#e74c3c;border-radius:50%;flex-shrink:0;margin-top:4px;"></span><?php endif; ?>
+                            <?php if(!$n['is_read']): ?><span class="notif-dot" style="width:8px;height:8px;background:#e74c3c;border-radius:50%;flex-shrink:0;margin-top:4px;"></span><?php endif; ?>
                         </div>
                     </a>
                     <?php endforeach; endif; ?>
@@ -130,7 +136,7 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
                 <!-- Footer -->
                 <div style="padding:10px 14px;border-top:1px solid #e9ecef;display:flex;justify-content:space-between;align-items:center;">
                     <?php if($badgeCount > 0): ?>
-                    <a href="#" onclick="markAllRead();return false;" style="color:#e74c3c;text-decoration:none;font-size:12px;font-weight:600;"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
+                    <a id="markAllBtn" href="#" onclick="markAllRead();return false;" style="color:#e74c3c;text-decoration:none;font-size:12px;font-weight:600;"><i class="fas fa-check-double me-1"></i>Mark All Read</a>
                     <?php else: ?><span></span><?php endif; ?>
                     <a href="<?php echo BASE_URL; ?>/public/admin/notifications" style="color:#3498db;text-decoration:none;font-size:12px;font-weight:600;">View All →</a>
                 </div>
@@ -151,74 +157,95 @@ $badgeCount = $unreadCount + $kpi['contact_messages'];
 </div>
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} #bellIcon:hover{transform:scale(1.2)}</style>
 <script>
-function toggleNotificationDropdown(){const d=document.getElementById('notifDropdown');d.style.display=d.style.display==='none'?'block':'none';}
-
-function markNotifRead(id, el, event, isAlreadyRead) {
-    if(event) event.preventDefault();
-    const href = el ? el.getAttribute('href') : null;
-    const csrfToken = '<?php echo addslashes($csrf_token); ?>';
-
-    // Use sendBeacon so the request completes even if page navigates away
-    const body = 'notification_id='+id+'&csrf_token='+encodeURIComponent(csrfToken);
-    navigator.sendBeacon('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php',
-        new Blob([body], {type:'application/x-www-form-urlencoded'}));
-
-    // Only decrement badge if this notification was unread
-    if (!isAlreadyRead) {
-        const badge = document.getElementById('notifBadge');
-        if (badge) {
-            const c = parseInt(badge.textContent) || 0;
-            if (c <= 1) { badge.style.display = 'none'; }
-            else { badge.textContent = c - 1; }
-        }
-        // Update UI in-place: remove red dot, lighten background, normal font-weight
-        if (el) {
-            el.style.background = 'white';
-            el.setAttribute('onmouseout', "this.style.background='white'");
-            const dot = el.querySelector('span[style*="border-radius:50%"]');
-            if (dot) dot.style.display = 'none';
-            const titleEl = el.querySelector('div[style*="font-weight"]');
-            if (titleEl) titleEl.style.fontWeight = '400';
-        }
-    }
-
-    // Navigate if there's a real link
-    if (href && href !== '#' && href !== '') {
-        window.location.href = href;
-    }
+function toggleNotificationDropdown(){
+    const d = document.getElementById('notifDropdown');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
 }
 
-function markAllRead(){
-    const csrfToken = '<?php echo addslashes($csrf_token); ?>';
-    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php',{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'csrf_token='+encodeURIComponent(csrfToken)
-    }).finally(()=>{
-        const b = document.getElementById('notifBadge');
-        if(b) b.style.display = 'none';
-        document.getElementById('notifDropdown').style.display = 'none';
-        location.reload();
+function markNotifRead(el, event) {
+    event.preventDefault();
+    const id         = parseInt(el.dataset.notifId);
+    const isRead     = el.dataset.isRead === '1';
+    const href       = el.dataset.href || '';
+    const csrfToken  = '<?php echo addslashes($csrf_token); ?>';
+
+    // Always send mark-read via fetch (not sendBeacon — PHP needs proper form data)
+    fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'notification_id=' + id + '&csrf_token=' + encodeURIComponent(csrfToken),
+        credentials: 'same-origin'
+    }).then(function() {
+        if (!isRead) {
+            // Update badge
+            const badge = document.getElementById('notifBadge');
+            if (badge) {
+                const c = parseInt(badge.textContent) || 0;
+                const next = c - 1;
+                if (next <= 0) { badge.style.display = 'none'; badge.textContent = '0'; }
+                else { badge.textContent = next > 9 ? '9+' : next; }
+            }
+            // Update row UI
+            el.style.background = 'white';
+            el.dataset.isRead = '1';
+            const dot = el.querySelector('.notif-dot');
+            if (dot) dot.style.display = 'none';
+            const title = el.querySelector('.notif-title');
+            if (title) title.style.fontWeight = '400';
+        }
+        // Navigate after marking
+        if (href && href !== '') {
+            window.location.href = href;
+        }
+    }).catch(function() {
+        // Even on error, navigate if there's a link
+        if (href && href !== '') window.location.href = href;
     });
 }
 
-document.addEventListener('click',function(e){
-    const d=document.getElementById('notifDropdown');
-    if(d && !e.target.closest('[onclick*="toggleNotificationDropdown"]') && !e.target.closest('#notifDropdown'))
-        d.style.display='none';
+function markAllRead() {
+    const csrfToken = '<?php echo addslashes($csrf_token); ?>';
+    fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + encodeURIComponent(csrfToken),
+        credentials: 'same-origin'
+    }).then(function() {
+        const badge = document.getElementById('notifBadge');
+        if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+        // Update all rows to read state
+        document.querySelectorAll('#notifDropdown a[data-notif-id]').forEach(function(row) {
+            row.style.background = 'white';
+            row.dataset.isRead = '1';
+            const dot = row.querySelector('.notif-dot');
+            if (dot) dot.style.display = 'none';
+            const title = row.querySelector('.notif-title');
+            if (title) title.style.fontWeight = '400';
+        });
+        // Hide mark-all button
+        const btn = document.getElementById('markAllBtn');
+        if (btn) btn.style.display = 'none';
+    });
+}
+
+document.addEventListener('click', function(e) {
+    const d = document.getElementById('notifDropdown');
+    if (d && !e.target.closest('[onclick*="toggleNotificationDropdown"]') && !e.target.closest('#notifDropdown'))
+        d.style.display = 'none';
 });
 
-setInterval(function(){
-    fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'})
-        .then(r=>r.json())
-        .then(data=>{
-            if(data.count !== undefined){
+// Poll only furn_notifications unread count — consistent with badge
+setInterval(function() {
+    fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count', {credentials: 'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if (data.count !== undefined) {
                 const b = document.getElementById('notifBadge');
-                if(b){
-                    if(data.count > 0){ b.textContent = data.count>9?'9+':data.count; b.style.display='flex'; }
-                    else b.style.display='none';
+                if (b) {
+                    if (data.count > 0) { b.textContent = data.count > 9 ? '9+' : data.count; b.style.display = 'flex'; }
+                    else { b.style.display = 'none'; }
                 }
             }
-        }).catch(()=>{});
+        }).catch(function(){});
 }, 30000);
 </script>

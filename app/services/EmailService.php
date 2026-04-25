@@ -107,7 +107,7 @@ class EmailService {
     // -------------------------------------------------------
     // Core send method
     // -------------------------------------------------------
-    public function send($to, $subject, $body) {
+    private function send($to, $subject, $body) {
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-type: text/html; charset=UTF-8\r\n";
         $headers .= "From: {$this->senderName} <{$this->senderEmail}>\r\n";

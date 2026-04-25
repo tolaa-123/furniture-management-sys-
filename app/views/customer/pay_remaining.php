@@ -132,7 +132,7 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
 
                         <div class="mb-3">
                             <label class="form-label" style="font-weight: 600;">Transaction Reference Number</label>
-                            <input type="text" name="transaction_reference" class="form-control" placeholder="Enter transaction/reference number" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
+                            <input type="text" name="transaction_reference" class="form-control" placeholder="e.g., FT2504202612345" style="padding: 10px; border: 2px solid #e9ecef; border-radius: 8px;">
                         </div>
                     </div>
 
@@ -244,6 +244,20 @@ $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
             if (receiptFile && receiptFile.size > 5 * 1024 * 1024) {
                 alert('File size must be less than 5MB!');
                 return;
+            }
+            
+            // Validate transaction reference format for bank transfer
+            if (method === 'bank_transfer') {
+                const ref = $('input[name="transaction_reference"]').val().trim();
+                if (!ref) {
+                    alert('Please enter transaction reference number.');
+                    return;
+                }
+                const refPattern = /^[A-Za-z]{2,}[0-9]{6,}$/;
+                if (!refPattern.test(ref)) {
+                    alert('Invalid transaction reference format. Must be letters followed by numbers (e.g., FT2504202612345)');
+                    return;
+                }
             }
             
             const formData = new FormData(this);

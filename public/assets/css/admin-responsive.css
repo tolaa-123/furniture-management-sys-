@@ -4,6 +4,7 @@
    ===================================================== */
 
 @import url('erp-theme.css');
+@import url('dark-mode.css');
 
 :root {
     --font-ui: 'Poppins', sans-serif;

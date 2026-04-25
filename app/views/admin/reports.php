@@ -115,6 +115,7 @@ if ($report === 'payroll') {
 // 4. MATERIALS
 $matSummary = ['total_types'=>0,'low_stock'=>0,'total_value'=>0,'used_cost'=>0,'purchase_cost'=>0,'waste_rate'=>0,'unlogged_orders'=>0];
 $matLowStock = [];
+$matUsageByMaterial = []; $matUsageByEmployee = []; $matMonthlyTrend = []; $matUsageDetail = []; $matPurchaseHistory = []; $matTotalPurchaseCost = 0;
 if ($report === 'materials') {
     try {
         $matRows = $pdo->query("SELECT id, name, current_stock, minimum_stock, unit, cost_per_unit, COALESCE(reserved_stock,0) as reserved, (current_stock-COALESCE(reserved_stock,0)) as available FROM furn_materials ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
@@ -133,6 +134,27 @@ if ($report === 'materials') {
         $tu = floatval($wr['u']); $tw = floatval($wr['w']);
         $matSummary['waste_rate'] = ($tu+$tw) > 0 ? round(($tw/($tu+$tw))*100,1) : 0;
         $matSummary['unlogged_orders'] = (int)$pdo->query("SELECT COUNT(DISTINCT o.id) FROM furn_orders o LEFT JOIN furn_order_materials om ON om.order_id=o.id WHERE o.status='completed' AND om.id IS NULL")->fetchColumn();
+
+        // Usage by material (sub-report)
+        $s = $pdo->query("SELECT m.name as material_name, m.unit, COUNT(mu.id) as report_count, SUM(mu.quantity_used) as total_used, SUM(mu.waste_amount) as total_waste, SUM(mu.quantity_used+mu.waste_amount) as total_consumed, SUM((mu.quantity_used+mu.waste_amount)*m.cost_per_unit) as total_cost FROM furn_material_usage mu JOIN furn_materials m ON mu.material_id=m.id GROUP BY mu.material_id,m.name,m.unit ORDER BY total_consumed DESC");
+        $matUsageByMaterial = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        // Usage by employee
+        $s = $pdo->query("SELECT CONCAT(u.first_name,' ',u.last_name) as employee_name, COUNT(mu.id) as report_count, SUM(mu.quantity_used) as total_used, SUM(mu.waste_amount) as total_waste FROM furn_material_usage mu JOIN furn_users u ON mu.employee_id=u.id GROUP BY mu.employee_id,u.first_name,u.last_name ORDER BY total_used DESC");
+        $matUsageByEmployee = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        // Monthly trend (last 6 months)
+        $s = $pdo->query("SELECT DATE_FORMAT(mu.created_at,'%Y-%m') as month, SUM(mu.quantity_used) as total_used, SUM(mu.waste_amount) as total_waste, COUNT(mu.id) as report_count FROM furn_material_usage mu WHERE mu.created_at>=DATE_SUB(NOW(),INTERVAL 6 MONTH) GROUP BY DATE_FORMAT(mu.created_at,'%Y-%m') ORDER BY month ASC");
+        $matMonthlyTrend = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        // Usage detail
+        $s = $pdo->query("SELECT mu.*, m.name as material_name, m.unit, m.cost_per_unit, CONCAT(u.first_name,' ',u.last_name) as employee_name, o.order_number FROM furn_material_usage mu JOIN furn_materials m ON mu.material_id=m.id JOIN furn_users u ON mu.employee_id=u.id LEFT JOIN furn_production_tasks t ON mu.task_id=t.id LEFT JOIN furn_orders o ON t.order_id=o.id ORDER BY mu.created_at DESC LIMIT 200");
+        $matUsageDetail = $s->fetchAll(PDO::FETCH_ASSOC);
+
+        // Purchase history
+        $s = $pdo->query("SELECT fp.*, m.name as material_name, m.unit, CONCAT(u.first_name,' ',u.last_name) as recorded_by FROM furn_material_purchases fp LEFT JOIN furn_materials m ON fp.material_id=m.id LEFT JOIN furn_users u ON fp.manager_id=u.id ORDER BY fp.purchase_date DESC LIMIT 100");
+        $matPurchaseHistory = $s->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($matPurchaseHistory as $p) $matTotalPurchaseCost += floatval($p['total_cost']);
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
@@ -380,6 +402,116 @@ $pageTitle = 'Reports';
         </table></div>
     </div>
     <?php endif; ?>
+
+    <!-- ── Material Detail Sub-Tabs ── -->
+    <div style="margin-top:28px;">
+        <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #e0e0e0;flex-wrap:wrap;">
+            <?php foreach([['mat_usage','fa-boxes','Usage by Material'],['mat_employee','fa-users','By Employee'],['mat_trend','fa-chart-line','Monthly Trend'],['mat_detail','fa-list','Usage Detail'],['mat_purchase','fa-receipt','Purchase History']] as [$tid,$tic,$tlbl]): ?>
+            <button onclick="switchMatTab('<?php echo $tid; ?>')" id="mtab_<?php echo $tid; ?>"
+                style="padding:9px 16px;border:none;background:none;font-size:12px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:#7f8c8d;font-family:inherit;transition:all .2s;">
+                <i class="fas <?php echo $tic; ?>" style="margin-right:5px;"></i><?php echo $tlbl; ?>
+            </button>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Usage by Material -->
+        <div id="mpanel_mat_usage">
+            <div class="section-card" style="padding:0;overflow:hidden;">
+                <div style="padding:12px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;"><i class="fas fa-boxes" style="color:#3498db;margin-right:6px;"></i>Usage by Material</div>
+                <?php if(empty($matUsageByMaterial)): ?><div class="empty-rpt"><i class="fas fa-inbox"></i>No usage data yet.</div>
+                <?php else: ?><div class="table-responsive"><table class="rpt-table">
+                    <thead><tr><th>Material</th><th>Reports</th><th>Total Used</th><th>Total Waste</th><th>Total Consumed</th><th>Cost</th></tr></thead>
+                    <tbody><?php foreach($matUsageByMaterial as $r): ?>
+                    <tr><td><strong><?php echo htmlspecialchars($r['material_name']); ?></strong> <small style="color:#aaa;">(<?php echo $r['unit']; ?>)</small></td>
+                    <td><?php echo $r['report_count']; ?></td>
+                    <td><?php echo number_format($r['total_used'],2); ?></td>
+                    <td style="color:<?php echo floatval($r['total_waste'])>0?'#e74c3c':'#27ae60'; ?>"><?php echo number_format($r['total_waste'],2); ?></td>
+                    <td><strong><?php echo number_format($r['total_consumed'],2); ?></strong></td>
+                    <td>ETB <?php echo number_format($r['total_cost'],2); ?></td></tr>
+                    <?php endforeach; ?></tbody>
+                </table></div><?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Usage by Employee -->
+        <div id="mpanel_mat_employee" style="display:none;">
+            <div class="section-card" style="padding:0;overflow:hidden;">
+                <div style="padding:12px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;"><i class="fas fa-users" style="color:#9b59b6;margin-right:6px;"></i>Usage by Employee</div>
+                <?php if(empty($matUsageByEmployee)): ?><div class="empty-rpt"><i class="fas fa-users"></i>No usage data yet.</div>
+                <?php else: ?><div class="table-responsive"><table class="rpt-table">
+                    <thead><tr><th>Employee</th><th>Reports</th><th>Total Used</th><th>Total Waste</th><th>Waste %</th></tr></thead>
+                    <tbody><?php foreach($matUsageByEmployee as $r):
+                        $wp = floatval($r['total_used'])>0 ? round((floatval($r['total_waste'])/floatval($r['total_used']))*100,1) : 0; ?>
+                    <tr><td><strong><?php echo htmlspecialchars($r['employee_name']); ?></strong></td>
+                    <td><?php echo $r['report_count']; ?></td>
+                    <td><?php echo number_format($r['total_used'],2); ?></td>
+                    <td style="color:<?php echo floatval($r['total_waste'])>0?'#e74c3c':'#27ae60'; ?>"><?php echo number_format($r['total_waste'],2); ?></td>
+                    <td><span style="color:<?php echo $wp>10?'#e74c3c':($wp>5?'#f39c12':'#27ae60'); ?>;font-weight:600;"><?php echo $wp; ?>%</span></td></tr>
+                    <?php endforeach; ?></tbody>
+                </table></div><?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Monthly Trend -->
+        <div id="mpanel_mat_trend" style="display:none;">
+            <div class="section-card" style="padding:0;overflow:hidden;">
+                <div style="padding:12px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;"><i class="fas fa-chart-line" style="color:#27ae60;margin-right:6px;"></i>Monthly Trend (Last 6 Months)</div>
+                <?php if(empty($matMonthlyTrend)): ?><div class="empty-rpt"><i class="fas fa-chart-line"></i>No trend data yet.</div>
+                <?php else: ?><div class="table-responsive"><table class="rpt-table">
+                    <thead><tr><th>Month</th><th>Total Used</th><th>Total Waste</th><th>Reports</th></tr></thead>
+                    <tbody><?php foreach($matMonthlyTrend as $r): ?>
+                    <tr><td><strong><?php echo date('F Y',strtotime($r['month'].'-01')); ?></strong></td>
+                    <td><?php echo number_format($r['total_used'],2); ?></td>
+                    <td style="color:<?php echo floatval($r['total_waste'])>0?'#e74c3c':'#27ae60'; ?>"><?php echo number_format($r['total_waste'],2); ?></td>
+                    <td><?php echo $r['report_count']; ?></td></tr>
+                    <?php endforeach; ?></tbody>
+                </table></div><?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Usage Detail -->
+        <div id="mpanel_mat_detail" style="display:none;">
+            <div class="section-card" style="padding:0;overflow:hidden;">
+                <div style="padding:12px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;"><i class="fas fa-list" style="color:#e67e22;margin-right:6px;"></i>Usage Detail (Latest 200)</div>
+                <?php if(empty($matUsageDetail)): ?><div class="empty-rpt"><i class="fas fa-list"></i>No usage records yet.</div>
+                <?php else: ?><div class="table-responsive"><table class="rpt-table">
+                    <thead><tr><th>Date</th><th>Employee</th><th>Material</th><th>Used</th><th>Waste</th><th>Order</th><th>Notes</th></tr></thead>
+                    <tbody><?php foreach($matUsageDetail as $u): ?>
+                    <tr><td><?php echo date('M d, Y',strtotime($u['created_at'])); ?></td>
+                    <td><?php echo htmlspecialchars($u['employee_name']); ?></td>
+                    <td><?php echo htmlspecialchars($u['material_name']); ?> <small style="color:#aaa;">(<?php echo $u['unit']; ?>)</small></td>
+                    <td><?php echo number_format($u['quantity_used'],2); ?></td>
+                    <td style="color:<?php echo floatval($u['waste_amount'])>0?'#e74c3c':'#27ae60'; ?>"><?php echo number_format($u['waste_amount'],2); ?></td>
+                    <td><?php echo !empty($u['order_number'])?htmlspecialchars($u['order_number']):'<span style="color:#aaa;">N/A</span>'; ?></td>
+                    <td style="font-size:12px;color:#666;"><?php echo htmlspecialchars($u['notes']??''); ?></td></tr>
+                    <?php endforeach; ?></tbody>
+                </table></div><?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Purchase History -->
+        <div id="mpanel_mat_purchase" style="display:none;">
+            <div class="section-card" style="padding:0;overflow:hidden;">
+                <div style="padding:12px 18px;border-bottom:1px solid #f0f0f0;font-weight:600;color:#2c3e50;font-size:14px;"><i class="fas fa-receipt" style="color:#8e44ad;margin-right:6px;"></i>Purchase History</div>
+                <?php if(empty($matPurchaseHistory)): ?><div class="empty-rpt"><i class="fas fa-receipt"></i>No purchase records yet.</div>
+                <?php else: ?><div class="table-responsive"><table class="rpt-table">
+                    <thead><tr><th>Date</th><th>Material</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Invoice</th><th>Supplier</th><th>By</th></tr></thead>
+                    <tbody><?php foreach($matPurchaseHistory as $p): ?>
+                    <tr><td><?php echo date('M d, Y',strtotime($p['purchase_date'])); ?></td>
+                    <td><strong><?php echo htmlspecialchars($p['material_name']); ?></strong> <small style="color:#aaa;">(<?php echo $p['unit']; ?>)</small></td>
+                    <td><?php echo number_format($p['quantity'],2); ?></td>
+                    <td>ETB <?php echo number_format($p['unit_price'],2); ?></td>
+                    <td><strong>ETB <?php echo number_format($p['total_cost'],2); ?></strong></td>
+                    <td><?php echo $p['invoice_number']?htmlspecialchars($p['invoice_number']):'<span style="color:#aaa;">—</span>'; ?></td>
+                    <td><?php echo $p['supplier']?htmlspecialchars($p['supplier']):'<span style="color:#aaa;">—</span>'; ?></td>
+                    <td><?php echo htmlspecialchars($p['recorded_by']??'N/A'); ?></td></tr>
+                    <?php endforeach; ?>
+                    <tr style="background:#f8f9fa;font-weight:700;"><td colspan="4" style="padding:10px 12px;text-align:right;">Total:</td><td style="padding:10px 12px;">ETB <?php echo number_format($matTotalPurchaseCost,2); ?></td><td colspan="3"></td></tr>
+                    </tbody>
+                </table></div><?php endif; ?>
+            </div>
+        </div>
+    </div>
     <?php endif; ?>
 
     <?php if($report==='attendance'): ?>
@@ -457,5 +589,16 @@ $pageTitle = 'Reports';
 
 </div>
 <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
+<script>
+function switchMatTab(name) {
+    document.querySelectorAll('[id^="mpanel_"]').forEach(function(p){ p.style.display='none'; });
+    document.querySelectorAll('[id^="mtab_"]').forEach(function(b){ b.style.borderBottomColor='transparent'; b.style.color='#7f8c8d'; });
+    document.getElementById('mpanel_'+name).style.display='block';
+    var btn = document.getElementById('mtab_'+name);
+    btn.style.borderBottomColor='#3498db'; btn.style.color='#3498db';
+}
+// Auto-activate first sub-tab if on materials report
+if (document.getElementById('mpanel_mat_usage')) switchMatTab('mat_usage');
+</script>
 </body>
 </html>

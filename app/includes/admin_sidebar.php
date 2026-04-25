@@ -4,6 +4,8 @@
  * Reusable sidebar for all admin pages
  */
 
+global $pdo;
+
 $currentPage = $_SERVER['REQUEST_URI'];
 $adminName = $_SESSION['user_name'] ?? 'Admin User';
 
@@ -125,14 +127,6 @@ if (!function_exists('isActive')) {
             </a>
         </li>
 
-        <!-- Material Report -->
-        <li>
-            <a href="<?php echo BASE_URL; ?>/public/admin/material-report" class="<?php echo isActive('/admin/material-report'); ?>" style="padding-left:32px;font-size:13px;">
-                <i class="fas fa-chart-bar"></i>
-                <span>Material Report</span>
-            </a>
-        </li>
-
         <!-- Analytics Dashboard -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/analytics/dashboard" class="<?php echo isActive('/analytics/dashboard'); ?>">
@@ -228,13 +222,6 @@ if (!function_exists('isActive')) {
                 <i class="fas fa-user-circle"></i>
                 <span>My Profile</span>
             </a>
-        </li>
-
-        <!-- Dark Mode Toggle -->
-        <li style="padding: 10px 15px;">
-            <button id="darkModeToggle" class="dark-mode-toggle w-100">
-                <i class="fas fa-moon"></i> Dark Mode
-            </button>
         </li>
 
         <!-- Logout -->

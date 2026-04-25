@@ -41,6 +41,7 @@ $route = trim($route, '/');
 $legacyRouteMap = [
     'customer/create_order'       => 'customer/create-order',
     'customer/my_orders'          => 'customer/my-orders',
+    'customer/edit_order'         => 'customer/edit-order',
     'customer/order_details'      => 'customer/order-details',
     'customer/order_tracking'     => 'customer/order-tracking',
     'manager/manage_products'     => 'manager/manage-products',
@@ -223,6 +224,14 @@ switch ($route) {
             exit();
         }
         include_once '../app/views/customer/my_orders.php';
+        break;
+    
+    case 'customer/edit-order':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'customer') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/customer/edit_order.php';
         break;
 
     case 'cancel-order':
@@ -637,6 +646,14 @@ switch ($route) {
         }
         include_once '../app/views/manager/orders.php';
         break;
+    
+    case 'manager/edit-order':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/edit_order.php';
+        break;
         
     case 'manager/cost-estimation':
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
@@ -691,8 +708,8 @@ switch ($route) {
             header('Location: ' . BASE_URL . '/public/login');
             exit();
         }
-        include_once '../app/views/manager/material_report.php';
-        break;
+        header('Location: ' . BASE_URL . '/public/admin/reports?report=materials');
+        exit();
 
     // Analytics dashboard (manager + admin)
     case 'analytics/dashboard':
@@ -1069,7 +1086,8 @@ switch ($route) {
             $assignments = [];
             $reservations = [];
             $timeline = ['production_started_at' => date('Y-m-d H:i:s', strtotime('-1 day')), 'estimated_completion_date' => date('Y-m-d', strtotime('+2 days'))];
-            include_once '../app/views/production/view_tracking.php';
+            include_once '../app/view
+            s/production/view_tracking.php';
         } elseif (preg_match('#^collection/([a-z]+)$#', $route, $matches)) {
             // Load collection page
             $collectionType = $matches[1];

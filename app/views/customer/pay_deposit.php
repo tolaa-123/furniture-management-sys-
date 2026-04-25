@@ -106,7 +106,7 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
                     <small style="color:#856404;display:block;margin-top:8px;"><i class="fas fa-info-circle me-1"></i>Transfer the exact amount shown and upload your receipt below.</small>
                 </div>
                 <label class="field-label">Transaction Reference</label>
-                <input type="text" name="transaction_reference" class="pay-input" placeholder="Enter reference/transaction number">
+                <input type="text" name="transaction_reference" class="pay-input" placeholder="e.g., FT2504202612345">
             </div>
 
             <!-- Cash -->
@@ -263,6 +263,18 @@ $('#paymentForm').on('submit', function(e) {
         const f = $('#receiptImage')[0].files[0];
         if (!f) { alert('Please upload your payment receipt.'); return; }
         if (f.size > 5 * 1024 * 1024) { alert('File must be under 5MB.'); return; }
+        
+        // Validate transaction reference format
+        const ref = $('input[name="transaction_reference"]').val().trim();
+        if (!ref) {
+            alert('Please enter transaction reference number.');
+            return;
+        }
+        const refPattern = /^[A-Za-z]{2,}[0-9]{6,}$/;
+        if (!refPattern.test(ref)) {
+            alert('Invalid transaction reference format. Must be letters followed by numbers (e.g., FT2504202612345)');
+            return;
+        }
     }
 
     const btn = $('#submitBtn');

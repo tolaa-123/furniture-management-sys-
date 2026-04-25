@@ -532,30 +532,14 @@ body {
     .workflow-step-label { font-size: 9px; max-width: 60px; }
 }
 
-/* ── Dark Mode Overrides ────────────────────────────── */
+/* ── Dark Mode Overrides (unified with dark-mode.css) ── */
 body.dark-mode {
-    --erp-bg:      #1a1a2e;
-    --erp-surface: #16213e;
-    --erp-border:  #2a2a4a;
-    --erp-text:    #e0e0e0;
-    --erp-muted:   #a0a0b0;
-}
-body.dark-mode .section-card,
-body.dark-mode .stat-card,
-body.dark-mode .kpi-card {
-    background: var(--erp-surface);
-    border-color: var(--erp-border);
-    color: var(--erp-text);
-}
-body.dark-mode .data-table thead th {
-    background: #1e2a3a;
-    color: #c0c8d8;
+    --erp-bg:      #0f172a;
+    --erp-surface: #1e293b;
+    --erp-border:  #334155;
+    --erp-text:    #f1f5f9;
+    --erp-muted:   #94a3b8;
 }
 body.dark-mode .data-table tbody tr:hover {
-    background: #1e2a3a;
-}
-body.dark-mode .form-control {
-    background: #1e2a3a;
-    border-color: var(--erp-border);
-    color: var(--erp-text);
+    background: #253347;
 }

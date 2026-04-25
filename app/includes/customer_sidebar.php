@@ -125,12 +125,6 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
             </a>
         </li>
         
-        <li style="padding: 10px 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <button id="darkModeToggle" class="dark-mode-toggle w-100">
-                <i class="fas fa-moon"></i> Dark Mode
-            </button>
-        </li>
-        
         <li style="margin-top: 10px;">
             <a href="<?php echo BASE_URL; ?>/public/logout">
                 <i class="fas fa-sign-out-alt"></i>

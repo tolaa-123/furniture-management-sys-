@@ -60,8 +60,8 @@ try {
     $budgetRange = $_POST['budget_range'] ?? '';
     $preferredDeliveryDate = $_POST['preferred_delivery_date'] ?? null;
     
-    // Validation - Basic fields
-    if (!$furnitureType || !$color) {
+    // Validation - Basic fields (furniture_name and material removed from form)
+    if (!$furnitureType || !$color || !$designDescription) {
         throw new Exception('All required fields must be filled');
     }
     
@@ -144,7 +144,7 @@ try {
     // Begin transaction
     $pdo->beginTransaction();
     
-    // Insert order with NEW ERP FIELDS
+    // Insert order with NEW ERP FIELDS (furniture_name and material set to NULL as removed from form)
     $stmt = $pdo->prepare("
         INSERT INTO furn_orders (
             customer_id, order_number, furniture_type, furniture_name,
@@ -152,14 +152,14 @@ try {
             quantity, budget_range, preferred_delivery_date,
             material, color, design_description, design_image, special_notes,
             status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', NOW())
+        ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 'pending_review', NOW())
     ");
     
     $stmt->execute([
-        $customerId, $orderNumber, $furnitureType, $furnitureName,
+        $customerId, $orderNumber, $furnitureType,
         $length, $width, $height,
         $quantity, $budgetRange, $preferredDeliveryDate,
-        $material, $color, $designDescription, $designImage, $specialNotes
+        $color, $designDescription, $designImage, $specialNotes
     ]);
     
     $orderId = $pdo->lastInsertId();
@@ -194,35 +194,43 @@ try {
                    '/manager/cost_estimation',
                    NOW()
             FROM furn_users 
-            WHERE role = 'manager' 
-            LIMIT 1
+            WHERE role IN ('manager','admin')
         ");
         $stmtNotif->execute([$customerName, $orderId]);
         
         // Send SMS notification to customer
         try {
-            require_once '../../app/services/SmsService.php';
-            $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
+            // Check if SMS notifications are enabled
+            $stmtSmsCheck = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'sms_notifications'");
+            $stmtSmsCheck->execute();
+            $smsEnabled = $stmtSmsCheck->fetch(PDO::FETCH_ASSOC);
             
-            // Get customer phone number
-            $stmtPhone = $pdo->prepare("SELECT phone FROM furn_users WHERE id = ?");
-            $stmtPhone->execute([$customerId]);
-            $phone = $stmtPhone->fetchColumn();
-            
-            if ($phone) {
-                $smsService->sendOrderNotification($phone, $orderId, 'created', $customerName);
-            }
-            
-            // Send SMS to manager
-            $stmtManager = $pdo->prepare("SELECT phone FROM furn_users WHERE role = 'manager' AND phone IS NOT NULL LIMIT 1");
-            $stmtManager->execute();
-            $managerPhone = $stmtManager->fetchColumn();
-            
-            if ($managerPhone) {
-                $smsService->sendManagerNotification($managerPhone, 'new_order', [
-                    'order_id' => $orderId,
-                    'customer_name' => $customerName
-                ]);
+            if ($smsEnabled && $smsEnabled['setting_value'] == '1') {
+                require_once '../../app/services/SmsService.php';
+                $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
+                
+                // Get customer phone number
+                $stmtPhone = $pdo->prepare("SELECT phone FROM furn_users WHERE id = ?");
+                $stmtPhone->execute([$customerId]);
+                $phone = $stmtPhone->fetchColumn();
+                
+                if ($phone) {
+                    $smsService->sendOrderNotification($phone, $orderId, 'created', $customerName);
+                }
+                
+                // Send SMS to all managers and admins
+                $stmtManager = $pdo->prepare("SELECT phone FROM furn_users WHERE role IN ('manager','admin') AND phone IS NOT NULL");
+                $stmtManager->execute();
+                $managerPhones = $stmtManager->fetchAll(PDO::FETCH_COLUMN);
+                
+                foreach ($managerPhones as $managerPhone) {
+                    if ($managerPhone) {
+                        $smsService->sendManagerNotification($managerPhone, 'new_order', [
+                            'order_id' => $orderId,
+                            'customer_name' => $customerName
+                        ]);
+                    }
+                }
             }
         } catch (Exception $e) {
             error_log("SMS error: " . $e->getMessage());

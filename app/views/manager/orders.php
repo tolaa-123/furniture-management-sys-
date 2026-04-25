@@ -244,6 +244,9 @@ $pageTitle = 'Orders Management';
                                         <a href="<?php echo BASE_URL; ?>/public/manager/cost-estimation?order_id=<?php echo $order['id']; ?>" class="btn-action btn-warning-custom">
                                             <i class="fas fa-calculator"></i> Estimate Cost
                                         </a>
+                                        <a href="<?php echo BASE_URL; ?>/public/manager/edit-order?order_id=<?php echo $order['id']; ?>" class="btn-action btn-info-custom" style="background: #17a2b8; color: white;">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
                                     <?php else: ?>
                                         <button class="btn-action btn-primary-custom" onclick="viewOrder(<?php echo htmlspecialchars(json_encode($order)); ?>)">
                                             <i class="fas fa-eye"></i> View

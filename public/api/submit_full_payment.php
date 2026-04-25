@@ -44,7 +44,7 @@ try {
         $receiptImage = 'uploads/payments/' . $filename;
     }
 
-    // Ensure columns exist before transaction
+    // Ensure columns exist before transaction (ALTER TABLE causes implicit commit)
     try { $pdo->exec("ALTER TABLE furn_payments ADD COLUMN IF NOT EXISTS receipt_image VARCHAR(255) DEFAULT NULL, ADD COLUMN IF NOT EXISTS transaction_notes TEXT DEFAULT NULL"); } catch (PDOException $e) {}
 
     // Prevent duplicate full payment

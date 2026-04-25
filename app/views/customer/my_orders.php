@@ -217,6 +217,21 @@ if ($customerId > 0) {
                         </a>
                     </div>
                 <?php else: ?>
+                    <!-- Payment Status Filter -->
+                    <div style="padding:14px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <label style="font-size:13px;font-weight:600;color:#555;white-space:nowrap;"><i class="fas fa-filter me-1"></i>Filter by Payment Status:</label>
+                        <select id="paymentStatusFilter" onchange="filterOrders()" style="padding:7px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;min-width:200px;">
+                            <option value="">All Payment Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Deposit Paid">Deposit Paid</option>
+                            <option value="Fully Paid">Fully Paid</option>
+                            <option value="Final Payment Required">Final Payment Required</option>
+                            <option value="Final Payment Under Review">Final Payment Under Review</option>
+                            <option value="N/A">N/A (Cancelled)</option>
+                        </select>
+                        <button onclick="document.getElementById('paymentStatusFilter').value='';filterOrders();" style="padding:7px 12px;background:#f0f0f0;border:1.5px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;"><i class="fas fa-times"></i> Clear</button>
+                        <span id="filterCount" style="font-size:12px;color:#7f8c8d;"></span>
+                    </div>
                     <div class="table-responsive">
                         <table class="data-table" id="ordersTable" aria-label="Order History">
                             <thead>
@@ -272,6 +287,12 @@ if ($customerId > 0) {
 
                                     // Action buttons
                                     $actionButtons = '';
+                                    
+                                    // Edit button (only for pending orders before cost approval)
+                                    if (in_array($status, ['pending_review', 'pending_cost_approval'])) {
+                                        $actionButtons .= '<a href="' . BASE_URL . '/public/customer/edit-order?id=' . $orderId . '" class="btn-action btn-warning-custom" style="font-size: 12px; padding: 6px 12px; background: #ffc107; color: #000;"><i class="fas fa-edit me-1"></i>Edit</a> ';
+                                    }
+                                    
                                     $actionButtons .= '<a href="' . BASE_URL . '/public/customer/order-details?id=' . $orderId . '" class="btn-action btn-primary-custom" style="font-size: 12px; padding: 6px 12px;"><i class="fas fa-eye me-1"></i>View</a>';
 
                                     if (in_array($status, ['deposit_paid', 'payment_verified', 'in_production', 'ready_for_delivery', 'completed'])) {
@@ -301,7 +322,7 @@ if ($customerId > 0) {
                                     $complaintsJson = htmlspecialchars(json_encode($orderComplaints), ENT_QUOTES);
                                     $actionButtons .= ' <button onclick="openComplaintModal(' . $orderId . ', \'' . htmlspecialchars(addslashes($orderNumber)) . '\', JSON.parse(this.dataset.complaints))" data-complaints="' . $complaintsJson . '" class="btn-action" style="font-size:12px;padding:6px 12px;background:' . $btnBg . ';color:white;border:none;border-radius:6px;cursor:pointer;"><i class="fas fa-exclamation-circle me-1"></i>Complaint' . ($openCount > 0 ? ' (' . $openCount . ')' : '') . '</button>';
                                     ?>
-                                    <tr>
+                                    <tr data-payment="<?php echo htmlspecialchars($paymentStatus); ?>">
                                         <td><strong><?php echo $orderNumber; ?></strong></td>
                                         <td><?php echo $furnitureName; ?></td>
                                         <td><?php echo $orderDate; ?></td>
@@ -425,7 +446,6 @@ if ($customerId > 0) {
     document.getElementById('complaintModal').addEventListener('click', function(e) {
         if (e.target === this) this.style.display = 'none';
     });
-    // Add loading state to all state-changing forms
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('form[method="POST"]').forEach(function(form) {
             form.addEventListener('submit', function() {
@@ -433,7 +453,24 @@ if ($customerId > 0) {
                 if (btn) setButtonLoading(btn, true);
             });
         });
+        filterOrders();
     });
+
+    function filterOrders() {
+        const filter = document.getElementById('paymentStatusFilter').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#ordersTable tbody tr');
+        let visible = 0;
+        rows.forEach(function(row) {
+            const payment = (row.getAttribute('data-payment') || '').toLowerCase();
+            const match = !filter || payment.startsWith(filter);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        const countEl = document.getElementById('filterCount');
+        if (countEl) {
+            countEl.textContent = visible + ' of ' + rows.length + ' orders';
+        }
+    }
     </script>
 </body>
 </html>

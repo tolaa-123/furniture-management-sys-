@@ -45,12 +45,21 @@ try {
         $receiptImage = 'uploads/payments/' . $filename;
     }
     
-    // Ensure columns exist BEFORE transaction (DDL causes implicit commit in MySQL)
-    try { $pdo->exec("ALTER TABLE furn_payments ADD COLUMN IF NOT EXISTS receipt_image VARCHAR(255) DEFAULT NULL, ADD COLUMN IF NOT EXISTS transaction_notes TEXT DEFAULT NULL"); } catch (PDOException $e) {}
-    try { $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS deposit_paid DECIMAL(12,2) DEFAULT 0, ADD COLUMN IF NOT EXISTS estimated_cost DECIMAL(12,2) DEFAULT NULL"); } catch (PDOException $e) {}
-
-    $pdo->beginTransaction();
+    // Ensure required columns exist BEFORE transaction (ALTER TABLE causes implicit commit)
+    try {
+        $pdo->exec("ALTER TABLE furn_payments 
+            ADD COLUMN IF NOT EXISTS receipt_image VARCHAR(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS transaction_notes TEXT DEFAULT NULL");
+    } catch (PDOException $e) { /* ignore */ }
     
+    try {
+        $pdo->exec("ALTER TABLE furn_orders 
+            ADD COLUMN IF NOT EXISTS deposit_paid DECIMAL(12,2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS estimated_cost DECIMAL(12,2) DEFAULT NULL");
+    } catch (PDOException $e) { /* ignore */ }
+    
+    $pdo->beginTransaction();
+
     // Prevent duplicate deposit rows — only insert if no pending/approved deposit exists
     $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM furn_payments WHERE order_id = ? AND payment_type IN ('deposit','prepayment') AND status IN ('pending','approved','verified')");
     $stmtCheck->execute([$orderId]);
@@ -71,35 +80,44 @@ try {
     $stmt = $pdo->prepare("UPDATE furn_orders SET deposit_paid = ?, status = 'deposit_paid' WHERE id = ? AND customer_id = ?");
     $stmt->execute([$amount, $orderId, $customerId]);
     
-    // Notify manager
-    $stmt = $pdo->prepare("INSERT INTO furn_notifications (user_id, type, title, message, related_id, created_at) SELECT id, 'payment', 'New Deposit Payment', 'Customer submitted deposit payment', ?, NOW() FROM furn_users WHERE role = 'manager' LIMIT 1");
+    // Notify managers and admins
+    $stmt = $pdo->prepare("INSERT INTO furn_notifications (user_id, type, title, message, related_id, created_at) SELECT id, 'payment', 'New Deposit Payment', 'Customer submitted deposit payment', ?, NOW() FROM furn_users WHERE role IN ('manager','admin')");
     $stmt->execute([$orderId]);
     
     // Send SMS notifications
     try {
-        require_once '../../app/services/SmsService.php';
-        $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
+        // Check if SMS notifications are enabled
+        $stmtSmsCheck = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'sms_notifications'");
+        $stmtSmsCheck->execute();
+        $smsEnabled = $stmtSmsCheck->fetch(PDO::FETCH_ASSOC);
         
-        // Get customer info
-        $stmtCust = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
-        $stmtCust->execute([$customerId]);
-        $customer = $stmtCust->fetch(PDO::FETCH_ASSOC);
-        
-        // SMS to customer
-        if ($customer && $customer['phone']) {
-            $smsService->sendPaymentNotification($customer['phone'], $orderId, $amount, 'received', $customer['first_name']);
-        }
-        
-        // SMS to manager
-        $stmtMgr = $pdo->prepare("SELECT phone FROM furn_users WHERE role = 'manager' AND phone IS NOT NULL LIMIT 1");
-        $stmtMgr->execute();
-        $managerPhone = $stmtMgr->fetchColumn();
-        
-        if ($managerPhone) {
-            $smsService->sendManagerNotification($managerPhone, 'new_payment', [
-                'order_id' => $orderId,
-                'amount' => $amount
-            ]);
+        if ($smsEnabled && $smsEnabled['setting_value'] == '1') {
+            require_once '../../app/services/SmsService.php';
+            $smsService = new SmsService(); // Uses SMS_MODE constant from db_config.php
+            
+            // Get customer info
+            $stmtCust = $pdo->prepare("SELECT phone, first_name FROM furn_users WHERE id = ?");
+            $stmtCust->execute([$customerId]);
+            $customer = $stmtCust->fetch(PDO::FETCH_ASSOC);
+            
+            // SMS to customer
+            if ($customer && $customer['phone']) {
+                $smsService->sendPaymentNotification($customer['phone'], $orderId, $amount, 'received', $customer['first_name']);
+            }
+            
+            // SMS to all managers and admins
+            $stmtMgr = $pdo->prepare("SELECT phone FROM furn_users WHERE role IN ('manager','admin') AND phone IS NOT NULL");
+            $stmtMgr->execute();
+            $managerPhones = $stmtMgr->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($managerPhones as $managerPhone) {
+                if ($managerPhone) {
+                    $smsService->sendManagerNotification($managerPhone, 'new_payment', [
+                        'order_id' => $orderId,
+                        'amount' => $amount
+                    ]);
+                }
+            }
         }
     } catch (Exception $e) {
         error_log("SMS error: " . $e->getMessage());

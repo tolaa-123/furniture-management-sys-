@@ -165,11 +165,11 @@ class AnalyticsModel extends BaseModel {
                         u.email,
                         u.phone,
                         COUNT(o.id) as orders_count,
-                        SUM(COALESCE(o.total_amount, o.estimated_cost, 0)) as total_revenue
+                        SUM(COALESCE(NULLIF(o.total_amount,0), o.estimated_cost, 0)) as total_revenue
                     FROM furn_users u
                     JOIN furn_orders o ON u.id = o.customer_id
                     WHERE u.role = 'customer'
-                        AND o.status IN ('completed', 'ready_for_delivery')
+                        AND o.status NOT IN ('cancelled','pending_review','pending_cost_approval','pending')
                         AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
                     GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone
                     ORDER BY total_revenue DESC
@@ -224,10 +224,15 @@ class AnalyticsModel extends BaseModel {
         $stmt = $this->db->prepare("
             SELECT 
                 DATE_FORMAT(created_at, '%Y-%m') as month,
-                SUM(total_amount) as revenue,
+                SUM(COALESCE(NULLIF(total_amount,0), estimated_cost, 0)) as revenue,
                 COUNT(id) as order_count
             FROM furn_orders 
-            WHERE status IN ('completed', 'ready_for_delivery', 'deposit_paid', 'in_production')
+            WHERE status IN (
+                'completed','ready_for_delivery','deposit_paid','in_production',
+                'payment_verified','cost_estimated','waiting_for_deposit',
+                'pending_review','pending_cost_approval','production_started',
+                'production_completed','final_payment_paid'
+            )
                 AND created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
             GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC
@@ -446,47 +451,24 @@ class AnalyticsModel extends BaseModel {
         try {
             $stmt = $this->db->prepare("
                 SELECT 
-                    p.name as product_name,
-                    p.category,
-                    COUNT(oc.id) as orders_count,
-                    SUM(oc.quantity) as total_quantity,
-                    SUM(o.total_amount) as total_revenue
-                FROM furn_products p
-                JOIN furn_order_customizations oc ON p.id = oc.product_id
-                JOIN furn_orders o ON oc.order_id = o.id
-                WHERE o.status IN ('completed', 'ready_for_delivery')
-                    AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                GROUP BY p.id, p.name, p.category
+                    COALESCE(furniture_name, furniture_type, 'Custom Order') as product_name,
+                    furniture_type as category,
+                    COUNT(id) as orders_count,
+                    COUNT(id) as total_quantity,
+                    SUM(COALESCE(NULLIF(total_amount,0), estimated_cost, 0)) as total_revenue
+                FROM furn_orders
+                WHERE status NOT IN ('cancelled','pending_review','pending_cost_approval','pending')
+                    AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                    AND COALESCE(furniture_name, furniture_type) IS NOT NULL
+                GROUP BY COALESCE(furniture_name, furniture_type, 'Custom Order'), furniture_type
                 ORDER BY total_revenue DESC
                 LIMIT ?
             ");
             $stmt->execute([$limit]);
             $data = $stmt->fetchAll();
         } catch (PDOException $e) {
-            // Fallback if p.id doesn't exist or JOIN fails
             error_log("Top selling products query error: " . $e->getMessage());
-            try {
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        'Product' as product_name,
-                        'N/A' as category,
-                        COUNT(oc.id) as orders_count,
-                        SUM(oc.quantity) as total_quantity,
-                        SUM(o.total_amount) as total_revenue
-                    FROM furn_order_customizations oc
-                    JOIN furn_orders o ON oc.order_id = o.id
-                    WHERE o.status IN ('completed', 'ready_for_delivery')
-                        AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                    GROUP BY oc.product_id
-                    ORDER BY total_revenue DESC
-                    LIMIT ?
-                ");
-                $stmt->execute([$limit]);
-                $data = $stmt->fetchAll();
-            } catch (PDOException $e2) {
-                error_log("Top selling products fallback error: " . $e2->getMessage());
-                $data = [];
-            }
+            $data = [];
         }
         
         $result = [
@@ -515,32 +497,54 @@ class AnalyticsModel extends BaseModel {
         return $result;
     }
     
-    /**
-     * Get monthly profit data
-     */
     public function getMonthlyProfitData($months = 12) {
         $cacheKey = "monthly_profit_{$months}";
-        
         $cachedData = $this->getCachedData($cacheKey);
         if ($cachedData) {
             return json_decode($cachedData, true);
         }
-        
-        $stmt = $this->db->prepare("
-            SELECT 
-                DATE_FORMAT(calculated_at, '%Y-%m') as month,
-                SUM(final_selling_price) as total_revenue,
-                SUM(total_cost) as total_cost,
-                SUM(profit) as total_profit,
-                AVG(profit_margin_percentage) as avg_margin
-            FROM furn_profit_calculations
-            WHERE calculated_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
-            GROUP BY DATE_FORMAT(calculated_at, '%Y-%m')
-            ORDER BY DATE_FORMAT(calculated_at, '%Y-%m') ASC
-        ");
-        $stmt->execute([$months]);
-        $data = $stmt->fetchAll();
-        
+
+        // Try furn_profit_calculations first, fall back to orders
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM furn_profit_calculations");
+            $stmt->execute();
+            $hasProfit = $stmt->fetch()['total'] > 0;
+        } catch (PDOException $e) {
+            $hasProfit = false;
+        }
+
+        if ($hasProfit) {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    DATE_FORMAT(calculated_at, '%Y-%m') as month,
+                    SUM(final_selling_price) as total_revenue,
+                    SUM(profit) as total_profit,
+                    AVG(profit_margin_percentage) as avg_margin
+                FROM furn_profit_calculations
+                WHERE calculated_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                GROUP BY DATE_FORMAT(calculated_at, '%Y-%m')
+                ORDER BY month ASC
+            ");
+            $stmt->execute([$months]);
+            $data = $stmt->fetchAll();
+        } else {
+            // Calculate estimated profit from orders (revenue - 60% estimated cost)
+            $stmt = $this->db->prepare("
+                SELECT 
+                    DATE_FORMAT(created_at, '%Y-%m') as month,
+                    SUM(COALESCE(NULLIF(total_amount,0), estimated_cost, 0)) as total_revenue,
+                    SUM(COALESCE(NULLIF(total_amount,0), estimated_cost, 0)) * 0.35 as total_profit,
+                    35 as avg_margin
+                FROM furn_orders
+                WHERE status NOT IN ('cancelled','pending_review','pending_cost_approval','pending')
+                    AND created_at >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+                ORDER BY month ASC
+            ");
+            $stmt->execute([$months]);
+            $data = $stmt->fetchAll();
+        }
+
         $result = [
             'labels' => array_column($data, 'month'),
             'datasets' => [
@@ -567,7 +571,7 @@ class AnalyticsModel extends BaseModel {
                 ]
             ]
         ];
-        
+
         $this->cacheData($cacheKey, json_encode($result), 'chart_data', 600);
         return $result;
     }
@@ -592,15 +596,15 @@ class AnalyticsModel extends BaseModel {
         $stats['total_orders'] = $stmt->fetch()['total'];
         
         // Pending orders
-        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM furn_orders WHERE status = 'pending'");
+        $stmt = $this->db->prepare("SELECT COUNT(*) as total FROM furn_orders WHERE status IN ('pending','pending_review','pending_cost_approval')");
         $stmt->execute();
         $stats['pending_orders'] = $stmt->fetch()['total'];
         
         // This month revenue
         $stmt = $this->db->prepare("
-            SELECT SUM(total_amount) as revenue 
+            SELECT SUM(COALESCE(NULLIF(total_amount,0), estimated_cost, 0)) as revenue 
             FROM furn_orders 
-            WHERE status IN ('completed', 'ready_for_delivery', 'deposit_paid', 'in_production')
+            WHERE status NOT IN ('cancelled','pending_review','pending_cost_approval','pending')
                 AND MONTH(created_at) = MONTH(NOW()) 
                 AND YEAR(created_at) = YEAR(NOW())
         ");
@@ -617,15 +621,20 @@ class AnalyticsModel extends BaseModel {
         $stmt->execute();
         $stats['low_stock_items'] = $stmt->fetch()['total'];
         
-        // This month profit
-        $stmt = $this->db->prepare("
-            SELECT SUM(profit) as total_profit 
-            FROM furn_profit_calculations 
-            WHERE MONTH(calculated_at) = MONTH(NOW()) 
-                AND YEAR(calculated_at) = YEAR(NOW())
-        ");
-        $stmt->execute();
-        $stats['this_month_profit'] = $stmt->fetch()['total_profit'] ?? 0;
+        // This month profit — from profit_calculations or estimated from orders
+        try {
+            $stmt = $this->db->prepare("SELECT SUM(profit) as total_profit FROM furn_profit_calculations WHERE MONTH(calculated_at)=MONTH(NOW()) AND YEAR(calculated_at)=YEAR(NOW())");
+            $stmt->execute();
+            $profit = $stmt->fetch()['total_profit'] ?? null;
+            if ($profit === null) {
+                $stmt = $this->db->prepare("SELECT SUM(COALESCE(NULLIF(total_amount,0),estimated_cost,0))*0.35 as total_profit FROM furn_orders WHERE status NOT IN ('cancelled','pending_review','pending_cost_approval','pending') AND MONTH(created_at)=MONTH(NOW()) AND YEAR(created_at)=YEAR(NOW())");
+                $stmt->execute();
+                $profit = $stmt->fetch()['total_profit'] ?? 0;
+            }
+            $stats['this_month_profit'] = $profit;
+        } catch (PDOException $e) {
+            $stats['this_month_profit'] = 0;
+        }
         
         $this->cacheData($cacheKey, json_encode($stats), 'stats', 300);
         return $stats;
@@ -679,7 +688,7 @@ class AnalyticsModel extends BaseModel {
                     YEARWEEK(created_at, 1) as yw,
                     DATE_FORMAT(MIN(created_at), 'W%v %Y') as week_label,
                     COUNT(*) as order_count,
-                    SUM(CASE WHEN status IN ('completed','ready_for_delivery','deposit_paid') THEN COALESCE(total_amount,0) ELSE 0 END) as revenue
+                    SUM(CASE WHEN status IN ('completed','ready_for_delivery','deposit_paid') THEN COALESCE(NULLIF(total_amount,0), estimated_cost, 0) ELSE 0 END) as revenue
                 FROM furn_orders
                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? WEEK)
                 GROUP BY YEARWEEK(created_at, 1)
