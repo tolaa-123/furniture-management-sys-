@@ -931,7 +931,7 @@ $pageTitle = 'Materials';
     // Currently selected furniture type (set when task is chosen)
     let currentFurnitureType = null;
 
-    // Returns filtered materials for the given furniture type, or all if no type
+    // Returns filtered materials for the given furniture type, or all if no type/no match
     function getMaterialsForType(furnitureType) {
         if (!furnitureType) return ALL_MATERIALS;
         let matchedType = null;
@@ -942,9 +942,11 @@ $pageTitle = 'Materials';
         });
         if (!matchedType) return ALL_MATERIALS;
         const keywords = FURNITURE_MATERIALS_MAP[matchedType];
-        return ALL_MATERIALS.filter(m =>
+        const filtered = ALL_MATERIALS.filter(m =>
             keywords.some(kw => m.name.toLowerCase().includes(kw.toLowerCase()))
         );
+        // If no DB materials match the keywords, show all so employee is never stuck
+        return filtered.length > 0 ? filtered : ALL_MATERIALS;
     }
 
     function addReqRow(preselect = null, preqty = null) {
