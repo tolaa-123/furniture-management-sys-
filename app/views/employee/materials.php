@@ -688,10 +688,11 @@ $pageTitle = 'Materials';
                     <!-- Task selector -->
                     <div class="form-group" style="margin-bottom:18px;">
                         <label style="font-weight:600;">Production Task <span style="color:#E74C3C;">*</span></label>
-                        <select name="task_id" class="form-control" required>
+                        <select name="task_id" class="form-control" required onchange="setUsageFurnitureType(this)">
                             <option value="">-- Select Task --</option>
                             <?php foreach ($tasks as $t): ?>
-                                <option value="<?php echo $t['id']; ?>">
+                                <option value="<?php echo $t['id']; ?>"
+                                        data-furniture-type="<?php echo htmlspecialchars($t['furniture_type']); ?>">
                                     Task #<?php echo str_pad($t['id'],4,'0',STR_PAD_LEFT); ?>
                                     — <?php echo htmlspecialchars($t['order_number'] ?? 'N/A'); ?>
                                     — <?php echo htmlspecialchars($t['product_name']); ?>
@@ -817,6 +818,35 @@ $pageTitle = 'Materials';
         'approved_qty'=> floatval($m['approved_qty']),
     ], $approvedMaterials)); ?>;
 
+    // Track furniture type for usage form
+    let currentUsageFurnitureType = null;
+
+    function setUsageFurnitureType(sel) {
+        const opt = sel.options[sel.selectedIndex];
+        currentUsageFurnitureType = opt ? (opt.dataset.furnitureType || null) : null;
+        // Reset rows so they rebuild with the new filter
+        document.getElementById('matRows').innerHTML = '';
+        rowCount = 0;
+        addMatRow();
+    }
+
+    // Returns approved materials filtered by furniture type, fallback to all approved
+    function getApprovedMaterialsForType(furnitureType) {
+        if (!furnitureType) return MATERIALS;
+        let matchedType = null;
+        Object.keys(FURNITURE_MATERIALS_MAP).forEach(type => {
+            if (furnitureType.toLowerCase().includes(type.toLowerCase())) {
+                matchedType = type;
+            }
+        });
+        if (!matchedType) return MATERIALS;
+        const keywords = FURNITURE_MATERIALS_MAP[matchedType];
+        const filtered = MATERIALS.filter(m =>
+            keywords.some(kw => m.name.toLowerCase().includes(kw.toLowerCase()))
+        );
+        return filtered.length > 0 ? filtered : MATERIALS;
+    }
+
     // Product materials map for request form pre-fill
     const PRODUCT_MATERIALS = <?php echo json_encode($productMaterialsMap); ?>;
 
@@ -836,8 +866,11 @@ $pageTitle = 'Materials';
             return;
         }
 
+        // Filter approved materials by current usage furniture type
+        const usageMaterials = getApprovedMaterialsForType(currentUsageFurnitureType);
+
         let opts = '<option value="">-- Select --</option>';
-        MATERIALS.forEach(m => {
+        usageMaterials.forEach(m => {
             const label = `${m.name} (${m.unit}) — Approved: ${m.approved_qty.toFixed(2)}`;
             opts += `<option value="${m.id}" data-unit="${m.unit}" data-approved="${m.approved_qty}">${label}</option>`;
         });
