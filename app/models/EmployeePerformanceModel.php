@@ -3,7 +3,7 @@
  * Employee Performance Model
  * Calculates comprehensive performance scores for employees
  */
-require_once dirname(__DIR__) . '/../core/BaseModel.php';
+require_once dirname(dirname(__DIR__)) . '/core/BaseModel.php';
 
 class EmployeePerformanceModel extends BaseModel {
     

@@ -340,63 +340,6 @@ $pageTitle = 'Inventory Management';
             </div>
         <?php endif; ?>
 
-        <!-- ===== MATERIAL REQUESTS SECTION ===== -->
-        <?php if (!empty($pendingRequests)): ?>
-        <div class="section-card" style="border-left: 4px solid #E74C3C;">
-            <div class="section-header">
-                <h2 class="section-title"><i class="fas fa-bell" style="color:#E74C3C;"></i> Pending Material Requests
-                    <span style="background:#E74C3C;color:white;border-radius:50%;padding:2px 8px;font-size:13px;margin-left:8px;"><?php echo count($pendingRequests); ?></span>
-                </h2>
-            </div>
-            <div class="table-responsive">
-                <table class="data-table mobile-cards">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Employee</th>
-                            <th>Material</th>
-                            <th>Qty Requested</th>
-                            <th>Available Stock</th>
-                            <th>Reserved</th>
-                            <th>Order</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($pendingRequests as $req): ?>
-                        <tr>
-                            <td>#<?php echo str_pad($req['id'], 4, '0', STR_PAD_LEFT); ?></td>
-                            <td><strong><?php echo htmlspecialchars($req['employee_name']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($req['material_name']); ?></td>
-                            <td><strong><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></strong></td>
-                            <td>
-                                <?php $avail = floatval($req['available_stock'] ?? ($req['current_stock'] - $req['reserved_stock'])); ?>
-                                <?php if ($avail < $req['quantity_requested']): ?>
-                                    <span style="color:#E74C3C;font-weight:600;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?> ⚠ Insufficient</span>
-                                <?php else: ?>
-                                    <span style="color:#27AE60;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td style="color:#e67e22;"><?php echo number_format(floatval($req['reserved_stock'] ?? 0),2); ?> <?php echo $req['unit']; ?></td>
-                            <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
-                            <td><?php echo date('M d, Y', strtotime($req['created_at'])); ?></td>
-                            <td>
-                                <button class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;" onclick="approveRequest(<?php echo $req['id']; ?>)">
-                                    <i class="fas fa-check"></i> Approve
-                                </button>
-                                <button class="btn-action btn-danger-custom" style="padding:5px 10px;font-size:12px;margin-top:4px;" onclick="rejectRequest(<?php echo $req['id']; ?>)">
-                                    <i class="fas fa-times"></i> Reject
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <?php endif; ?>
-
         <!-- ===== INVENTORY TABLE ===== -->
         <?php
         $invStats = [];
@@ -498,6 +441,63 @@ $pageTitle = 'Inventory Management';
                 </div>
             <?php endif; ?>
         </div>
+
+        <!-- ===== PENDING MATERIAL REQUESTS ===== -->
+        <?php if (!empty($pendingRequests)): ?>
+        <div class="section-card" style="border-left: 4px solid #E74C3C;">
+            <div class="section-header">
+                <h2 class="section-title"><i class="fas fa-bell" style="color:#E74C3C;"></i> Pending Material Requests
+                    <span style="background:#E74C3C;color:white;border-radius:50%;padding:2px 8px;font-size:13px;margin-left:8px;"><?php echo count($pendingRequests); ?></span>
+                </h2>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table mobile-cards">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Employee</th>
+                            <th>Material</th>
+                            <th>Qty Requested</th>
+                            <th>Available Stock</th>
+                            <th>Reserved</th>
+                            <th>Order</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($pendingRequests as $req): ?>
+                        <tr>
+                            <td>#<?php echo str_pad($req['id'], 4, '0', STR_PAD_LEFT); ?></td>
+                            <td><strong><?php echo htmlspecialchars($req['employee_name']); ?></strong></td>
+                            <td><?php echo htmlspecialchars($req['material_name']); ?></td>
+                            <td><strong><?php echo $req['quantity_requested']; ?> <?php echo $req['unit']; ?></strong></td>
+                            <td>
+                                <?php $avail = floatval($req['available_stock'] ?? ($req['current_stock'] - $req['reserved_stock'])); ?>
+                                <?php if ($avail < $req['quantity_requested']): ?>
+                                    <span style="color:#E74C3C;font-weight:600;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?> ⚠ Insufficient</span>
+                                <?php else: ?>
+                                    <span style="color:#27AE60;"><?php echo number_format($avail,2); ?> <?php echo $req['unit']; ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="color:#e67e22;"><?php echo number_format(floatval($req['reserved_stock'] ?? 0),2); ?> <?php echo $req['unit']; ?></td>
+                            <td><?php echo $req['order_number'] ? htmlspecialchars($req['order_number']) : 'N/A'; ?></td>
+                            <td><?php echo date('M d, Y', strtotime($req['created_at'])); ?></td>
+                            <td>
+                                <button class="btn-action btn-success-custom" style="padding:5px 10px;font-size:12px;" onclick="approveRequest(<?php echo $req['id']; ?>)">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="btn-action btn-danger-custom" style="padding:5px 10px;font-size:12px;margin-top:4px;" onclick="rejectRequest(<?php echo $req['id']; ?>)">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- ===== PURCHASE HISTORY ===== -->
         <div class="section-card">
