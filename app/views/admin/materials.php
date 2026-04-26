@@ -10,6 +10,15 @@ require_once __DIR__ . '/../../../config/db_config.php';
 
 $adminName = $_SESSION['user_name'] ?? 'Admin User';
 
+// Fetch material categories for the add material form
+$materialCategories = [];
+try {
+    $catStmt = $pdo->query("SELECT id, name FROM furn_material_categories WHERE is_active = 1 ORDER BY name ASC");
+    $materialCategories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log('Error fetching material categories: ' . $e->getMessage());
+}
+
 // Handle material actions
 $message = '';
 $messageType = '';
@@ -32,13 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($sv !== false && floatval($sv) > 0) $threshold = floatval($sv);
             } catch (PDOException $e2) {}
 
-            $pdo->prepare("INSERT INTO furn_materials (name, current_stock, unit, cost_per_unit, minimum_stock) VALUES (?, ?, ?, ?, ?)")
+            $category_id = !empty($_POST['category_id']) ? intval($_POST['category_id']) : null;
+
+            $pdo->prepare("INSERT INTO furn_materials (name, current_stock, unit, cost_per_unit, minimum_stock, category_id) VALUES (?, ?, ?, ?, ?, ?)")
                 ->execute([
                     $_POST['material_name'],
                     $_POST['quantity'],
                     $_POST['unit'],
                     $_POST['unit_price'],
                     $threshold,
+                    $category_id
                 ]);
             $message = 'Material added successfully';
             $messageType = 'success';
@@ -323,6 +335,60 @@ try {
     $activeAlerts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Alerts error: " . $e->getMessage()); }
 
+// Fetch materials by furniture type
+$furnitureMaterials = [
+    'Sofa' => [],
+    'Chair' => [],
+    'Bed' => [],
+    'Table' => [],
+    'Desk' => [],
+    'Shelf' => []
+];
+
+// Create a lookup array for material costs
+$materialCosts = [];
+try {
+    $costStmt = $pdo->query("SELECT id, name, cost_per_unit FROM furn_materials WHERE is_active = 1");
+    while ($row = $costStmt->fetch(PDO::FETCH_ASSOC)) {
+        $materialCosts[$row['name']] = floatval($row['cost_per_unit']);
+    }
+} catch (PDOException $e) {
+    error_log("Material costs error: " . $e->getMessage());
+}
+
+try {
+    // Get all products with their categories
+    $stmt = $pdo->query("
+        SELECT p.id, p.name as product_name, c.name as category_name,
+               m.name as material_name, m.unit, pm.quantity_required, m.cost_per_unit
+        FROM furn_products p
+        LEFT JOIN furn_categories c ON p.category_id = c.id
+        LEFT JOIN furn_product_materials pm ON p.id = pm.product_id
+        LEFT JOIN furn_materials m ON pm.material_id = m.id
+        WHERE p.is_active = 1
+        ORDER BY c.name, p.name, m.name
+    ");
+    $productMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group materials by furniture category
+    foreach ($productMaterials as $pm) {
+        $category = ucfirst($pm['category_name']);
+        if (isset($furnitureMaterials[$category]) && $pm['material_name']) {
+            $costPerUnit = floatval($pm['cost_per_unit']) ?: ($materialCosts[$pm['material_name']] ?? 0);
+            $furnitureMaterials[$category][] = [
+                'product_name' => $pm['product_name'],
+                'material_name' => $pm['material_name'],
+                'unit' => $pm['unit'],
+                'quantity_required' => $pm['quantity_required'],
+                'cost_per_unit' => $costPerUnit,
+                'total_cost' => $costPerUnit * floatval($pm['quantity_required'])
+            ];
+        }
+    }
+} catch (PDOException $e) { 
+    error_log("Furniture materials error: " . $e->getMessage());
+}
+
 // Auto-generate low stock alerts for materials below threshold
 try {
     $lowMats = $pdo->query("SELECT id, current_stock, COALESCE(reserved_stock,0) as reserved, minimum_stock FROM furn_materials WHERE is_active=1 AND (current_stock - COALESCE(reserved_stock,0)) <= minimum_stock")->fetchAll(PDO::FETCH_ASSOC);
@@ -532,6 +598,97 @@ $pageTitle = 'Raw Materials Management';
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- ===== MATERIALS BY FURNITURE TYPE ===== -->
+        <div class="section-card" style="margin-top: 30px;">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-couch me-2"></i>Materials by Furniture Type</div>
+            </div>
+            <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 20px;">
+                <i class="fas fa-info-circle"></i> This section shows all materials required for each type of furniture product.
+            </p>
+
+            <?php foreach ($furnitureMaterials as $furnitureType => $materials): ?>
+            <div style="margin-bottom: 30px; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 20px; color: white;">
+                    <h3 style="margin: 0; font-size: 18px;">
+                        <i class="fas fa-<?php 
+                            echo $furnitureType === 'Sofa' ? 'couch' : 
+                                ($furnitureType === 'Chair' ? 'chair' : 
+                                ($furnitureType === 'Bed' ? 'bed' : 
+                                ($furnitureType === 'Table' ? 'table' : 
+                                ($furnitureType === 'Desk' ? 'laptop' : 'boxes')))); 
+                        ?>"></i> 
+                        <?php echo htmlspecialchars($furnitureType); ?> Materials
+                        <span style="background: rgba(255,255,255,0.3); padding: 3px 10px; border-radius: 12px; font-size: 13px; margin-left: 10px;">
+                            <?php echo count($materials); ?> material(s)
+                        </span>
+                    </h3>
+                </div>
+                
+                <?php if (empty($materials)): ?>
+                <div style="padding: 30px; text-align: center; color: #95a5a6;">
+                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px;"></i>
+                    <p>No materials defined for <?php echo htmlspecialchars($furnitureType); ?> products yet.</p>
+                </div>
+                <?php else: ?>
+                <?php 
+                    // Group by product
+                    $groupedByProduct = [];
+                    foreach ($materials as $m) {
+                        $productName = $m['product_name'];
+                        if (!isset($groupedByProduct[$productName])) {
+                            $groupedByProduct[$productName] = [];
+                        }
+                        $groupedByProduct[$productName][] = $m;
+                    }
+                ?>
+                <div style="padding: 20px;">
+                    <?php foreach ($groupedByProduct as $productName => $productMaterials): ?>
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #667eea;">
+                            <i class="fas fa-cube" style="color: #667eea;"></i> 
+                            <?php echo htmlspecialchars($productName); ?>
+                        </h4>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                <thead>
+                                    <tr style="background: #f8f9fa;">
+                                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">Material Name</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Quantity Required</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">Unit</th>
+                                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #dee2e6;">Cost/Unit</th>
+                                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #dee2e6;">Total Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php 
+                                    $productTotalCost = 0;
+                                    foreach ($productMaterials as $pm): 
+                                        $productTotalCost += $pm['total_cost'];
+                                    ?>
+                                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                                        <td style="padding: 10px;"><strong><?php echo htmlspecialchars($pm['material_name']); ?></strong></td>
+                                        <td style="padding: 10px; text-align: center;"><?php echo number_format($pm['quantity_required'], 2); ?></td>
+                                        <td style="padding: 10px; text-align: center;"><?php echo htmlspecialchars($pm['unit']); ?></td>
+                                        <td style="padding: 10px; text-align: right; color: #3498db;">ETB <?php echo number_format($pm['cost_per_unit'], 2); ?></td>
+                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">ETB <?php echo number_format($pm['total_cost'], 2); ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                    <tr style="background: #f8f9fa; font-weight: 600;">
+                                        <td colspan="4" style="padding: 10px; text-align: right;">Total Material Cost for <?php echo htmlspecialchars($productName); ?>:</td>
+                                        <td style="padding: 10px; text-align: right; color: #e74c3c; font-size: 15px;">ETB <?php echo number_format($productTotalCost, 2); ?></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
         </div>
 
         <!-- ===== PENDING MATERIAL REQUESTS ===== -->
@@ -763,6 +920,15 @@ $pageTitle = 'Raw Materials Management';
                         <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px;">Material Name <span style="color:#e74c3c;">*</span></label>
                         <input type="text" name="material_name" required placeholder="e.g., Oak Wood, Premium Leather"
                             style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px;">Category <span style="color:#e74c3c;">*</span></label>
+                        <select name="category_id" required style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;">
+                            <option value="">Select Category</option>
+                            <?php foreach ($materialCategories as $cat): ?>
+                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                         <div>

@@ -231,7 +231,7 @@ $pageTitle = 'Orders Management';
                                 </td>
                                 <td><?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?></td>
                                 <td><?php echo htmlspecialchars($order['phone'] ?? $order['email']); ?></td>
-                                <td><?php echo htmlspecialchars($order['furniture_type'] ?? 'Custom'); ?></td>
+                                <td><?php echo htmlspecialchars($order['furniture_type'] ?? 'Other'); ?></td>
                                 <td>ETB <?php echo number_format($order['estimated_cost'] ?? 0, 2); ?></td>
                                 <td>
                                     <span class="status-badge status-<?php echo htmlspecialchars($order['status']); ?>">
@@ -299,7 +299,7 @@ $pageTitle = 'Orders Management';
                 <table style="width:100%; border-collapse:collapse; font-size:14px;">
                     <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d; width:40%;">Order ID</td><td style="padding:10px; font-weight:600;">#${order.id}</td></tr>
                     <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Customer</td><td style="padding:10px; font-weight:600;">${order.first_name} ${order.last_name}</td></tr>
-                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Furniture Type</td><td style="padding:10px;">${order.furniture_type || 'Custom'}</td></tr>
+                    <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Furniture Type</td><td style="padding:10px;">${order.furniture_type || 'Other'}</td></tr>
                     <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Estimated Cost</td><td style="padding:10px; font-weight:600;">ETB ${parseFloat(order.estimated_cost || 0).toFixed(2)}</td></tr>
                     <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Status</td><td style="padding:10px;"><span style="background:${color}; color:white; padding:4px 10px; border-radius:12px; font-size:12px;">${order.status.replace(/_/g,' ')}</span></td></tr>
                     <tr style="border-bottom:1px solid #eee;"><td style="padding:10px; color:#7f8c8d;">Date</td><td style="padding:10px;">${order.created_at}</td></tr>

@@ -479,18 +479,18 @@ foreach ($tasks as $task) {
 
 $pageTitle = 'My Tasks';
 
-// Fetch materials for the complete task modal — only approved materials for this employee
+// Fetch materials for the complete task modal — only approved materials for this employee - NO COSTS VISIBLE
 $allMaterials = [];
 try {
     $stmt = $pdo->prepare("
-        SELECT m.id, m.name as material_name, m.unit, m.cost_per_unit as unit_price,
+        SELECT m.id, m.name as material_name, m.unit,
                m.current_stock, COALESCE(m.reserved_stock,0) as reserved_stock,
                (m.current_stock - COALESCE(m.reserved_stock,0)) as available_stock,
                SUM(mr.quantity_requested) as approved_qty
         FROM furn_material_requests mr
         JOIN furn_materials m ON m.id = mr.material_id
         WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
-        GROUP BY m.id, m.name, m.unit, m.cost_per_unit, m.current_stock, m.reserved_stock
+        GROUP BY m.id, m.name, m.unit, m.current_stock, m.reserved_stock
         HAVING approved_qty > 0
         ORDER BY m.name ASC
     ");
@@ -500,13 +500,13 @@ try {
     error_log("Materials fetch error: " . $e->getMessage());
 }
 
-// Fetch this employee's approved material requests grouped by order_id
+// Fetch this employee's approved material requests grouped by order_id - NO COSTS
 // So when completing a task we can pre-fill the materials
 $approvedRequestsByOrder = [];
 try {
     $stmt = $pdo->prepare("
         SELECT mr.order_id, mr.material_id, mr.quantity_requested,
-               m.name as material_name, m.unit, m.cost_per_unit as unit_price
+               m.name as material_name, m.unit
         FROM furn_material_requests mr
         JOIN furn_materials m ON m.id = mr.material_id
         WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
@@ -952,7 +952,7 @@ try {
             const approved = APPROVED_BY_ORDER[orderId] || [];
             if (approved.length > 0) {
                 approved.forEach(r => {
-                    addMaterialRow(r.material_id, r.material_name, r.unit, r.unit_price, r.quantity_requested);
+                    addMaterialRow(r.material_id, r.material_name, r.unit, r.quantity_requested);
                 });
                 document.getElementById('matAutoNote').style.display = 'block';
             } else {
@@ -1062,7 +1062,6 @@ try {
                             ${dimensionsHtml}
                             ${task.material ? `<div><strong>Material:</strong><br>${task.material}</div>` : ''}
                             ${task.color ? `<div><strong>Color:</strong><br>${task.color}</div>` : ''}
-                            ${task.estimated_cost ? `<div><strong>Estimated Cost:</strong><br>ETB ${parseFloat(task.estimated_cost).toFixed(2)}</div>` : ''}
                             ${task.preferred_delivery_date ? `<div><strong>Delivery Date:</strong><br>${new Date(task.preferred_delivery_date).toLocaleDateString()}</div>` : ''}
                         </div>
                     </div>
@@ -1181,11 +1180,11 @@ try {
     // Approved requests keyed by order_id — pre-fill materials on task completion
     const APPROVED_BY_ORDER = <?php echo json_encode($approvedRequestsByOrder); ?>;
 
-    function addMaterialRow(matId, matName, unit, unitPrice, qty) {
+    function addMaterialRow(matId, matName, unit, qty) {
         const container = document.getElementById('materialRows');
         const opts = MATERIALS.map(m =>
-            `<option value="${m.id}" data-unit="${m.unit}" data-price="${m.unit_price}" ${m.id == matId ? 'selected' : ''}>
-                ${m.material_name} (${m.unit}) — Available: ${parseFloat(m.available_stock||0).toFixed(2)} — ETB ${parseFloat(m.unit_price).toFixed(2)}
+            `<option value="${m.id}" data-unit="${m.unit}" ${m.id == matId ? 'selected' : ''}>
+                ${m.material_name} (${m.unit}) — Available: ${parseFloat(m.available_stock||0).toFixed(2)}
             </option>`
         ).join('');
         const row = document.createElement('div');

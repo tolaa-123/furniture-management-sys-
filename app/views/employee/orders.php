@@ -159,8 +159,8 @@ $pageTitle = 'Manage Orders';
                 <form id="employeeOrderForm" enctype="multipart/form-data">
                     <input type="hidden" name="order_number" id="empOrderNumber" value="ORD-<?php echo date('Y'); ?>-<?php echo str_pad(rand(1,99999),5,'0',STR_PAD_LEFT); ?>">
 
-                    <!-- Customer -->
-                    <div class="form-group">
+                    <!-- Customer Selection (Employee Only) -->
+                    <div class="form-group" style="margin-bottom:20px;">
                         <label>Customer <span style="color:#E74C3C;">*</span></label>
                         <div style="display:flex;gap:8px;align-items:center;">
                             <select name="customer_id" id="customerSelect" class="form-control" required style="flex:1;">
@@ -177,7 +177,7 @@ $pageTitle = 'Manage Orders';
                         </div>
                     </div>
 
-                    <!-- Furniture Info -->
+                    <!-- Section 1: Furniture Information -->
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; margin-top:15px;">
                         <div class="form-group">
                             <label>Furniture Type <span style="color:#E74C3C;">*</span></label>
@@ -186,41 +186,15 @@ $pageTitle = 'Manage Orders';
                                 <option value="Table">Table</option>
                                 <option value="Chair">Chair</option>
                                 <option value="Bed">Bed</option>
-                                <option value="Wardrobe">Wardrobe</option>
-                                <option value="Cabinet">Cabinet</option>
+                                <option value="Sofa">Sofa</option>
                                 <option value="Desk">Desk</option>
                                 <option value="Shelf">Shelf</option>
-                                <option value="Sofa Frame">Sofa Frame</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
-                    </div>
-
-                    <!-- Dimensions -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:15px; margin-top:15px;">
-                        <div class="form-group">
-                            <label>Length (m) <span style="color:#E74C3C;">*</span></label>
-                            <input type="number" name="length" class="form-control" placeholder="120" min="1" step="0.1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Width (m) <span style="color:#E74C3C;">*</span></label>
-                            <input type="number" name="width" class="form-control" placeholder="60" min="1" step="0.1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Height (m) <span style="color:#E74C3C;">*</span></label>
-                            <input type="number" name="height" class="form-control" placeholder="75" min="1" step="0.1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Quantity <span style="color:#E74C3C;">*</span></label>
-                            <input type="number" name="quantity" class="form-control" min="1" value="1" required>
-                        </div>
-                    </div>
-
-                    <!-- Color & Other Details -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; margin-top:15px;">
                         <div class="form-group">
                             <label>Color/Finish <span style="color:#E74C3C;">*</span></label>
-                            <select name="color" class="form-control" required>
+                            <select name="color" id="color_select" class="form-control" required>
                                 <option value="">Select Color...</option>
                                 <option value="Natural Wood">Natural Wood</option>
                                 <option value="Brown">Brown</option>
@@ -230,6 +204,30 @@ $pageTitle = 'Manage Orders';
                                 <option value="Gray">Gray</option>
                                 <option value="Custom Color">Custom Color</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Dimensions -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-top:20px;">
+                        <div class="form-group">
+                            <label>Length (m) <span style="color:#E74C3C;">*</span></label>
+                            <input type="number" name="length" class="form-control" placeholder="1.2" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Width (m) <span style="color:#E74C3C;">*</span></label>
+                            <input type="number" name="width" class="form-control" placeholder="0.6" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Height (m) <span style="color:#E74C3C;">*</span></label>
+                            <input type="number" name="height" class="form-control" placeholder="0.75" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-top:15px;">
+                        <div class="form-group">
+                            <label>Quantity <span style="color:#E74C3C;">*</span></label>
+                            <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+                            <small style="color:#7f8c8d;">Number of items</small>
                         </div>
                         <div class="form-group">
                             <label>Budget Range <span style="color:#E74C3C;">*</span></label>
@@ -248,30 +246,49 @@ $pageTitle = 'Manage Orders';
                         </div>
                     </div>
 
-                    <!-- Design Description -->
-                    <div class="form-group" style="margin-top:15px;">
+                    <!-- Section 3: Design Details -->
+                    <div class="form-group" style="margin-top:20px;">
                         <label>Design Description (Optional)</label>
-                        <textarea name="design_description" class="form-control" rows="4" placeholder="Describe the furniture design in detail..."></textarea>
+                        <textarea name="design_description" class="form-control" rows="5" placeholder="Describe your furniture design in detail. Example: I want a modern desk with two drawers and cable holes for computer wires."></textarea>
+                        <small style="color:#7f8c8d;">Be as detailed as possible to help our craftsmen understand your vision.</small>
                     </div>
 
-                    <!-- Design Image Upload -->
-                    <div class="form-group" style="margin-top:15px;">
-                        <label>Design Image (Optional)</label>
+                    <!-- Section 4: Upload Design Image -->
+                    <div class="form-group" style="margin-top:20px;">
+                        <label>Upload Design Image</label>
                         <div style="border:2px dashed #d4a574; border-radius:8px; padding:20px; text-align:center; cursor:pointer; background:#fafafa;" onclick="document.getElementById('empDesignImage').click()">
                             <i class="fas fa-cloud-upload-alt" style="font-size:32px; color:#d4a574;"></i>
-                            <p style="margin:8px 0 0; color:#7f8c8d;">Click to upload JPG, PNG, or PDF (Max 5MB)</p>
+                            <h5 style="margin:10px 0 5px;">Click to Upload Design Image</h5>
+                            <p style="margin:0; color:#7f8c8d;">Supported: JPG, PNG, PDF (Max 5MB)</p>
                             <p id="empFileName" style="margin:5px 0 0; color:#27AE60; font-weight:600;"></p>
                         </div>
                         <input type="file" id="empDesignImage" name="design_image" accept=".jpg,.jpeg,.png,.pdf" style="display:none;" onchange="document.getElementById('empFileName').textContent = this.files[0]?.name || ''">
                     </div>
 
-                    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
-                        <button type="button" class="btn-action btn-secondary-custom" onclick="toggleCreateForm()">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
+                    <!-- Submit Buttons -->
+                    <div style="display:flex; gap:10px; justify-content:flex-start; margin-top:25px;">
                         <button type="submit" class="btn-action btn-success-custom" id="empSubmitBtn">
-                            <i class="fas fa-paper-plane"></i> Submit Order
+                            <i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order
                         </button>
+                        <button type="reset" class="btn-action btn-secondary-custom">
+                            <i class="fas fa-redo" style="margin-right:8px;"></i>Reset Form
+                        </button>
+                        <button type="button" class="btn-action btn-secondary-custom" onclick="toggleCreateForm()">
+                            <i class="fas fa-times" style="margin-right:8px;"></i>Cancel
+                        </button>
+                    </div>
+
+                    <!-- What Happens Next -->
+                    <div style="margin-top:25px; padding:20px; background:#f8f9fa; border-radius:10px; border-left:4px solid #3498db;">
+                        <h6 style="font-weight:700; margin-bottom:10px;"><i class="fas fa-info-circle" style="margin-right:8px; color:#3498db;"></i>What Happens Next?</h6>
+                        <ol style="font-size:13px; line-height:2; margin:0 0 0 16px; padding:0;">
+                            <li>Manager reviews your order</li>
+                            <li>Cost estimation provided</li>
+                            <li>Customer pays 40% deposit</li>
+                            <li>Production begins</li>
+                            <li>Customer pays remaining 60%</li>
+                            <li>Delivery arranged</li>
+                        </ol>
                     </div>
                 </form>
             </div>
@@ -445,6 +462,46 @@ $pageTitle = 'Manage Orders';
     </div>
 
     <script>
+        // Color options based on furniture type
+        const furnitureColors = {
+            'Table': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'Mahogany', 'Espresso', 'Black', 'White', 'Gray', 'Brown'],
+            'Chair': ['Natural Wood', 'Oak', 'Walnut', 'Brown', 'Black', 'White', 'Gray', 'Beige', 'Navy Blue'],
+            'Bed': ['Natural Wood', 'Walnut', 'Cherry', 'White', 'Black', 'Gray', 'Brown', 'Espresso'],
+            'Sofa': ['Beige', 'Gray', 'Brown', 'Black', 'Navy Blue', 'Cream', 'Burgundy', 'Teal', 'Olive Green', 'Dark Brown'],
+            'Desk': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'Black', 'White', 'Gray', 'Espresso', 'Brown'],
+            'Shelf': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'White', 'Black', 'Brown', 'Gray'],
+            'Other': ['Natural Wood', 'Brown', 'Dark Brown', 'Black', 'White', 'Gray', 'Custom Color']
+        };
+
+        // Update color options when furniture type changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const furnitureSelect = document.querySelector('select[name="furniture_type"]');
+            const colorSelect = document.getElementById('color_select');
+            
+            if (furnitureSelect && colorSelect) {
+                furnitureSelect.addEventListener('change', function() {
+                    const furnitureType = this.value;
+                    const currentColor = colorSelect.value;
+                    
+                    // Clear existing options
+                    colorSelect.innerHTML = '<option value="">Select Color...</option>';
+                    
+                    // Add new color options based on furniture type
+                    if (furnitureType && furnitureColors[furnitureType]) {
+                        furnitureColors[furnitureType].forEach(function(color) {
+                            const option = document.createElement('option');
+                            option.value = color;
+                            option.textContent = color;
+                            if (color === currentColor) {
+                                option.selected = true;
+                            }
+                            colorSelect.appendChild(option);
+                        });
+                    }
+                });
+            }
+        });
+
         function toggleCreateForm() {
             const form = document.getElementById('createOrderForm');
             form.style.display = form.style.display === 'none' ? 'block' : 'none';

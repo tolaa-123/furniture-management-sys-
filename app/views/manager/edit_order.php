@@ -126,11 +126,8 @@ $pageTitle = 'Edit Order - Manager';
                                         <option value="Chair" <?php echo ($order['furniture_type'] == 'Chair') ? 'selected' : ''; ?>>Chair</option>
                                         <option value="Bed" <?php echo ($order['furniture_type'] == 'Bed') ? 'selected' : ''; ?>>Bed</option>
                                         <option value="Sofa" <?php echo ($order['furniture_type'] == 'Sofa') ? 'selected' : ''; ?>>Sofa</option>
-                                        <option value="Wardrobe" <?php echo ($order['furniture_type'] == 'Wardrobe') ? 'selected' : ''; ?>>Wardrobe</option>
-                                        <option value="Cabinet" <?php echo ($order['furniture_type'] == 'Cabinet') ? 'selected' : ''; ?>>Cabinet</option>
                                         <option value="Desk" <?php echo ($order['furniture_type'] == 'Desk') ? 'selected' : ''; ?>>Desk</option>
                                         <option value="Shelf" <?php echo ($order['furniture_type'] == 'Shelf') ? 'selected' : ''; ?>>Shelf</option>
-                                        <option value="Custom" <?php echo ($order['furniture_type'] == 'Custom') ? 'selected' : ''; ?>>Custom</option>
                                         <option value="Other" <?php echo ($order['furniture_type'] == 'Other') ? 'selected' : ''; ?>>Other</option>
                                     </select>
                                 </div>

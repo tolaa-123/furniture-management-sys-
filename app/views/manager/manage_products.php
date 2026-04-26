@@ -189,8 +189,6 @@ $pageTitle = 'Manage Products';
                             <option value="chair" <?php echo $categoryFilter === 'chair' ? 'selected' : ''; ?>>Chairs</option>
                             <option value="bed" <?php echo $categoryFilter === 'bed' ? 'selected' : ''; ?>>Beds</option>
                             <option value="table" <?php echo $categoryFilter === 'table' ? 'selected' : ''; ?>>Tables</option>
-                            <option value="cabinet" <?php echo $categoryFilter === 'cabinet' ? 'selected' : ''; ?>>Cabinets</option>
-                            <option value="wardrobe" <?php echo $categoryFilter === 'wardrobe' ? 'selected' : ''; ?>>Wardrobes</option>
                             <option value="shelf" <?php echo $categoryFilter === 'shelf' ? 'selected' : ''; ?>>Shelves</option>
                             <option value="office" <?php echo $categoryFilter === 'office' ? 'selected' : ''; ?>>Office</option>
                         </select>
@@ -329,8 +327,6 @@ $pageTitle = 'Manage Products';
                         <option value="chair">Chair</option>
                         <option value="bed">Bed</option>
                         <option value="table">Table</option>
-                        <option value="cabinet">Cabinet</option>
-                        <option value="wardrobe">Wardrobe</option>
                         <option value="shelf">Shelf</option>
                         <option value="office">Office Furniture</option>
                     </select>
@@ -397,8 +393,6 @@ $pageTitle = 'Manage Products';
                         <option value="chair">Chair</option>
                         <option value="bed">Bed</option>
                         <option value="table">Table</option>
-                        <option value="cabinet">Cabinet</option>
-                        <option value="wardrobe">Wardrobe</option>
                         <option value="shelf">Shelf</option>
                         <option value="office">Office Furniture</option>
                     </select>

@@ -20,6 +20,15 @@ function verifyCsrf() {
     }
 }
 
+// Fetch material categories for the add material form
+$materialCategories = [];
+try {
+    $catStmt = $pdo->query("SELECT id, name FROM furn_material_categories WHERE is_active = 1 ORDER BY name ASC");
+    $materialCategories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log('Error fetching material categories: ' . $e->getMessage());
+}
+
 // Handle Add Material
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_material'])) {
     verifyCsrf();
@@ -27,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_material'])) {
     $quantity   = floatval($_POST['quantity']);
     $unit       = trim($_POST['unit']);
     $unit_price = floatval($_POST['unit_price']);
+    $category_id = !empty($_POST['category_id']) ? intval($_POST['category_id']) : null;
 
     // Use global default threshold from settings, fallback to 20
     $threshold = 20;
@@ -37,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_material'])) {
     } catch (PDOException $e2) {}
 
     try {
-        $pdo->prepare("INSERT INTO furn_materials (name, current_stock, unit, cost_per_unit, minimum_stock, created_at) VALUES (?, ?, ?, ?, ?, NOW())")
-            ->execute([$name, $quantity, $unit, $unit_price, $threshold]);
+        $pdo->prepare("INSERT INTO furn_materials (name, current_stock, unit, cost_per_unit, minimum_stock, category_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())")
+            ->execute([$name, $quantity, $unit, $unit_price, $threshold, $category_id]);
         $_SESSION['success_message'] = "Material added successfully!";
     } catch (PDOException $e) {
         $_SESSION['error_message'] = "Error adding material: " . $e->getMessage();
@@ -556,6 +566,15 @@ $pageTitle = 'Inventory Management';
                         <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px;">Material Name <span style="color:#e74c3c;">*</span></label>
                         <input type="text" name="material_name" required placeholder="e.g., Oak Wood, Premium Leather"
                             style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px;">Category <span style="color:#e74c3c;">*</span></label>
+                        <select name="category_id" required style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;">
+                            <option value="">Select Category</option>
+                            <?php foreach ($materialCategories as $cat): ?>
+                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                         <div>

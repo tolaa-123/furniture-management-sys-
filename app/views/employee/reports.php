@@ -102,13 +102,13 @@ if ($report === 'payroll') {
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
-// -- 4. MATERIALS USED --
-$matSummary = ['total_records'=>0,'total_qty'=>0,'total_cost'=>0];
+// -- 4. MATERIALS USED - NO COSTS FOR EMPLOYEES --
+$matSummary = ['total_records'=>0,'total_qty'=>0];
 $matRows = [];
 if ($report === 'materials') {
     try {
         $s = $pdo->prepare("
-            SELECT mu.id, mu.quantity_used, mu.total_cost, mu.created_at,
+            SELECT mu.id, mu.quantity_used, mu.created_at,
                    m.name as material_name, m.unit,
                    o.order_number,
                    t.id as task_id
@@ -125,10 +125,8 @@ if ($report === 'materials') {
         foreach ($matRows as $r) {
             $matSummary['total_records']++;
             $matSummary['total_qty']  += floatval($r['quantity_used']);
-            $matSummary['total_cost'] += floatval($r['total_cost']);
         }
         $matSummary['total_qty']  = round($matSummary['total_qty'], 2);
-        $matSummary['total_cost'] = round($matSummary['total_cost'], 2);
     } catch (PDOException $e) { error_log($e->getMessage()); }
 }
 
@@ -554,10 +552,6 @@ if ($report === 'ratings') {
             <div class="sum-val" style="color:#27AE60;"><?php echo $matSummary['total_qty']; ?></div>
             <div class="sum-lbl">Total Qty Used</div>
         </div>
-        <div class="sum-card" style="border-color:#f39c12;">
-            <div class="sum-val" style="color:#f39c12;font-size:17px;">ETB <?php echo number_format($matSummary['total_cost'], 0); ?></div>
-            <div class="sum-lbl">Total Cost</div>
-        </div>
     </div>
 
     <div class="section-card" style="padding:0;overflow:hidden;">
@@ -576,7 +570,6 @@ if ($report === 'ratings') {
                     <th>Order</th>
                     <th>Qty Used</th>
                     <th>Unit</th>
-                    <th>Cost</th>
                     <th>Date</th>
                 </tr>
             </thead>
@@ -584,21 +577,19 @@ if ($report === 'ratings') {
             <?php foreach ($matRows as $i => $r): ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i + 1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? '�'); ?></strong></td>
-                <td><?php echo htmlspecialchars($r['order_number'] ?? '�'); ?></td>
+                <td><strong><?php echo htmlspecialchars($r['material_name'] ?? ''); ?></strong></td>
+                <td><?php echo htmlspecialchars($r['order_number'] ?? ''); ?></td>
                 <td><?php echo number_format($r['quantity_used'], 2); ?></td>
-                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? '�'); ?></td>
-                <td style="color:#27ae60;font-weight:600;">ETB <?php echo number_format($r['total_cost'], 2); ?></td>
+                <td style="color:#888;"><?php echo htmlspecialchars($r['unit'] ?? ''); ?></td>
                 <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
             </tr>
             <?php endforeach; ?>
             </tbody>
             <tfoot>
                 <tr style="background:#f8f9fa;font-weight:700;">
-                    <td colspan="3" style="padding:10px 12px;text-align:right;">Totals:</td>
+                    <td colspan="2" style="padding:10px 12px;text-align:right;">Totals:</td>
                     <td style="padding:10px 12px;"><?php echo $matSummary['total_qty']; ?></td>
                     <td></td>
-                    <td style="padding:10px 12px;color:#27ae60;">ETB <?php echo number_format($matSummary['total_cost'], 2); ?></td>
                     <td></td>
                 </tr>
             </tfoot>

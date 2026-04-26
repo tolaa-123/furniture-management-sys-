@@ -240,14 +240,12 @@ $pageTitle = 'Products Management';
                     style="flex:1; min-width:200px; padding:9px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; outline:none;">
                 <select id="catFilter" style="padding:9px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; outline:none;">
                     <option value="">All Categories</option>
-                    <option value="Chair">Chair</option>
                     <option value="Table">Table</option>
-                    <option value="Sofa">Sofa</option>
+                    <option value="Chair">Chair</option>
                     <option value="Bed">Bed</option>
-                    <option value="Cabinet">Cabinet</option>
+                    <option value="Sofa">Sofa</option>
                     <option value="Desk">Desk</option>
-                    <option value="Wardrobe">Wardrobe</option>
-                    <option value="Bookshelf">Bookshelf</option>
+                    <option value="Shelf">Shelf</option>
                     <option value="Other">Other</option>
                 </select>
                 <button onclick="document.getElementById('prodSearch').value=''; document.getElementById('catFilter').value=''; filterProducts();"
@@ -320,14 +318,12 @@ $pageTitle = 'Products Management';
                     <label>Category *</label>
                     <select name="category" class="form-control" required>
                         <option value="">Select Category</option>
-                        <option value="Chair">Chair</option>
                         <option value="Table">Table</option>
-                        <option value="Sofa">Sofa</option>
+                        <option value="Chair">Chair</option>
                         <option value="Bed">Bed</option>
-                        <option value="Cabinet">Cabinet</option>
+                        <option value="Sofa">Sofa</option>
                         <option value="Desk">Desk</option>
-                        <option value="Wardrobe">Wardrobe</option>
-                        <option value="Bookshelf">Bookshelf</option>
+                        <option value="Shelf">Shelf</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
@@ -364,15 +360,13 @@ $pageTitle = 'Products Management';
                     <label>Category *</label>
                     <select name="category" id="edit_category" class="form-control" required>
                         <option value="">Select Category</option>
-                        <option value="Chair">Chair</option>
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? (($_SESSION['csrf_token'] = bin2hex(random_bytes(32))) ? $_SESSION['csrf_token'] : bin2hex(random_bytes(32)))); ?>">
                         <option value="Table">Table</option>
-                        <option value="Sofa">Sofa</option>
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? (($_SESSION['csrf_token'] = bin2hex(random_bytes(32))) ? $_SESSION['csrf_token'] : bin2hex(random_bytes(32)))); ?>">
+                        <option value="Chair">Chair</option>
                         <option value="Bed">Bed</option>
-                        <option value="Cabinet">Cabinet</option>
+                        <option value="Sofa">Sofa</option>
                         <option value="Desk">Desk</option>
-                        <option value="Wardrobe">Wardrobe</option>
-                        <option value="Bookshelf">Bookshelf</option>
+                        <option value="Shelf">Shelf</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>

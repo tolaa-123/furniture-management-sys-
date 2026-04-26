@@ -157,17 +157,14 @@ $pageTitle = 'Create Custom Furniture Order';
                                         <option value="Chair"       <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'chair')    ? 'selected' : ''; ?>>Chair</option>
                                         <option value="Bed"         <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'bed')      ? 'selected' : ''; ?>>Bed</option>
                                         <option value="Sofa"        <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'sofa')     ? 'selected' : ''; ?>>Sofa</option>
-                                        <option value="Wardrobe"    <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'wardrobe') ? 'selected' : ''; ?>>Wardrobe</option>
-                                        <option value="Cabinet"     <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'cabinet')  ? 'selected' : ''; ?>>Cabinet</option>
-                                        <option value="Desk"        <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'office')   ? 'selected' : ''; ?>>Desk</option>
+                                        <option value="Desk"        <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'desk')    ? 'selected' : ''; ?>>Desk</option>
                                         <option value="Shelf"       <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'shelf')    ? 'selected' : ''; ?>>Shelf</option>
-                                        <option value="Custom"      <?php echo ($prefilledProduct && strtolower($prefilledProduct['category']) == 'custom')   ? 'selected' : ''; ?>>Custom</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
                                 <div class="col">
                                     <label class="form-label">Color/Finish <span class="required">*</span></label>
-                                    <select class="form-select" name="color" required>
+                                    <select class="form-select" name="color" id="color_select" required>
                                         <option value="">Select Color...</option>
                                         <?php
                                         $colorOptions = ['Natural Wood','Brown','Dark Brown','Black','White','Gray','Custom Color'];
@@ -263,8 +260,8 @@ $pageTitle = 'Create Custom Furniture Order';
                         <div class="form-section">
                             <h3 class="section-title"><i class="fas fa-pencil-ruler" style="margin-right:8px;"></i>Design Details</h3>
                             <div>
-                                <label class="form-label">Design Description <span class="required">*</span></label>
-                                <textarea class="form-control" name="design_description" rows="5" placeholder="Describe your furniture design in detail. Example: I want a modern desk with two drawers and cable holes for computer wires." required><?php echo $prefilledProduct ? htmlspecialchars($prefilledProduct['description'] ?? '') : ''; ?></textarea>
+                                <label class="form-label">Design Description (Optional)</label>
+                                <textarea class="form-control" name="design_description" rows="5" placeholder="Describe your furniture design in detail. Example: I want a modern desk with two drawers and cable holes for computer wires."><?php echo $prefilledProduct ? htmlspecialchars($prefilledProduct['description'] ?? '') : ''; ?></textarea>
                                 <small class="text-muted">Be as detailed as possible to help our craftsmen understand your vision.</small>
                             </div>
                         </div>
@@ -336,6 +333,38 @@ $pageTitle = 'Create Custom Furniture Order';
 
     <script src="<?php echo BASE_URL; ?>/public/assets/js/jquery-3.6.0.min.js"></script>
     <script>
+        // Color options based on furniture type
+        const furnitureColors = {
+            'Table': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'Mahogany', 'Espresso', 'Black', 'White', 'Gray', 'Brown'],
+            'Chair': ['Natural Wood', 'Oak', 'Walnut', 'Brown', 'Black', 'White', 'Gray', 'Beige', 'Navy Blue'],
+            'Bed': ['Natural Wood', 'Walnut', 'Cherry', 'White', 'Black', 'Gray', 'Brown', 'Espresso'],
+            'Sofa': ['Beige', 'Gray', 'Brown', 'Black', 'Navy Blue', 'Cream', 'Burgundy', 'Teal', 'Olive Green', 'Dark Brown'],
+            'Desk': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'Black', 'White', 'Gray', 'Espresso', 'Brown'],
+            'Shelf': ['Natural Wood', 'Oak', 'Walnut', 'Cherry', 'White', 'Black', 'Brown', 'Gray'],
+            'Other': ['Natural Wood', 'Brown', 'Dark Brown', 'Black', 'White', 'Gray', 'Custom Color']
+        };
+
+        // Update color options when furniture type changes
+        $(document).ready(function() {
+            $('select[name="furniture_type"]').on('change', function() {
+                const furnitureType = $(this).val();
+                const colorSelect = $('#color_select');
+                const currentColor = colorSelect.val();
+                
+                // Clear existing options
+                colorSelect.empty();
+                colorSelect.append('<option value="">Select Color...</option>');
+                
+                // Add new color options based on furniture type
+                if (furnitureType && furnitureColors[furnitureType]) {
+                    furnitureColors[furnitureType].forEach(function(color) {
+                        const selected = (color === currentColor) ? 'selected' : '';
+                        colorSelect.append(`<option value="${color}" ${selected}>${color}</option>`);
+                    });
+                }
+            });
+        });
+
         function showFileName() {
             const input = document.getElementById('designImage');
             const fileName = document.getElementById('fileName');

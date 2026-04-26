@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                                     <td>#<?php echo $task['id']; ?></td>
                                     <td><?php echo htmlspecialchars($task['order_number'] ?? '#'.$task['order_id']); ?></td>
                                     <td><?php echo htmlspecialchars($task['customer_name'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars($task['furniture_name'] ?? $task['furniture_type'] ?? 'Custom'); ?></td>
+                                    <td><?php echo htmlspecialchars($task['furniture_name'] ?? $task['furniture_type'] ?? 'Other'); ?></td>
                                     <td><?php echo htmlspecialchars($task['employee_name'] ?? 'Unassigned'); ?></td>
                                     <td>
                                         <span style="background:<?php echo $sc; ?>;color:white;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">
@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                                             data-id="<?php echo (int)$task['id']; ?>"
                                             data-order="<?php echo htmlspecialchars($task['order_number'] ?? '#'.$task['order_id'], ENT_QUOTES); ?>"
                                             data-customer="<?php echo htmlspecialchars($task['customer_name'] ?? 'N/A', ENT_QUOTES); ?>"
-                                            data-furniture="<?php echo htmlspecialchars($task['furniture_name'] ?? $task['furniture_type'] ?? 'Custom', ENT_QUOTES); ?>"
+                                            data-furniture="<?php echo htmlspecialchars($task['furniture_name'] ?? $task['furniture_type'] ?? 'Other', ENT_QUOTES); ?>"
                                             data-employee="<?php echo htmlspecialchars($task['employee_name'] ?? 'Unassigned', ENT_QUOTES); ?>"
                                             data-status="<?php echo htmlspecialchars($task['status'] ?? 'pending', ENT_QUOTES); ?>"
                                             data-progress="<?php echo (int)($task['progress'] ?? 0); ?>">
