@@ -274,7 +274,7 @@ try {
     $usageHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Usage history error: " . $e->getMessage()); }
 
-// Materials for dropdowns
+// Materials for dropdowns - EMPLOYEES DON'T SEE COSTS
 $materials = [];
 try {
     $stmt = $pdo->query("SELECT id, name as material_name, unit,
@@ -289,6 +289,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT DISTINCT t.id, o.order_number, o.id as order_id,
                COALESCE(o.furniture_name, o.furniture_type, 'Custom Order') as product_name,
+               COALESCE(o.furniture_type, '') as furniture_type,
                MIN(p.id) as product_id
         FROM furn_production_tasks t
         LEFT JOIN furn_orders o ON t.order_id = o.id
@@ -304,7 +305,7 @@ try {
     $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Tasks error: " . $e->getMessage()); }
 
-// Product materials map: product_id => [{material_id, material_name, unit, quantity_required}]
+// Product materials map: product_id => [{material_id, material_name, unit, quantity_required}] - NO COSTS FOR EMPLOYEES
 $productMaterialsMap = [];
 try {
     if (!empty($tasks)) {
@@ -326,6 +327,74 @@ try {
         }
     }
 } catch (PDOException $e) { error_log("Product materials error: " . $e->getMessage()); }
+
+// Ethiopian Furniture Material Templates - Maps furniture type to required materials
+$ethiopianFurnitureMaterials = [
+    'Sofa' => [
+        ['name' => 'Hardwood Frame (Tid/Weira)', 'unit' => 'board_feet', 'qty' => 20.0, 'local_name' => 'እንጨት (Injhet)'],
+        ['name' => 'Foam Padding', 'unit' => 'pieces', 'qty' => 8.0, 'local_name' => 'ፎም (Foam)'],
+        ['name' => 'Fabric Upholstery', 'unit' => 'yards', 'qty' => 15.0, 'local_name' => 'ጨርቅ (Cherq)'],
+        ['name' => 'Leather Upholstery', 'unit' => 'square_feet', 'qty' => 25.0, 'local_name' => 'ቆዳ (Qoda)'],
+        ['name' => 'Spring Coils', 'unit' => 'pieces', 'qty' => 12.0, 'local_name' => 'ስፕሪንግ (Spring)'],
+        ['name' => 'Jute Webbing', 'unit' => 'yards', 'qty' => 10.0, 'local_name' => 'ጁት ጨርቅ (Jut Cherq)'],
+        ['name' => 'Nails & Staples', 'unit' => 'box', 'qty' => 2.0, 'local_name' => 'ምስማር (Mismar)'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 3.0, 'local_name' => 'ማጣበቂያ (Matabequiya)'],
+        ['name' => 'Wood Legs', 'unit' => 'pcs', 'qty' => 6.0, 'local_name' => 'እግር (Igir)']
+    ],
+    'Chair' => [
+        ['name' => 'Hardwood (Tid/Zigba)', 'unit' => 'board_feet', 'qty' => 8.0, 'local_name' => 'ጥድ / ዝግባ (Tid / Zigba)'],
+        ['name' => 'Plywood', 'unit' => 'sheets', 'qty' => 2.0, 'local_name' => 'ፕላይዉድ (Plywood)'],
+        ['name' => 'Foam Padding', 'unit' => 'pieces', 'qty' => 2.0, 'local_name' => 'ፎም (Foam)'],
+        ['name' => 'Fabric Upholstery', 'unit' => 'yards', 'qty' => 3.0, 'local_name' => 'ጨርቅ (Cherq)'],
+        ['name' => 'Wood Screws', 'unit' => 'box', 'qty' => 1.0, 'local_name' => 'ምስማር (Mismar)'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 1.0, 'local_name' => 'ማጣበቂያ (Matabequiya)'],
+        ['name' => 'Wood Varnish', 'unit' => 'L', 'qty' => 1.0, 'local_name' => 'ቀለም (Qelem)'],
+        ['name' => 'Sandpaper', 'unit' => 'pack', 'qty' => 1.0, 'local_name' => 'ሳንድፔፐር (Sandpaper)']
+    ],
+    'Bed' => [
+        ['name' => 'Hardwood Frame (Tid/Weira)', 'unit' => 'board_feet', 'qty' => 35.0, 'local_name' => 'ጥድ / ወይራ (Tid / Weira)'],
+        ['name' => 'Plywood', 'unit' => 'sheets', 'qty' => 4.0, 'local_name' => 'ፕላይዉድ (Plywood)'],
+        ['name' => 'Foam Padding', 'unit' => 'pieces', 'qty' => 10.0, 'local_name' => 'የፎም ፍራሽ (Ye-Foam Firash)'],
+        ['name' => 'Bolts', 'unit' => 'box', 'qty' => 2.0, 'local_name' => 'ምስማር / ቦልት (Mismar / Bolt)'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 3.0, 'local_name' => 'ማጣበቂያ (Matabequiya)'],
+        ['name' => 'Wood Varnish', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ቀለም / ቫርኒሽ (Qelem / Varnish)'],
+        ['name' => 'Fabric Upholstery', 'unit' => 'yards', 'qty' => 5.0, 'local_name' => 'ጨርቅ (Cherq)'],
+        ['name' => 'Sandpaper', 'unit' => 'pack', 'qty' => 2.0, 'local_name' => 'ሳንድፔፐር'],
+        ['name' => 'Wood Slats', 'unit' => 'pcs', 'qty' => 14.0, 'local_name' => 'የአልጋ ድጋፍ']
+    ],
+    'Table' => [
+        ['name' => 'Hardwood (Tid/Zigba)', 'unit' => 'board_feet', 'qty' => 15.0, 'local_name' => 'ጥድ / ዝግባ (Tid / Zigba)'],
+        ['name' => 'Plywood', 'unit' => 'sheets', 'qty' => 2.0, 'local_name' => 'ፕላይዉድ (Plywood)'],
+        ['name' => 'Metal Legs', 'unit' => 'pieces', 'qty' => 4.0, 'local_name' => 'የብረት እግር (Ye-Biret Igir)'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ማጣበቂያ (Matabequiya)'],
+        ['name' => 'Wood Screws', 'unit' => 'box', 'qty' => 1.0, 'local_name' => 'ምስማር (Mismar)'],
+        ['name' => 'Wood Varnish', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ቀለም / ቫርኒሽ (Qelem / Varnish)'],
+        ['name' => 'Sandpaper', 'unit' => 'pack', 'qty' => 1.0, 'local_name' => 'ሳንድፔፐር'],
+        ['name' => 'Edge Banding', 'unit' => 'rolls', 'qty' => 1.0, 'local_name' => 'የጠርዝ ሽፋን (Ye-Terz Shifan)']
+    ],
+    'Desk' => [
+        ['name' => 'MDF Board', 'unit' => 'sheets', 'qty' => 5.0, 'local_name' => 'MDF / ፕላይዉድ'],
+        ['name' => 'Hardwood (Tid)', 'unit' => 'board_feet', 'qty' => 12.0, 'local_name' => 'እንጨት (Injhet) — Tid'],
+        ['name' => 'Drawer Slides', 'unit' => 'pairs', 'qty' => 3.0, 'local_name' => 'የሳጥን መንሸራተቻ (Ye-Satin Mensheratecha)'],
+        ['name' => 'Hinges', 'unit' => 'pcs', 'qty' => 8.0, 'local_name' => 'ማጠፊያ ብረት (Matefefiya Biret)'],
+        ['name' => 'Bolts', 'unit' => 'box', 'qty' => 1.0, 'local_name' => 'ምስማር / ቦልት'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ማጣበቂያ'],
+        ['name' => 'Lacquer', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ቀለም / ላሚኔት (Qelem / Laminate)'],
+        ['name' => 'Cable Grommets', 'unit' => 'pcs', 'qty' => 3.0, 'local_name' => 'የሽቦ ቀዳዳ ክዳን (Ye-Shibo Qedada)'],
+        ['name' => 'Sandpaper', 'unit' => 'pack', 'qty' => 2.0, 'local_name' => 'ሳንድፔፐር']
+    ],
+    'Shelf' => [
+        ['name' => 'Plywood', 'unit' => 'sheets', 'qty' => 6.0, 'local_name' => 'ፕላይዉድ / MDF'],
+        ['name' => 'Hardwood (Tid)', 'unit' => 'board_feet', 'qty' => 10.0, 'local_name' => 'ጥድ (Tid)'],
+        ['name' => 'Shelf Pins', 'unit' => 'pcs', 'qty' => 20.0, 'local_name' => 'የመደርደሪያ ምስማር (Ye-Mederderia Mismar)'],
+        ['name' => 'Back Panel', 'unit' => 'sheets', 'qty' => 2.0, 'local_name' => 'የኋላ ሽፋን (Ye-Hwala Shifan)'],
+        ['name' => 'Wood Glue PVA', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ማጣበቂያ (Matabequiya)'],
+        ['name' => 'Wood Screws', 'unit' => 'box', 'qty' => 1.0, 'local_name' => 'ምስማር (Mismar)'],
+        ['name' => 'Lacquer', 'unit' => 'L', 'qty' => 2.0, 'local_name' => 'ቀለም / ላሚኔት'],
+        ['name' => 'Sandpaper', 'unit' => 'pack', 'qty' => 1.0, 'local_name' => 'ሳንድፔፐር'],
+        ['name' => 'Metal Brackets', 'unit' => 'pcs', 'qty' => 6.0, 'local_name' => 'የግድግዳ መያዣ (Ye-Gidgida Meyazha)']
+    ]
+];
 
 // Approved materials for this employee (for usage report dropdown)
 $approvedMaterials = [];
@@ -369,7 +438,7 @@ try {
 $pendingCount  = count(array_filter($requests, fn($r) => $r['status'] === 'pending'));
 $approvedCount = count(array_filter($requests, fn($r) => $r['status'] === 'approved'));
 // Orders for request form (from tasks)
-$orders = array_map(fn($t) => ['id' => $t['order_id'], 'order_number' => $t['order_number'], 'product_name' => $t['product_name'], 'task_id' => $t['id'], 'product_id' => $t['product_id']], $tasks);
+$orders = array_map(fn($t) => ['id' => $t['order_id'], 'order_number' => $t['order_number'], 'product_name' => $t['product_name'], 'furniture_type' => $t['furniture_type'], 'task_id' => $t['id'], 'product_id' => $t['product_id']], $tasks);
 $pageTitle = 'Materials';
 ?>
 <!DOCTYPE html>
@@ -516,7 +585,8 @@ $pageTitle = 'Materials';
                             <option value="">-- Select Task --</option>
                             <?php foreach ($tasks as $t): ?>
                                 <option value="<?php echo $t['order_id']; ?>"
-                                        data-product-id="<?php echo $t['product_id']; ?>">
+                                        data-product-id="<?php echo $t['product_id']; ?>"
+                                        data-furniture-type="<?php echo htmlspecialchars($t['furniture_type']); ?>">
                                     Task #<?php echo str_pad($t['id'],4,'0',STR_PAD_LEFT); ?>
                                     — <?php echo htmlspecialchars($t['order_number'] ?? 'N/A'); ?>
                                     (<?php echo htmlspecialchars($t['product_name']); ?>)
@@ -750,6 +820,9 @@ $pageTitle = 'Materials';
     // Product materials map for request form pre-fill
     const PRODUCT_MATERIALS = <?php echo json_encode($productMaterialsMap); ?>;
 
+    // Ethiopian furniture material templates
+    const ETHIOPIAN_MATERIALS = <?php echo json_encode($ethiopianFurnitureMaterials); ?>;
+
     let rowCount = 0;
 
     function addMatRow() {
@@ -813,16 +886,34 @@ $pageTitle = 'Materials';
         if (row) row.remove();
     }
 
-    // Request form: pre-fill materials from product spec
+    // Request form: pre-fill materials filtered by furniture type
     function prefillMaterials(sel) {
         const opt = sel.options[sel.selectedIndex];
         const productId = opt ? opt.dataset.productId : null;
+        const furnitureType = opt ? opt.dataset.furnitureType : '';
         const hint = document.getElementById('productMaterialHint');
         const list = document.getElementById('productMaterialList');
+
+        // Remove any previously inserted type info banner
+        const oldBanner = document.getElementById('furnitureTypeBanner');
+        if (oldBanner) oldBanner.remove();
+
         list.innerHTML = '';
         document.getElementById('reqMatRows').innerHTML = '';
         reqRowCount = 0;
 
+        // Set current furniture type so addReqRow filters correctly
+        currentFurnitureType = furnitureType || null;
+
+        // Detect matched type
+        let matchedType = null;
+        Object.keys(FURNITURE_MATERIALS_MAP).forEach(type => {
+            if (furnitureType && furnitureType.toLowerCase().includes(type.toLowerCase())) {
+                matchedType = type;
+            }
+        });
+
+        // Try 1: Product materials from database (exact match)
         if (productId && PRODUCT_MATERIALS[productId]) {
             const mats = PRODUCT_MATERIALS[productId];
             mats.forEach(m => {
@@ -832,13 +923,48 @@ $pageTitle = 'Materials';
                 li.innerHTML = `<strong>${m.material_name}</strong>: ${m.quantity_required} ${m.unit}
                     <span style="color:${color};">(Available: ${avail.toFixed(2)}${avail < m.quantity_required ? ' ⚠ Insufficient' : ''})</span>`;
                 list.appendChild(li);
-                // Auto-add a row pre-filled for this material
                 addReqRow(m.material_id, m.quantity_required);
             });
             hint.style.display = 'block';
-        } else {
+        }
+        // Try 2: Match against furniture type template + filter dropdown
+        else if (matchedType && ETHIOPIAN_MATERIALS[matchedType]) {
+            const templateMaterials = ETHIOPIAN_MATERIALS[matchedType];
+            const filteredMaterials = getMaterialsForType(furnitureType);
+
+            // Show banner
+            const banner = document.createElement('div');
+            banner.id = 'furnitureTypeBanner';
+            banner.style.cssText = 'background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;padding:10px;margin-bottom:10px;';
+            banner.innerHTML = `<strong style="color:#2E7D32;"><i class="fas fa-couch"></i> ${matchedType} — Required Materials</strong>
+                <p style="margin:5px 0 0;font-size:12px;color:#555;">Dropdown is filtered to show only materials used for ${matchedType}.</p>`;
+            list.parentElement.insertBefore(banner, list);
+
+            // Show material list
+            templateMaterials.forEach(m => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${m.name}</strong> — ${m.qty} ${m.unit}`;
+                list.appendChild(li);
+
+                // Match template item to a filtered DB material
+                const matchedMaterial = filteredMaterials.find(am =>
+                    am.name.toLowerCase().includes(m.name.split(' ')[0].toLowerCase()) ||
+                    m.name.toLowerCase().includes(am.name.toLowerCase())
+                );
+                addReqRow(matchedMaterial ? matchedMaterial.id : null, m.qty);
+            });
+            hint.style.display = 'block';
+        }
+        // Try 3: Furniture type known but no template — still filter dropdown
+        else if (furnitureType) {
             hint.style.display = 'none';
-            addReqRow(); // start with one empty row
+            addReqRow();
+        }
+        // Try 4: No task selected
+        else {
+            currentFurnitureType = null;
+            hint.style.display = 'none';
+            addReqRow();
         }
     }
 
@@ -850,14 +976,46 @@ $pageTitle = 'Materials';
         'avail' => floatval($m['quantity']),
     ], $materials)); ?>;
 
+    // Maps each furniture type to the material name keywords it uses
+    const FURNITURE_MATERIALS_MAP = {
+        'Sofa':  ['Hardwood Frame', 'Foam Padding', 'Fabric Upholstery', 'Leather Upholstery', 'Spring Coils', 'Jute Webbing', 'Nails', 'Wood Glue', 'Wood Legs'],
+        'Chair': ['Hardwood', 'Plywood', 'Foam Padding', 'Fabric Upholstery', 'Wood Screws', 'Wood Glue', 'Wood Varnish', 'Sandpaper'],
+        'Bed':   ['Hardwood Frame', 'Plywood', 'Foam Padding', 'Bolts', 'Wood Glue', 'Wood Varnish', 'Fabric Upholstery', 'Sandpaper', 'Wood Slats'],
+        'Table': ['Hardwood', 'Plywood', 'Metal Legs', 'Wood Glue', 'Wood Screws', 'Wood Varnish', 'Sandpaper', 'Edge Banding'],
+        'Desk':  ['MDF Board', 'Hardwood', 'Drawer Slides', 'Hinges', 'Bolts', 'Wood Glue', 'Lacquer', 'Cable Grommets', 'Sandpaper'],
+        'Shelf': ['Plywood', 'Hardwood', 'Shelf Pins', 'Back Panel', 'Wood Glue', 'Wood Screws', 'Lacquer', 'Sandpaper', 'Metal Brackets'],
+    };
+
+    // Currently selected furniture type (set when task is chosen)
+    let currentFurnitureType = null;
+
+    // Returns filtered materials for the given furniture type, or all if no type
+    function getMaterialsForType(furnitureType) {
+        if (!furnitureType) return ALL_MATERIALS;
+        let matchedType = null;
+        Object.keys(FURNITURE_MATERIALS_MAP).forEach(type => {
+            if (furnitureType.toLowerCase().includes(type.toLowerCase())) {
+                matchedType = type;
+            }
+        });
+        if (!matchedType) return ALL_MATERIALS;
+        const keywords = FURNITURE_MATERIALS_MAP[matchedType];
+        return ALL_MATERIALS.filter(m =>
+            keywords.some(kw => m.name.toLowerCase().includes(kw.toLowerCase()))
+        );
+    }
+
     function addReqRow(preselect = null, preqty = null) {
         reqRowCount++;
         const tbody = document.getElementById('reqMatRows');
         const tr = document.createElement('tr');
         tr.id = 'reqRow_' + reqRowCount;
 
+        // Use filtered materials based on current furniture type
+        const filteredMaterials = getMaterialsForType(currentFurnitureType);
+
         let opts = '<option value="">-- Select Material --</option>';
-        ALL_MATERIALS.forEach(m => {
+        filteredMaterials.forEach(m => {
             const disabled = m.avail <= 0 ? 'disabled' : '';
             const sel = (preselect && m.id == preselect) ? 'selected' : '';
             opts += `<option value="${m.id}" data-unit="${m.unit}" data-avail="${m.avail}" ${disabled} ${sel}>
