@@ -141,12 +141,12 @@ include_once __DIR__ . '/../../includes/employee_header.php';
 <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
 <script>
 const API  = '<?php echo BASE_URL; ?>/public/api/messages.php';
-const CSRF = <?php echo json_encode($csrf_token); ?>;
+const MSG_CSRF = <?php echo json_encode($csrf_token); ?>;
 let _inbox=[], _sent=[], _recipients=[], _viewMsg=null;
 
 async function api(method,params){
   if(method==='GET'){const r=await fetch(API+'?'+new URLSearchParams(params));return r.json();}
-  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...params,csrf_token:CSRF})});
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...params,csrf_token:MSG_CSRF})});
   return r.json();
 }
 function toast(msg,type='success'){
