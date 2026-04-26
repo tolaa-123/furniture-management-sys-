@@ -886,86 +886,28 @@ $pageTitle = 'Materials';
         if (row) row.remove();
     }
 
-    // Request form: pre-fill materials filtered by furniture type
+    // Request form: filter dropdown by furniture type, start with one empty row
     function prefillMaterials(sel) {
         const opt = sel.options[sel.selectedIndex];
-        const productId = opt ? opt.dataset.productId : null;
         const furnitureType = opt ? opt.dataset.furnitureType : '';
-        const hint = document.getElementById('productMaterialHint');
-        const list = document.getElementById('productMaterialList');
 
-        // Remove any previously inserted type info banner
+        // Hide hint panel always
+        document.getElementById('productMaterialHint').style.display = 'none';
+        document.getElementById('productMaterialList').innerHTML = '';
+
+        // Remove any previously inserted banner
         const oldBanner = document.getElementById('furnitureTypeBanner');
         if (oldBanner) oldBanner.remove();
 
-        list.innerHTML = '';
+        // Clear existing rows
         document.getElementById('reqMatRows').innerHTML = '';
         reqRowCount = 0;
 
-        // Set current furniture type so addReqRow filters correctly
+        // Set furniture type so addReqRow filters the dropdown
         currentFurnitureType = furnitureType || null;
 
-        // Detect matched type
-        let matchedType = null;
-        Object.keys(FURNITURE_MATERIALS_MAP).forEach(type => {
-            if (furnitureType && furnitureType.toLowerCase().includes(type.toLowerCase())) {
-                matchedType = type;
-            }
-        });
-
-        // Try 1: Product materials from database (exact match)
-        if (productId && PRODUCT_MATERIALS[productId]) {
-            const mats = PRODUCT_MATERIALS[productId];
-            mats.forEach(m => {
-                const avail = parseFloat(m.available);
-                const color = avail < m.quantity_required ? '#E74C3C' : '#27AE60';
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${m.material_name}</strong>: ${m.quantity_required} ${m.unit}
-                    <span style="color:${color};">(Available: ${avail.toFixed(2)}${avail < m.quantity_required ? ' ⚠ Insufficient' : ''})</span>`;
-                list.appendChild(li);
-                addReqRow(m.material_id, m.quantity_required);
-            });
-            hint.style.display = 'block';
-        }
-        // Try 2: Match against furniture type template + filter dropdown
-        else if (matchedType && ETHIOPIAN_MATERIALS[matchedType]) {
-            const templateMaterials = ETHIOPIAN_MATERIALS[matchedType];
-            const filteredMaterials = getMaterialsForType(furnitureType);
-
-            // Show banner
-            const banner = document.createElement('div');
-            banner.id = 'furnitureTypeBanner';
-            banner.style.cssText = 'background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;padding:10px;margin-bottom:10px;';
-            banner.innerHTML = `<strong style="color:#2E7D32;"><i class="fas fa-couch"></i> ${matchedType} — Required Materials</strong>
-                <p style="margin:5px 0 0;font-size:12px;color:#555;">Dropdown is filtered to show only materials used for ${matchedType}.</p>`;
-            list.parentElement.insertBefore(banner, list);
-
-            // Show material list
-            templateMaterials.forEach(m => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${m.name}</strong> — ${m.qty} ${m.unit}`;
-                list.appendChild(li);
-
-                // Match template item to a filtered DB material
-                const matchedMaterial = filteredMaterials.find(am =>
-                    am.name.toLowerCase().includes(m.name.split(' ')[0].toLowerCase()) ||
-                    m.name.toLowerCase().includes(am.name.toLowerCase())
-                );
-                addReqRow(matchedMaterial ? matchedMaterial.id : null, m.qty);
-            });
-            hint.style.display = 'block';
-        }
-        // Try 3: Furniture type known but no template — still filter dropdown
-        else if (furnitureType) {
-            hint.style.display = 'none';
-            addReqRow();
-        }
-        // Try 4: No task selected
-        else {
-            currentFurnitureType = null;
-            hint.style.display = 'none';
-            addReqRow();
-        }
+        // Always start with one empty row — employee selects manually
+        addReqRow();
     }
 
     let reqRowCount = 0;
