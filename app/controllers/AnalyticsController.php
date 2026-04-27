@@ -24,24 +24,47 @@ class AnalyticsController extends BaseController {
             exit();
         }
         
-        require_once dirname(__DIR__) . '/../config/db_config.php';
-        
-        // Get dashboard statistics
-        $stats = $this->analyticsModel->getDashboardStats();
-        
-        // Get chart data
-        $chartData = [
-            'monthlyRevenue'       => $this->analyticsModel->getMonthlyRevenueData(12),
-            'ordersByStatus'       => $this->analyticsModel->getOrdersByStatusData(),
-            'employeeHours'        => $this->analyticsModel->getEmployeeHoursData(8),
-            'lowStockAlerts'       => $this->analyticsModel->getLowStockAlerts(),
-            'topProducts'          => $this->analyticsModel->getTopSellingProducts(10),
-            'monthlyProfit'        => $this->analyticsModel->getMonthlyProfitData(12),
-            'topCustomers'         => $this->analyticsModel->getTopCustomers(10, 12),
-            'materialUsage'        => $this->analyticsModel->getMaterialUsageTrends(12, 6),
-            'employeeProductivity' => $this->analyticsModel->getEmployeeProductivityData(8, 6),
-            'weeklyOrders'         => $this->analyticsModel->getWeeklyOrdersData(12),
-        ];
+        try {
+            // Get dashboard statistics
+            $stats = $this->analyticsModel->getDashboardStats();
+            
+            // Get chart data
+            $chartData = [
+                'monthlyRevenue'       => $this->analyticsModel->getMonthlyRevenueData(12),
+                'ordersByStatus'       => $this->analyticsModel->getOrdersByStatusData(),
+                'employeeHours'        => $this->analyticsModel->getEmployeeHoursData(8),
+                'lowStockAlerts'       => $this->analyticsModel->getLowStockAlerts(),
+                'topProducts'          => $this->analyticsModel->getTopSellingProducts(10),
+                'monthlyProfit'        => $this->analyticsModel->getMonthlyProfitData(12),
+                'topCustomers'         => $this->analyticsModel->getTopCustomers(10, 12),
+                'materialUsage'        => $this->analyticsModel->getMaterialUsageTrends(12, 6),
+                'employeeProductivity' => $this->analyticsModel->getEmployeeProductivityData(8, 6),
+                'weeklyOrders'         => $this->analyticsModel->getWeeklyOrdersData(12),
+            ];
+        } catch (Exception $e) {
+            error_log("Analytics Dashboard Error: " . $e->getMessage());
+            // Provide default empty data
+            $stats = [
+                'total_orders' => 0,
+                'pending_orders' => 0,
+                'this_month_revenue' => 0,
+                'this_month_profit' => 0,
+                'active_employees' => 0,
+                'low_stock_items' => 0
+            ];
+            $chartData = [
+                'monthlyRevenue' => ['labels' => [], 'datasets' => []],
+                'ordersByStatus' => ['labels' => [], 'datasets' => []],
+                'employeeHours' => ['labels' => [], 'datasets' => []],
+                'lowStockAlerts' => ['labels' => [], 'datasets' => []],
+                'topProducts' => ['labels' => [], 'datasets' => []],
+                'monthlyProfit' => ['labels' => [], 'datasets' => []],
+                'topCustomers' => ['labels' => [], 'datasets' => []],
+                'materialUsage' => ['labels' => [], 'datasets' => []],
+                'employeeProductivity' => ['labels' => [], 'datasets' => []],
+                'weeklyOrders' => ['labels' => [], 'datasets' => []]
+            ];
+        }
         
         include_once dirname(__DIR__) . '/views/analytics/dashboard.php';
     }
@@ -114,7 +137,7 @@ class AnalyticsController extends BaseController {
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
-                $this->analyticsModel->clearExpiredCache();
+                $this->analyticsModel->clearAllCache();
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true, 'message' => 'Cache refreshed']);
             } catch (Exception $e) {

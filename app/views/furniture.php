@@ -14,6 +14,46 @@ require_once '../config/config.php';
 <body>
     <?php include '../app/includes/header.php'; ?>
 
+    <style>
+        /* Ensure all product cards are fully visible */
+        .card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: visible;
+        }
+        
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: visible;
+        }
+        
+        .card-text {
+            flex-grow: 1;
+            overflow: visible;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .d-flex.justify-content-between {
+            margin-top: auto;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        /* Ensure last row items are fully visible */
+        .row.g-4 {
+            align-items: stretch;
+        }
+        
+        .col-md-4 {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+
     <!-- Furniture Page Content -->
     <div class="container my-5">
         <div class="row">

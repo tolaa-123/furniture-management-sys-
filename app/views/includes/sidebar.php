@@ -67,7 +67,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                             <?php
                             try {
                                 if (isset($db)) {
-                                    $stmt = $db->prepare("SELECT COUNT(*) FROM furn_orders WHERE status = 'waiting_for_deposit'");
+                                    $stmt = $db->prepare("SELECT COUNT(*) FROM furn_orders WHERE status = 'cost_estimated'");
                                     $stmt->execute();
                                     echo $stmt->fetchColumn();
                                 } else {

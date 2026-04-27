@@ -1,12 +1,26 @@
 # Database config with real credentials — never commit
 config/db_config.php
 
+# Database deployment file with sensitive data
+deploy_database.sql
+
+# Debug script (security risk in production)
+public/debug_deployment.php
+
 # Uploaded files
 public/uploads/
 
 # Logs
 logs/*.log
 logs/cache/
+
+# Backups
+backups/
+
+# Documentation files (temporary)
+*.txt
+*.md
+!README.md
 
 # OS / editor
 .DS_Store

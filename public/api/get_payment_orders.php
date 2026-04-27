@@ -29,7 +29,19 @@ try {
             o.order_number,
             COALESCE(o.furniture_name, o.furniture_type, 'Custom Order') AS furniture_name,
             COALESCE(o.estimated_cost, o.total_amount, 0) AS estimated_cost,
-            COALESCE(o.deposit_amount, o.estimated_cost * 0.4, o.total_amount * 0.4, 0) AS deposit_amount,
+            COALESCE(o.deposit_amount, 
+                o.estimated_cost * (
+                    SELECT COALESCE(setting_value, 40) / 100 
+                    FROM furn_settings 
+                    WHERE setting_key = 'default_deposit_percentage' 
+                    LIMIT 1
+                ), 
+                o.total_amount * (
+                    SELECT COALESCE(setting_value, 40) / 100 
+                    FROM furn_settings 
+                    WHERE setting_key = 'default_deposit_percentage' 
+                    LIMIT 1
+                ), 0) AS deposit_amount,
             COALESCE(SUM(p.amount), 0) AS amount_paid,
             COALESCE(o.estimated_cost, o.total_amount, 0) AS total_amount,
             o.status
@@ -37,7 +49,7 @@ try {
         LEFT JOIN furn_payments p ON o.id = p.order_id AND p.status = 'approved'
         WHERE o.customer_id = ?
         AND o.status IN (
-            'cost_estimated', 'approved', 'waiting_for_deposit',
+            'cost_estimated', 'approved',
             'deposit_paid', 'payment_verified', 'in_production',
             'production_started', 'production_completed',
             'ready_for_delivery', 'final_payment_paid'

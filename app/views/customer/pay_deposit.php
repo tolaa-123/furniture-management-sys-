@@ -21,7 +21,22 @@ if (!isset($_SESSION[CSRF_TOKEN_NAME])) $_SESSION[CSRF_TOKEN_NAME] = bin2hex(ran
 $csrfToken = $_SESSION[CSRF_TOKEN_NAME];
 
 $totalCost   = floatval($order['estimated_cost'] ?? 0);
-$depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
+
+// Get deposit percentage from settings (default 40%)
+$depositPercentage = 40;
+try {
+    $stmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+    $stmt->execute();
+    $result = $stmt->fetchColumn();
+    if ($result !== false && floatval($result) > 0) {
+        $depositPercentage = floatval($result);
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching deposit percentage: " . $e->getMessage());
+}
+
+$depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * ($depositPercentage / 100)));
+$remainingPercentage = 100 - $depositPercentage;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,7 +89,7 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
             <label class="field-label">What would you like to pay? *</label>
             <select name="payment_type_choice" id="paymentTypeChoice" class="pay-input" required onchange="onTypeChange()">
                 <option value="">Select payment type...</option>
-                <option value="deposit">Deposit (40%) — ETB <?php echo number_format($depositAmt, 2); ?></option>
+                <option value="deposit">Deposit (<?php echo $depositPercentage; ?>%) — ETB <?php echo number_format($depositAmt, 2); ?></option>
                 <option value="full">Full Payment (100%) — ETB <?php echo number_format($totalCost, 2); ?></option>
             </select>
             <div id="typeInfo" style="margin-top:12px;display:none;padding:12px;border-radius:8px;font-size:13px;"></div>
@@ -153,8 +168,8 @@ $depositAmt  = floatval($order['deposit_amount'] ?? ($totalCost * 0.4));
         <div class="summary-box">
             <h5 style="color:#d4a574;margin-bottom:16px;"><i class="fas fa-receipt me-2"></i>Payment Summary</h5>
             <div class="sum-row"><span style="opacity:.8;">Total Cost</span><span>ETB <?php echo number_format($totalCost, 2); ?></span></div>
-            <div class="sum-row"><span style="opacity:.8;">Deposit (40%)</span><span>ETB <?php echo number_format($depositAmt, 2); ?></span></div>
-            <div class="sum-row"><span style="opacity:.8;">Remaining (60%)</span><span>ETB <?php echo number_format($totalCost - $depositAmt, 2); ?></span></div>
+            <div class="sum-row"><span style="opacity:.8;">Deposit (<?php echo $depositPercentage; ?>%)</span><span>ETB <?php echo number_format($depositAmt, 2); ?></span></div>
+            <div class="sum-row"><span style="opacity:.8;">Remaining (<?php echo $remainingPercentage; ?>%)</span><span>ETB <?php echo number_format($totalCost - $depositAmt, 2); ?></span></div>
             <div class="sum-row"><span>You are paying</span><span class="amount-display" id="summaryAmount">—</span></div>
         </div>
         <div style="background:#fff;border-radius:12px;padding:16px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);">
@@ -206,7 +221,7 @@ function onTypeChange() {
         info.style.display = 'block';
         info.style.background = '#fff3cd';
         info.style.color = '#856404';
-        info.innerHTML = '<i class="fas fa-info-circle me-1"></i><strong>Deposit (40%):</strong> Pay ETB ' + DEPOSIT.toFixed(2) + ' now. Remaining ETB ' + (TOTAL - DEPOSIT).toFixed(2) + ' due on delivery.';
+        info.innerHTML = '<i class="fas fa-info-circle me-1"></i><strong>Deposit (' + DEPOSIT_PERCENTAGE + '%):</strong> Pay ETB ' + DEPOSIT.toFixed(2) + ' now. Remaining ETB ' + (TOTAL - DEPOSIT).toFixed(2) + ' (' + REMAINING_PERCENTAGE + '%) due on delivery.';
     } else {
         info.style.display = 'none';
     }

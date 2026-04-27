@@ -128,6 +128,13 @@
         const track = document.getElementById('heroTrack');
         const total = 4; // real slides (5th is clone)
         let cur = 0;
+        let imagesLoaded = 0;
+        const heroImages = [
+            '<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg'
+        ];
 
         function show(n) {
             cur = n;
@@ -144,9 +151,89 @@
             }
         });
 
-        setInterval(() => show(cur + 1), 4000);
+        // Preload all hero images before starting slideshow
+        function preloadHeroImages() {
+            heroImages.forEach(function(src) {
+                const img = new Image();
+                img.onload = function() {
+                    imagesLoaded++;
+                    if (imagesLoaded === heroImages.length) {
+                        // All images loaded, start slideshow
+                        setInterval(() => show(cur + 1), 4000);
+                    }
+                };
+                img.onerror = function() {
+                    imagesLoaded++;
+                    if (imagesLoaded === heroImages.length) {
+                        // All images processed (even if some failed), start slideshow
+                        setInterval(() => show(cur + 1), 4000);
+                    }
+                };
+                img.src = src;
+            });
+        }
+
+        // Start preloading images
+        preloadHeroImages();
     })();
     </script>
+
+    <!-- Promotion Banners Section -->
+    <?php
+    // Get active promotions for homepage
+    require_once __DIR__ . '/../../app/includes/promotion_helper.php';
+    $homepagePromotions = getHomepagePromotions();
+    
+    if (!empty($homepagePromotions)):
+    ?>
+    <section class="promotions-section py-4" style="background: linear-gradient(135deg, #FFE5E5 0%, #FFD6D6 100%);">
+        <div class="container">
+            <?php foreach ($homepagePromotions as $promo): ?>
+                <div class="promotion-banner" style="background:linear-gradient(135deg,#E74C3C 0%,#C0392B 100%);color:white;padding:20px 30px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 8px rgba(0,0,0,0.15);animation:slideIn 0.5s ease;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;">
+                        <div style="flex:1;min-width:250px;">
+                            <div style="font-size:22px;font-weight:700;margin-bottom:8px;">
+                                <i class="fas fa-tag" style="margin-right:10px;"></i><?php echo htmlspecialchars($promo['banner_text'] ?? $promo['name']); ?>
+                            </div>
+                            <?php if ($promo['description']): ?>
+                                <div style="font-size:15px;opacity:0.95;line-height:1.5;">
+                                    <?php echo htmlspecialchars($promo['description']); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div style="text-align:right;">
+                            <?php 
+                            $daysRemaining = $promo['days_remaining'] ?? 0;
+                            if ($daysRemaining <= 3): ?>
+                                <div style="font-size:16px;font-weight:700;margin-bottom:5px;">
+                                    <i class="fas fa-clock" style="margin-right:5px;"></i>Ends in <?php echo $daysRemaining; ?> days!
+                                </div>
+                            <?php elseif ($daysRemaining <= 7): ?>
+                                <div style="font-size:15px;margin-bottom:5px;">
+                                    <i class="fas fa-clock" style="margin-right:5px;"></i>Ends in <?php echo $daysRemaining; ?> days
+                                </div>
+                            <?php endif; ?>
+                            <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm" style="font-weight:600;">
+                                <i class="fas fa-shopping-cart" style="margin-right:5px;"></i>Shop Now
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .promotion-banner:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+    </style>
+    <?php endif; ?>
 
     <!-- About Section -->
     <section id="about" class="py-5">
@@ -330,6 +417,15 @@
         const total  = dots.length; // 6 real slides
         let current  = 0;
         let timer;
+        let imagesLoaded = 0;
+        const galleryImages = [
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery1.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery2.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery3.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery4.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery5.jpg',
+            '<?php echo BASE_URL; ?>/public/assets/images/gallery/gallery6.jpg'
+        ];
 
         function show(n) {
             if (n <= total) {
@@ -357,7 +453,30 @@
         window.galleryPrev = function() { if(current > 0){ show(current - 1); } else { track.style.transition='none'; current=total; track.style.transform='translateX(-'+(total*100)+'%)'; requestAnimationFrame(()=>{ track.style.transition='transform 0.7s cubic-bezier(.77,0,.18,1)'; show(total-1); }); } resetTimer(); };
         window.galleryGoTo = function(n) { show(n); resetTimer(); };
 
-        startTimer();
+        // Preload all gallery images before starting slideshow
+        function preloadGalleryImages() {
+            galleryImages.forEach(function(src) {
+                const img = new Image();
+                img.onload = function() {
+                    imagesLoaded++;
+                    if (imagesLoaded === galleryImages.length) {
+                        // All images loaded, start slideshow
+                        startTimer();
+                    }
+                };
+                img.onerror = function() {
+                    imagesLoaded++;
+                    if (imagesLoaded === galleryImages.length) {
+                        // All images processed (even if some failed), start slideshow
+                        startTimer();
+                    }
+                };
+                img.src = src;
+            });
+        }
+
+        // Start preloading images
+        preloadGalleryImages();
     })();
     </script>
 

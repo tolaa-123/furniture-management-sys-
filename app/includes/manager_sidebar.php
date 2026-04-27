@@ -135,6 +135,14 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Supplier Request -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/manager/supplier-request" class="<?php echo isActive('/manager/supplier-request'); ?>">
+                <i class="fas fa-truck"></i>
+                <span>Supplier Request</span>
+            </a>
+        </li>
+
         <!-- Analytics Dashboard -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/analytics/dashboard" class="<?php echo isActive('/analytics/dashboard'); ?>">
@@ -156,14 +164,6 @@ function isActive($page) {
             <a href="<?php echo BASE_URL; ?>/public/manager/attendance" class="<?php echo isActive('/manager/attendance'); ?>">
                 <i class="fas fa-clock"></i>
                 <span>Attendance</span>
-            </a>
-        </li>
-
-        <!-- Employee Performance -->
-        <li>
-            <a href="<?php echo BASE_URL; ?>/public/manager/employee-performance" class="<?php echo isActive('/manager/employee-performance'); ?>">
-                <i class="fas fa-chart-line"></i>
-                <span>Employee Performance</span>
             </a>
         </li>
 
@@ -201,17 +201,6 @@ function isActive($page) {
                 <span>Messages</span>
                 <?php if($notificationCounts['unread_messages'] > 0): ?>
                     <span class="menu-badge badge-info"><?php echo $notificationCounts['unread_messages']; ?></span>
-                <?php endif; ?>
-            </a>
-        </li>
-
-        <!-- Complaints -->
-        <li>
-            <a href="<?php echo BASE_URL; ?>/public/manager/complaints" class="<?php echo isActive('/manager/complaints'); ?>">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>Complaints</span>
-                <?php if($notificationCounts['open_complaints'] > 0): ?>
-                    <span class="menu-badge badge-danger"><?php echo $notificationCounts['open_complaints']; ?></span>
                 <?php endif; ?>
             </a>
         </li>

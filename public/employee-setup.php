@@ -3,6 +3,11 @@ session_start();
 require_once '../config/config.php';
 require_once '../config/db_config.php';
 
+// Check database connection
+if (!$pdo) {
+    die('<div style="padding:20px;background:#f8d7da;color:#721c24;border-radius:8px;margin:20px;text-align:center;"><h3>Database Connection Error</h3><p>Unable to connect to the database. Please check your configuration.</p></div>');
+}
+
 $token = trim($_GET['token'] ?? '');
 $error = '';
 $success = '';

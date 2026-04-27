@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 // Get database connection
 require_once __DIR__ . '/../../../config/db_config.php';
 
+// Check database connection
+if (!$pdo) {
+    die('<div style="padding:20px;background:#f8d7da;color:#721c24;border-radius:8px;margin:20px;text-align:center;"><h3>Database Connection Error</h3><p>Unable to connect to the database. Please check your configuration.</p></div>');
+}
+
 $adminName = $_SESSION['user_name'] ?? 'Admin User';
 
 // Generate CSRF token if not exists
@@ -27,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $message = 'Invalid CSRF token.';
             $messageType = 'danger';
-            return;
-        }
+        } else {
         try {
             // Validate inputs
             $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
@@ -88,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Error creating user: ' . $e->getMessage();
             $messageType = 'danger';
         }
+        }
     }
     
     if ($action === 'delete' && isset($_POST['user_id'])) {
@@ -95,8 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $message = 'Invalid CSRF token.';
             $messageType = 'danger';
-            return;
-        }
+        } else {
         try {
             $stmt = $pdo->prepare("DELETE FROM furn_users WHERE id = ? AND role != 'admin'");
             $stmt->execute([$_POST['user_id']]);
@@ -106,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Error deleting user: ' . $e->getMessage();
             $messageType = 'danger';
         }
+        }
     }
     
     if ($action === 'update_role' && isset($_POST['user_id']) && isset($_POST['role'])) {
@@ -113,8 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $message = 'Invalid CSRF token.';
             $messageType = 'danger';
-            return;
-        }
+        } else {
         try {
             $stmt = $pdo->prepare("UPDATE furn_users SET role = ? WHERE id = ?");
             $stmt->execute([$_POST['role'], $_POST['user_id']]);
@@ -123,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $message = 'Error updating role: ' . $e->getMessage();
             $messageType = 'danger';
+        }
         }
     }
 }
@@ -235,31 +240,10 @@ $pageTitle = 'Users Management';
     <?php include_once __DIR__ . '/../../includes/admin_sidebar.php'; ?>
 
     <!-- Header -->
-    <!-- Top Header -->
     <?php 
     $pageTitle = 'Users';
     include_once __DIR__ . '/../../includes/admin_header.php'; 
     ?>
-        <div class="system-status">
-            <span style="width: 10px; height: 10px; background: white; border-radius: 50%; display: inline-block;"></span>
-            <span>Operational</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <div class="notification-bell">
-                <i class="fas fa-bell"></i>
-                <?php if($stats['pending_orders'] > 0): ?>
-                <span class="notification-badge"><?php echo $stats['pending_orders']; ?></span>
-                <?php endif; ?>
-            </div>
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
-                <div>
-                    <div style="font-size: 14px; font-weight: 600;"><?php echo htmlspecialchars($adminName); ?></div>
-                    <div class="admin-role-badge">Administrator</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -341,7 +325,7 @@ $pageTitle = 'Users Management';
                             <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                             <td>
                                 <?php if ($user['role'] !== 'admin'): ?>
-                                <button class="btn-action btn-primary-custom" onclick="editUser(<?php echo $user['id'] ?? ''; ?>, '<?php echo htmlspecialchars($user['full_name']); ?>', '<?php echo $user['role']; ?>')">
+                                <button class="btn-action btn-primary-custom" onclick="editUser(<?php echo intval($user['id'] ?? 0); ?>, '<?php echo htmlspecialchars($user['full_name'], ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($user['role'], ENT_QUOTES, 'UTF-8'); ?>')">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">

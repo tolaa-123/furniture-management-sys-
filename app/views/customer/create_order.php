@@ -382,45 +382,87 @@ $pageTitle = 'Create Custom Furniture Order';
             $('#customOrderForm').on('submit', function(e) {
                 e.preventDefault();
                 
+                // ============================================
+                // SIMPLE DEBUG: Show values in alert
+                // ============================================
+                const furnitureType = $('select[name="furniture_type"]').val();
+                const color = $('select[name="color"]').val();
+                const designDescription = $('textarea[name="design_description"]').val();
+                const budgetRange = $('#budget_range').val();
+                const length = $('#length').val();
+                const width = $('#width').val();
+                const height = $('#height').val();
+                const quantity = $('#quantity').val();
+                
+                let debugMsg = '=== FORM VALUES ===\n\n';
+                debugMsg += 'Furniture Type: ' + (furnitureType || '❌ EMPTY') + '\n';
+                debugMsg += 'Color: ' + (color || '❌ EMPTY') + '\n';
+                debugMsg += 'Design Description: ' + (designDescription ? '✅ Has text' : '❌ EMPTY') + '\n';
+                debugMsg += 'Budget Range: ' + (budgetRange || '❌ EMPTY') + '\n';
+                debugMsg += 'Length: ' + length + '\n';
+                debugMsg += 'Width: ' + width + '\n';
+                debugMsg += 'Height: ' + height + '\n';
+                debugMsg += 'Quantity: ' + quantity + '\n\n';
+                
+                // Check which fields are failing
+                let errors = [];
+                if (!furnitureType) errors.push('❌ Furniture Type is EMPTY');
+                if (!color) errors.push('❌ Color is EMPTY');
+                if (!budgetRange) errors.push('❌ Budget Range is EMPTY');
+                if (parseFloat(length) <= 0) errors.push('❌ Length is invalid');
+                if (parseFloat(width) <= 0) errors.push('❌ Width is invalid');
+                if (parseFloat(height) <= 0) errors.push('❌ Height is invalid');
+                if (parseInt(quantity) < 1) errors.push('❌ Quantity is invalid');
+                
+                if (errors.length > 0) {
+                    debugMsg += '=== ERRORS FOUND ===\n\n';
+                    debugMsg += errors.join('\n');
+                    alert(debugMsg);
+                    return false;
+                }
+                
+                debugMsg += '✅ All fields are valid!\n\nSubmitting to server...';
+                console.log(debugMsg);
+                
                 // Validate new ERP fields
                 let isValid = true;
-                let errors = [];
+                let validationErrors = [];
                 
                 // Validate dimensions
-                const length = parseFloat($('#length').val());
-                const width = parseFloat($('#width').val());
-                const height = parseFloat($('#height').val());
+                const lengthVal = parseFloat($('#length').val());
+                const widthVal = parseFloat($('#width').val());
+                const heightVal = parseFloat($('#height').val());
                 
-                if (length <= 0) {
-                    errors.push('Length must be greater than 0');
+                if (lengthVal <= 0) {
+                    validationErrors.push('Length must be greater than 0');
                     isValid = false;
                 }
-                if (width <= 0) {
-                    errors.push('Width must be greater than 0');
+                if (widthVal <= 0) {
+                    validationErrors.push('Width must be greater than 0');
                     isValid = false;
                 }
-                if (height <= 0) {
-                    errors.push('Height must be greater than 0');
+                if (heightVal <= 0) {
+                    validationErrors.push('Height must be greater than 0');
                     isValid = false;
                 }
                 
                 // Validate quantity
-                const quantity = parseInt($('#quantity').val());
-                if (quantity < 1) {
-                    errors.push('Quantity must be at least 1');
+                const quantityVal = parseInt($('#quantity').val());
+                if (quantityVal < 1) {
+                    validationErrors.push('Quantity must be at least 1');
                     isValid = false;
                 }
                 
                 // Validate budget range
-                const budgetRange = $('#budget_range').val();
-                if (!budgetRange) {
-                    errors.push('Please select a budget range');
+                const budgetRangeVal = $('#budget_range').val();
+                if (!budgetRangeVal) {
+                    validationErrors.push('Please select a budget range');
                     isValid = false;
                 }
                 
                 // Show errors if any
                 if (!isValid) {
-                    alert('Please fix the following errors:\n\n' + errors.join('\n'));
+                    alert('Please fix the following errors:\n\n' + validationErrors.join('\n'));
                     return false;
                 }
                 
@@ -436,16 +478,23 @@ $pageTitle = 'Create Custom Furniture Order';
                     processData: false,
                     contentType: false,
                     success: function(response) {
+                        console.log('Server response:', response);
+                        
                         if (response.success) {
                             alert('✓ Order submitted successfully!\n\nOrder Number: ' + response.order_number + '\n\nThe workshop manager will review your order soon.');
                             window.location.href = '<?php echo BASE_URL; ?>/public/customer/my-orders';
                         } else {
-                            alert('Error: ' + response.message);
+                            alert('❌ SERVER ERROR:\n\n' + response.message + '\n\nCheck browser console (F12) for more details.');
+                            console.error('Full error:', response);
                             submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order');
                         }
                     },
-                    error: function() {
-                        alert('Error submitting order. Please try again.');
+                    error: function(xhr, status, error) {
+                        alert('❌ AJAX ERROR:\n\nStatus: ' + status + '\nError: ' + error + '\n\nCheck browser console (F12) for details.');
+                        console.error('XHR:', xhr);
+                        console.error('Status:', status);
+                        console.error('Error:', error);
+                        console.error('Response Text:', xhr.responseText);
                         submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Order');
                     }
                 });

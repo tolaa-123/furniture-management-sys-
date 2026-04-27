@@ -3,6 +3,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login'); exit();
 }
 require_once __DIR__ . '/../../../config/db_config.php';
+
+// Check database connection
+if (!$pdo) {
+    die('<div style="padding:20px;background:#f8d7da;color:#721c24;border-radius:8px;margin:20px;text-align:center;"><h3>Database Connection Error</h3><p>Unable to connect to the database. Please check your configuration.</p></div>');
+}
+
 $csrf_token = $_SESSION['csrf_token'] ?? bin2hex(random_bytes(32));
 $_SESSION['csrf_token'] = $csrf_token;
 $adminName = $_SESSION['user_name'] ?? 'Admin';
@@ -160,6 +166,10 @@ $monthFull  = ['','January','February','March','April','May','June','July','Augu
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
     <style>
+        .alert{padding:15px 20px;border-radius:8px;margin-bottom:20px;font-weight:500;animation:slideDown .3s ease;display:flex;align-items:center;gap:10px;}
+        .alert-success{background:#d4edda;color:#155724;border-left:4px solid #28a745;}
+        .alert-danger{background:#f8d7da;color:#721c24;border-left:4px solid #dc3545;}
+        @keyframes slideDown{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
         .pay-header{background:linear-gradient(135deg,#1a252f 0%,#2C3E50 50%,#8E44AD 100%);color:#fff;padding:28px 30px;border-radius:14px;margin-bottom:24px;}
         .s-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;}
         .s-draft{background:#95A5A618;color:#7F8C8D;border:1px solid #95A5A640;}

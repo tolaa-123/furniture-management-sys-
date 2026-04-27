@@ -5,6 +5,12 @@ require_once '../../app/services/EmailService.php';
 
 header('Content-Type: application/json');
 
+// Check database connection
+if (!$pdo) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;

@@ -66,6 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX(employee_id), INDEX(material_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_usage ADD COLUMN IF NOT EXISTS returned_amount DECIMAL(10,2) DEFAULT 0"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_usage ADD COLUMN IF NOT EXISTS waste_reason VARCHAR(120) DEFAULT NULL"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_requests ADD COLUMN IF NOT EXISTS approved_quantity DECIMAL(10,2) DEFAULT NULL"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_requests ADD COLUMN IF NOT EXISTS consumed_quantity DECIMAL(10,2) NOT NULL DEFAULT 0"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_requests ADD COLUMN IF NOT EXISTS wasted_quantity DECIMAL(10,2) NOT NULL DEFAULT 0"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_requests ADD COLUMN IF NOT EXISTS returned_quantity DECIMAL(10,2) NOT NULL DEFAULT 0"); } catch (PDOException $e2) {}
+        try { $pdo->exec("ALTER TABLE furn_material_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"); } catch (PDOException $e2) {}
         try { $pdo->exec("CREATE TABLE IF NOT EXISTS furn_order_materials (
             id INT AUTO_INCREMENT PRIMARY KEY,
             order_id INT NOT NULL, task_id INT NOT NULL, material_id INT NOT NULL,
@@ -117,6 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Server-side: image is required
+            if (!$finishedImagePath) {
+                throw new Exception("Completed product image is required. Please upload a photo of the finished product.");
+            }
+
             $materialsUsed  = $_POST['materials_used'] ?? '';
             $completionNotes = $_POST['completion_notes'] ?? '';
             $actualHours    = $_POST['actual_hours'] ?? null;
@@ -158,97 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$_POST['task_id']]);
             $taskData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Save structured material usage for profit calculation
-            // AND record in furn_material_usage + reduce approved request quantities
-            $materialIds  = $_POST['mat_id']  ?? [];
-            $materialQtys = $_POST['mat_qty'] ?? [];
-            if (!empty($materialIds)) {
-                $pdo->prepare("DELETE FROM furn_order_materials WHERE task_id = ?")->execute([$_POST['task_id']]);
-                $stmtMat = $pdo->prepare("
-                    INSERT INTO furn_order_materials
-                        (order_id, task_id, material_id, material_name, quantity_used, unit, unit_price, total_cost)
-                    SELECT ?, ?, id, name, ?, unit, cost_per_unit, (? * cost_per_unit)
-                    FROM furn_materials WHERE id = ?
-                ");
-
-                $stmtUsage = $pdo->prepare("
-                    INSERT INTO furn_material_usage (employee_id, task_id, material_id, quantity_used, waste_amount, notes, created_at)
-                    VALUES (?, ?, ?, ?, 0, ?, NOW())
-                ");
-
-                // Reduce approved request quantity for this employee+material
-                $stmtReduceReq = $pdo->prepare("
-                    UPDATE furn_material_requests
-                    SET quantity_requested = GREATEST(0, quantity_requested - ?)
-                    WHERE employee_id = ? AND material_id = ? AND status = 'approved'
-                    ORDER BY approved_at DESC
-                    LIMIT 1
-                ");
-
-                foreach ($materialIds as $i => $matId) {
-                    $qty = floatval($materialQtys[$i] ?? 0);
-                    if ($matId && $qty > 0) {
-                        // Validate: must have approved request for this material
-                        $chkApproved = $pdo->prepare("SELECT COALESCE(SUM(quantity_requested),0) FROM furn_material_requests WHERE employee_id=? AND material_id=? AND status='approved'");
-                        $chkApproved->execute([$employeeId, (int)$matId]);
-                        if (floatval($chkApproved->fetchColumn()) <= 0) {
-                            throw new Exception("No approved request for material ID $matId. Request and get approval first.");
-                        }
-                        // 1. Save to order materials (profit tracking)
-                        $stmtMat->execute([$taskData['order_id'], $_POST['task_id'], $qty, $qty, (int)$matId]);
-
-                        // 2. Save to material usage history (employee view)
-                        $stmtUsage->execute([
-                            $employeeId,
-                            $_POST['task_id'],
-                            (int)$matId,
-                            $qty,
-                            "Used in task #{$_POST['task_id']} — order #{$taskData['order_id']}"
-                        ]);
-
-                        // 3. Reduce the approved request quantity
-                        $stmtReduceReq->execute([$qty, $employeeId, (int)$matId]);
-
-                        // 4. Deduct actual stock used + release reservation
-                        try {
-                            $pdo->prepare("UPDATE furn_materials
-                                SET current_stock = GREATEST(0, current_stock - ?),
-                                    reserved_stock = GREATEST(0, COALESCE(reserved_stock,0) - ?),
-                                    updated_at = NOW()
-                                WHERE id = ?")
-                                ->execute([$qty, $qty, (int)$matId]);
-                                            
-                            // LOW STOCK ALERT AUTOMATION: Check after deduction
-                            try {
-                                $checkStmt = $pdo->prepare("
-                                    SELECT name, current_stock, minimum_stock,
-                                           (current_stock - COALESCE(reserved_stock, 0)) as available
-                                    FROM furn_materials WHERE id = ?
-                                ");
-                                $checkStmt->execute([(int)$matId]);
-                                $mat = $checkStmt->fetch(PDO::FETCH_ASSOC);
-                                                
-                                if ($mat && floatval($mat['available']) < floatval($mat['minimum_stock'])) {
-                                    require_once __DIR__ . '/../../../app/includes/notification_helper.php';
-                                    $alertStmt = $pdo->prepare("
-                                        INSERT INTO furn_low_stock_alerts (material_id, current_stock, minimum_stock, alert_level, created_at)
-                                        VALUES (?, ?, ?, 'low', NOW())
-                                    ");
-                                    $alertStmt->execute([(int)$matId, $mat['available'], $mat['minimum_stock']]);
-                                    notifyRole($pdo, 'manager', 'inventory', 'Low Stock Alert: ' . $mat['name'],
-                                        'Material "' . $mat['name'] . '" is running low. Available: ' . number_format(floatval($mat['available']), 2),
-                                        (int)$matId, '/manager/inventory', 'high');
-                                }
-                            } catch (Exception $e) {
-                                error_log("Low stock alert error: " . $e->getMessage());
-                            }
-                        } catch (PDOException $eStock) {
-                            error_log("Stock deduct error: " . $eStock->getMessage());
-                        }
-                    }
-                }
-            }
-
             // Update order status
             $pdo->prepare("UPDATE furn_orders SET status='ready_for_delivery', production_completed_at=NOW() WHERE id=?")
                 ->execute([$taskData['order_id']]);
@@ -277,15 +198,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log("Auto profit calculation failed: " . $e->getMessage());
             }
 
-            // Notify all managers AFTER commit (notification_helper has DDL that kills active transactions)
+            // Notify all managers AND admins AFTER commit
             require_once __DIR__ . '/../../../app/includes/notification_helper.php';
             $furnitureName = $taskData['furniture_name'] ?? $taskData['furniture_type'] ?? 'Furniture';
             $orderNum = $taskData['order_number'] ?? '#'.$taskData['order_id'];
-            notifyRole($pdo, 'manager', 'production', 'Task Completed — Ready for Delivery',
-                $furnitureName . ' (Order ' . $orderNum . ') has been completed and is ready for delivery.',
-                $_POST['task_id'], '/manager/production', 'high');
+            $notifMsg = $furnitureName . ' (Order ' . $orderNum . ') has been completed and is ready for delivery.';
 
-            if ($finishedImagePath && $taskData) {
+            // Notify managers
+            notifyRole($pdo, 'manager', 'production', 'Task Completed — Ready for Delivery',
+                $notifMsg, $_POST['task_id'], '/manager/production', 'high');
+
+            // Notify admins
+            notifyRole($pdo, 'admin', 'production', 'Task Completed — Ready for Delivery',
+                $notifMsg, $_POST['task_id'], '/admin/orders', 'high');
+
+            // Notify the employee themselves
+            insertNotification($pdo, $employeeId, 'production', 'Task Completed',
+                'You completed ' . $furnitureName . ' (Order ' . $orderNum . '). Product added to gallery.',
+                $_POST['task_id'], '/employee/tasks', 'normal');
+
+            // Gallery & product insertion (image is always present at this point)
+            if ($taskData) {
                 $furnitureType = strtolower($taskData['furniture_type'] ?? 'custom');
                 $categoryMap = [
                     'sofa'=>'sofa','couch'=>'sofa','chair'=>'chair','armchair'=>'chair',
@@ -479,46 +412,6 @@ foreach ($tasks as $task) {
 
 $pageTitle = 'My Tasks';
 
-// Fetch materials for the complete task modal — only approved materials for this employee - NO COSTS VISIBLE
-$allMaterials = [];
-try {
-    $stmt = $pdo->prepare("
-        SELECT m.id, m.name as material_name, m.unit,
-               m.current_stock, COALESCE(m.reserved_stock,0) as reserved_stock,
-               (m.current_stock - COALESCE(m.reserved_stock,0)) as available_stock,
-               SUM(mr.quantity_requested) as approved_qty
-        FROM furn_material_requests mr
-        JOIN furn_materials m ON m.id = mr.material_id
-        WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
-        GROUP BY m.id, m.name, m.unit, m.current_stock, m.reserved_stock
-        HAVING approved_qty > 0
-        ORDER BY m.name ASC
-    ");
-    $stmt->execute([$employeeId]);
-    $allMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log("Materials fetch error: " . $e->getMessage());
-}
-
-// Fetch this employee's approved material requests grouped by order_id - NO COSTS
-// So when completing a task we can pre-fill the materials
-$approvedRequestsByOrder = [];
-try {
-    $stmt = $pdo->prepare("
-        SELECT mr.order_id, mr.material_id, mr.quantity_requested,
-               m.name as material_name, m.unit
-        FROM furn_material_requests mr
-        JOIN furn_materials m ON m.id = mr.material_id
-        WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
-        ORDER BY mr.approved_at DESC
-    ");
-    $stmt->execute([$employeeId]);
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $approvedRequestsByOrder[$row['order_id']][] = $row;
-    }
-} catch (PDOException $e) {
-    error_log("Approved requests fetch error: " . $e->getMessage());
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -652,7 +545,6 @@ try {
                         <thead>
                             <tr>
                                 <th>Task ID</th>
-                                <th>Order ID</th>
                                 <th>Product</th>
                                 <th>Customer</th>
                                 <th>Assigned Date</th>
@@ -679,7 +571,6 @@ try {
                                 ?>
                                 <tr>
                                     <td>#<?php echo str_pad($task['id'], 4, '0', STR_PAD_LEFT); ?></td>
-                                    <td>#<?php echo str_pad($task['order_id'], 4, '0', STR_PAD_LEFT); ?></td>
                                     <td><?php echo htmlspecialchars($task['product_name'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($task['customer_name'] ?? 'N/A'); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($task['created_at'])); ?></td>
@@ -850,21 +741,6 @@ try {
                     
                     <div class="form-group">
                         <label style="font-weight: 600; color: #2c3e50;">
-                            <i class="fas fa-tools"></i> Materials Used <span style="color: #E74C3C;">*</span>
-                        </label>
-                        <div id="matAutoNote" style="display:none;background:#d4edda;color:#155724;padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:10px;border:1px solid #c3e6cb;">
-                            <i class="fas fa-check-circle"></i> Pre-filled from your approved material requests. Adjust quantities if needed.
-                        </div>
-                        <div id="materialRows" style="margin-bottom:8px;"></div>
-                        <button type="button" onclick="addMaterialRow()" style="padding:7px 14px;background:#3498DB;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">
-                            <i class="fas fa-plus"></i> Add Material
-                        </button>
-                        <small style="display:block;color:#7f8c8d;margin-top:6px;">Select each material from inventory and enter the quantity used.</small>
-                        <textarea name="materials_used" id="materials_used_text" style="display:none;"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label style="font-weight: 600; color: #2c3e50;">
                             <i class="fas fa-comment-alt"></i> Completion Notes <span style="color: #E74C3C;">*</span>
                         </label>
                         <textarea name="completion_notes" class="form-control" rows="4" required placeholder="Describe the finished product, any challenges faced, quality notes, etc."></textarea>
@@ -943,23 +819,6 @@ try {
                 </div>
             `;
             document.getElementById('complete_task_info').innerHTML = taskInfo;
-
-            // Clear existing material rows
-            document.getElementById('materialRows').innerHTML = '';
-
-            // Auto-populate from approved material requests for this order
-            const orderId = task.order_id;
-            const approved = APPROVED_BY_ORDER[orderId] || [];
-            if (approved.length > 0) {
-                approved.forEach(r => {
-                    addMaterialRow(r.material_id, r.material_name, r.unit, r.quantity_requested);
-                });
-                document.getElementById('matAutoNote').style.display = 'block';
-            } else {
-                // No approved requests — let employee add manually
-                addMaterialRow();
-                document.getElementById('matAutoNote').style.display = 'none';
-            }
 
             document.getElementById('completeModal').style.display = 'block';
         }
@@ -1175,74 +1034,15 @@ try {
     <!-- Mobile Menu Script -->
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
     <script>
-    // ── Material picker for complete task modal ──
-    const MATERIALS = <?php echo json_encode($allMaterials); ?>;
-    // Approved requests keyed by order_id — pre-fill materials on task completion
-    const APPROVED_BY_ORDER = <?php echo json_encode($approvedRequestsByOrder); ?>;
-
-    function addMaterialRow(matId, matName, unit, qty) {
-        const container = document.getElementById('materialRows');
-        const opts = MATERIALS.map(m =>
-            `<option value="${m.id}" data-unit="${m.unit}" ${m.id == matId ? 'selected' : ''}>
-                ${m.material_name} (${m.unit}) — Available: ${parseFloat(m.available_stock||0).toFixed(2)}
-            </option>`
-        ).join('');
-        const row = document.createElement('div');
-        row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center;';
-        row.innerHTML = `
-            <select name="mat_id[]" class="form-control mat-select" required onchange="updateMatUnit(this)">
-                <option value="">— Select Material —</option>${opts}
-            </select>
-            <div style="display:flex;align-items:center;gap:4px;">
-                <input type="number" name="mat_qty[]" class="form-control" step="0.01" min="0.01" required placeholder="Qty" style="width:80px;" value="${qty || ''}">
-                <span class="mat-unit" style="font-size:12px;color:#7f8c8d;white-space:nowrap;">${unit || ''}</span>
-            </div>
-            <button type="button" onclick="this.closest('div').remove(); syncMaterialsText();" style="background:#e74c3c;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;"><i class="fas fa-trash"></i></button>
-        `;
-        container.appendChild(row);
-        syncMaterialsText();
-    }
-
-    function updateMatUnit(sel) {
-        const opt = sel.selectedOptions[0];
-        sel.closest('div').querySelector('.mat-unit').textContent = opt ? opt.dataset.unit : '';
-        syncMaterialsText();
-    }
-
-    function syncMaterialsText() {
-        const rows = document.querySelectorAll('#materialRows > div');
-        const lines = [];
-        rows.forEach(row => {
-            const sel = row.querySelector('select');
-            const qty = row.querySelector('input[type=number]');
-            if (sel && sel.value && qty && qty.value) {
-                const opt = sel.selectedOptions[0];
-                lines.push(`${opt.text.split(' (')[0]}: ${qty.value} ${opt.dataset.unit}`);
-            }
-        });
-        const txt = document.getElementById('materials_used_text');
-        if (txt) txt.value = lines.join('\n');
-    }
-
-    // Sync text before form submit + validate at least one material row
+    // Sync text before form submit + validate image
     document.getElementById('completeTaskForm').addEventListener('submit', function(e) {
-        syncMaterialsText();
-        const rows = document.querySelectorAll('#materialRows > div');
-        if (rows.length === 0) {
+        // Validate finished image is uploaded (required)
+        const imageInput = document.getElementById('finishedImage');
+        if (!imageInput || !imageInput.files || imageInput.files.length === 0) {
             e.preventDefault();
-            alert('Please add at least one material used.');
+            alert('Completed product image is required. Please upload a photo of the finished product.');
+            imageInput && imageInput.focus();
             return;
-        }
-        // Validate all rows filled
-        let valid = true;
-        rows.forEach(row => {
-            const sel = row.querySelector('select');
-            const qty = row.querySelector('input[type=number]');
-            if (!sel.value || !qty.value || parseFloat(qty.value) <= 0) valid = false;
-        });
-        if (!valid) {
-            e.preventDefault();
-            alert('Please fill in all material rows (select material and enter quantity).');
         }
     });
     </script>

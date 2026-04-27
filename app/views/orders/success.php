@@ -110,7 +110,19 @@ $paymentMethod = $specialInstructions['payment_method'] ?? 'cash';
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="p-3 bg-warning bg-opacity-10 rounded">
-                                <p class="mb-1 text-muted">Deposit Required (40%)</p>
+                                <p class="mb-1 text-muted">Deposit Required (<?php 
+                                    // Get deposit percentage from settings
+                                    $dp = 40;
+                                    try {
+                                        $dpStmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+                                        $dpStmt->execute();
+                                        $dpResult = $dpStmt->fetchColumn();
+                                        if ($dpResult !== false && floatval($dpResult) > 0) {
+                                            $dp = floatval($dpResult);
+                                        }
+                                    } catch (PDOException $e) {}
+                                    echo $dp;
+                                ?>%)</p>
                                 <h4 class="mb-0 text-warning">ETB <?php echo number_format($order['deposit_amount'], 2); ?></h4>
                             </div>
                         </div>

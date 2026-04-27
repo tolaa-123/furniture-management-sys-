@@ -41,6 +41,24 @@ try {
                 $pdo->prepare("UPDATE furn_orders SET status = 'payment_verified' WHERE id = ?")->execute([$payment['order_id']]);
             } elseif (in_array($payment['payment_type'], ['postpayment','final_payment','final','full_payment','remaining'])) {
                 $pdo->prepare("UPDATE furn_orders SET status = 'completed' WHERE id = ?")->execute([$payment['order_id']]);
+                
+                // Automatically calculate profit when order is completed
+                try {
+                    require_once __DIR__ . '/../../app/models/ProfitModel.php';
+                    $profitModel = new ProfitModel();
+                    
+                    // Check if profit already calculated
+                    $existingProfit = $profitModel->getOrderProfit($payment['order_id']);
+                    
+                    if (!$existingProfit) {
+                        // Calculate profit automatically
+                        $profitModel->calculateOrderProfit($payment['order_id']);
+                        error_log("Auto-calculated profit for order ID: " . $payment['order_id']);
+                    }
+                } catch (Exception $e) {
+                    // Log error but don't fail the payment verification
+                    error_log("Auto profit calculation error for order " . $payment['order_id'] . ": " . $e->getMessage());
+                }
             }
             // Notify customer
             $pdo->commit();

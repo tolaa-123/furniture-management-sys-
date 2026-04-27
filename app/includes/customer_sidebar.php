@@ -34,7 +34,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                 // Get pending orders count
                 if (isset($pdo) && isset($_SESSION['user_id'])) {
                     try {
-                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_orders WHERE customer_id = ? AND status IN ('pending_cost_approval', 'cost_estimated', 'waiting_for_deposit', 'awaiting_deposit')");
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM furn_orders WHERE customer_id = ? AND status IN ('pending_cost_approval', 'cost_estimated', 'awaiting_deposit')");
                         $stmt->execute([$_SESSION['user_id']]);
                         $pendingCount = $stmt->fetchColumn();
                         if ($pendingCount > 0) {

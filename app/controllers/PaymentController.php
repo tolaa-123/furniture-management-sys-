@@ -46,7 +46,7 @@ class PaymentController extends BaseController {
         }
         
         // Check if order is in correct status
-        if ($order['status'] !== 'waiting_for_deposit') {
+        if ($order['status'] !== 'cost_estimated') {
             $this->showError('Order is not ready for deposit payment');
             return;
         }
@@ -207,7 +207,7 @@ class PaymentController extends BaseController {
                         'order_status_changed',
                         'furn_orders',
                         $receipt['order_id'],
-                        ['status' => 'waiting_for_deposit'],
+                        ['status' => 'cost_estimated'],
                         ['status' => 'deposit_paid', 'deposit_paid' => $receipt['amount']]
                     );
                 } else {

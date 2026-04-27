@@ -60,8 +60,8 @@ try {
     $budgetRange = $_POST['budget_range'] ?? '';
     $preferredDeliveryDate = $_POST['preferred_delivery_date'] ?? null;
     
-    // Validation - Basic fields (furniture_name and material removed from form)
-    if (!$furnitureType || !$color || !$designDescription) {
+    // Validation - furniture_name and material are optional (not in form)
+    if (!$furnitureType || !$color) {
         throw new Exception('All required fields must be filled');
     }
     
@@ -143,27 +143,26 @@ try {
     
     // Begin transaction
     $pdo->beginTransaction();
-    
-    // Insert order with NEW ERP FIELDS (furniture_name and material set to NULL as removed from form)
+
     $stmt = $pdo->prepare("
         INSERT INTO furn_orders (
-            customer_id, order_number, furniture_type, furniture_name,
+            customer_id, order_number, furniture_type,
             length, width, height, 
             quantity, budget_range, preferred_delivery_date,
-            material, color, design_description, design_image, special_notes,
+            color, design_description, design_image, special_notes,
             status, created_at
-        ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 'pending_review', NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', NOW())
     ");
-    
+
     $stmt->execute([
         $customerId, $orderNumber, $furnitureType,
         $length, $width, $height,
         $quantity, $budgetRange, $preferredDeliveryDate,
         $color, $designDescription, $designImage, $specialNotes
     ]);
-    
+
     $orderId = $pdo->lastInsertId();
-    
+
     // Commit transaction before creating notification (DDL causes implicit commit)
     $pdo->commit();
     

@@ -35,7 +35,7 @@ if (!$order) {
 }
 
 // Check if order can be edited by manager
-$editableStatuses = ['pending_review', 'pending_cost_approval', 'cost_estimated', 'waiting_for_deposit'];
+$editableStatuses = ['pending_review', 'pending_cost_approval', 'cost_estimated'];
 if (!in_array($order['status'], $editableStatuses)) {
     $_SESSION['error_message'] = 'This order cannot be edited. It has already progressed beyond editing stage.';
     header('Location: ' . BASE_URL . '/public/manager/orders');

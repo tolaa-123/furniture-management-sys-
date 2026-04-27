@@ -580,7 +580,7 @@ if ($report === 'profit') {
         <?php else: ?>
         <div class="table-responsive">
         <table class="rpt-table">
-            <thead><tr><th>#</th><th>Order</th><th>Furniture</th><th>Employee</th><th>Progress</th><th>Status</th><th>Created</th><th>Completed</th></tr></thead>
+            <thead><tr><th>#</th><th>Furniture</th><th>Employee</th><th>Progress</th><th>Status</th><th>Created</th><th>Completed</th></tr></thead>
             <tbody>
             <?php foreach ($prodRows as $i => $r):
                 $sc = ['completed'=>'#27ae60','in_progress'=>'#3498db','pending'=>'#f39c12'][$r['status']] ?? '#888';
@@ -588,7 +588,6 @@ if ($report === 'profit') {
             ?>
             <tr>
                 <td style="color:#aaa;"><?php echo $i+1; ?></td>
-                <td><strong><?php echo htmlspecialchars($r['order_number'] ?? '—'); ?></strong></td>
                 <td><?php echo htmlspecialchars($r['furniture_name'] ?? $r['furniture_type'] ?? '—'); ?></td>
                 <td><?php echo htmlspecialchars($r['employee_name'] ?? '—'); ?></td>
                 <td>

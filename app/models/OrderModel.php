@@ -114,7 +114,7 @@ class OrderModel extends BaseModel {
      * Get orders needing deposit
      */
     public function getOrdersWaitingForDeposit() {
-        return $this->getOrdersByStatus('waiting_for_deposit');
+        return $this->getOrdersByStatus('cost_estimated');
     }
     
     /**
@@ -172,6 +172,24 @@ class OrderModel extends BaseModel {
         $remaining = $order['remaining_balance'] ?? 0;
         if ($newFinalPaid >= $remaining && $remaining > 0) {
             $data['status'] = 'completed';
+            
+            // Automatically calculate profit when order is completed
+            try {
+                require_once dirname(__DIR__) . '/models/ProfitModel.php';
+                $profitModel = new ProfitModel();
+                
+                // Check if profit already calculated
+                $existingProfit = $profitModel->getOrderProfit($orderId);
+                
+                if (!$existingProfit) {
+                    // Calculate profit automatically
+                    $profitModel->calculateOrderProfit($orderId);
+                    error_log("Auto-calculated profit for order ID: $orderId");
+                }
+            } catch (Exception $e) {
+                // Log error but don't fail the payment update
+                error_log("Auto profit calculation error for order $orderId: " . $e->getMessage());
+            }
         }
         
         // Clear cache when updating
@@ -198,15 +216,64 @@ class OrderModel extends BaseModel {
      * Start production for order
      */
     public function startProduction($orderId, $startDate = null) {
-        $data = [
-            'production_started_at' => $startDate ?: date('Y-m-d H:i:s'),
-            'status' => 'in_production'
-        ];
-        
-        // Clear cache when updating
-        QueryCache::delete('order_details_' . $orderId);
-        
-        return $this->update($orderId, $data);
+        try {
+            // Begin transaction for atomic operation
+            $this->db->beginTransaction();
+            
+            // Get all approved material requests for this order
+            $stmt = $this->db->prepare("
+                SELECT mr.material_id, COALESCE(mr.approved_quantity, mr.quantity_requested) as quantity_requested
+                FROM furn_material_requests mr
+                WHERE mr.order_id = ? AND mr.status = 'approved'
+            ");
+            $stmt->execute([$orderId]);
+            $approvedRequests = $stmt->fetchAll();
+            
+                // Do not deduct current stock here. Stock is deducted when usage is reported.
+                // At production start we only validate reservation integrity.
+            foreach ($approvedRequests as $request) {
+                $materialId = $request['material_id'];
+                    $quantity = floatval($request['quantity_requested']);
+                
+                    $checkStmt = $this->db->prepare("
+                        SELECT current_stock, COALESCE(reserved_stock,0) as reserved_stock
+                        FROM furn_materials
+                        WHERE id = ?
+                    ");
+                    $checkStmt->execute([$materialId]);
+                    $mat = $checkStmt->fetch();
+                    if (!$mat) {
+                        throw new Exception("Material not found for ID: $materialId");
+                    }
+                    if (floatval($mat['reserved_stock']) + 0.0001 < $quantity) {
+                        throw new Exception("Reserved stock mismatch for material ID: $materialId");
+                }
+            }
+            
+            // Update order status to in_production
+            $data = [
+                'production_started_at' => $startDate ?: date('Y-m-d H:i:s'),
+                'status' => 'in_production'
+            ];
+            
+            $this->update($orderId, $data);
+            
+            // Clear cache when updating
+            QueryCache::delete('order_details_' . $orderId);
+            
+            // Commit transaction
+            $this->db->commit();
+            
+            return true;
+            
+        } catch (Exception $e) {
+            // Rollback on error
+            if ($this->db->inTransaction()) {
+                $this->db->rollback();
+            }
+            error_log("Start production error: " . $e->getMessage());
+            throw $e;
+        }
     }
     
     /**

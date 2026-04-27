@@ -4,10 +4,19 @@ require_once '../../config/config.php';
 require_once '../../config/db_config.php';
 header('Content-Type: application/json');
 
+// Check database connection
+if (!isset($pdo) || !$pdo) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'customer') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
+
+// Define CSRF token name if not defined
+if (!defined('CSRF_TOKEN_NAME')) define('CSRF_TOKEN_NAME', 'csrf_token');
 
 try {
     // CSRF validation using the app constant
@@ -86,6 +95,8 @@ try {
     
     echo json_encode(['success' => true, 'message' => 'Payment submitted successfully']);
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

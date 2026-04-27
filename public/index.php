@@ -687,14 +687,7 @@ switch ($route) {
         include_once '../app/views/manager/completed_tasks.php';
         break;
         
-    case 'manager/employee-performance':
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
-            header('Location: ' . BASE_URL . '/public/login');
-            exit();
-        }
-        include_once '../app/views/manager/employee_performance.php';
-        break;
-        
+
     case 'manager/complaints':
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
             header('Location: ' . BASE_URL . '/public/login');
@@ -709,6 +702,14 @@ switch ($route) {
             exit();
         }
         include_once '../app/views/manager/inventory.php';
+        break;
+
+    case 'manager/supplier-request':
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'manager') {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/supplier_request.php';
         break;
 
     case 'manager/material-report':
@@ -1004,7 +1005,7 @@ switch ($route) {
             $orderModel = new OrderModel();
             $orderId = $matches[1];
             // Mock data for demo
-            $order = ['id' => $orderId, 'order_number' => 'ORD202602220001', 'status' => 'waiting_for_deposit', 'total_amount' => 15000.00, 'deposit_amount' => 7500.00, 'created_at' => date('Y-m-d H:i:s')];
+            $order = ['id' => $orderId, 'order_number' => 'ORD202602220001', 'status' => 'cost_estimated', 'total_amount' => 15000.00, 'deposit_amount' => 7500.00, 'created_at' => date('Y-m-d H:i:s')];
             include_once '../app/views/payments/upload_deposit.php';
         } elseif (preg_match('#^payments/upload-final/([0-9]+)$#', $route, $matches)) {
             // Load final payment upload page
@@ -1034,7 +1035,7 @@ switch ($route) {
             $orderModel = new OrderModel();
             $receiptId = $matches[1];
             // Mock data for demo
-            $receipt = ['id' => $receiptId, 'order_number' => 'ORD202602220001', 'payment_type' => 'deposit', 'amount' => 7500.00, 'status' => 'pending', 'receipt_image_path' => '/uploads/receipts/demo.jpg', 'first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'order_status' => 'waiting_for_deposit', 'total_amount' => 15000.00, 'deposit_amount' => 7500.00];
+            $receipt = ['id' => $receiptId, 'order_number' => 'ORD202602220001', 'payment_type' => 'deposit', 'amount' => 7500.00, 'status' => 'pending', 'receipt_image_path' => '/uploads/receipts/demo.jpg', 'first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'order_status' => 'cost_estimated', 'total_amount' => 15000.00, 'deposit_amount' => 7500.00];
             include_once '../app/views/payments/verify_payment.php';
         } elseif (preg_match('#^production/assign/([0-9]+)$#', $route, $matches)) {
             // Load order assignment page

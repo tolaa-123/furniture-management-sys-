@@ -9,6 +9,20 @@ require_once __DIR__ . '/../../../config/db_config.php';
 $managerName = $_SESSION['user_name'] ?? 'Manager User';
 $managerId = $_SESSION['user_id'];
 
+// Get deposit percentage from settings (default 40%)
+$depositPercentage = 40;
+try {
+    $stmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+    $stmt->execute();
+    $result = $stmt->fetchColumn();
+    if ($result !== false && floatval($result) > 0) {
+        $depositPercentage = floatval($result);
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching deposit percentage: " . $e->getMessage());
+}
+$remainingPercentage = 100 - $depositPercentage;
+
 // Ensure CSRF token exists
 if (!isset($_SESSION[CSRF_TOKEN_NAME])) {
     $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
@@ -426,14 +440,18 @@ $pageTitle = 'Cost Estimation - Review Orders';
                         </div>
                         <?php endif; ?>
                         
-                        <form class="estimation-form-data" data-order-id="<?php echo $order['id']; ?>">
+                        <form class="estimation-form-data" data-order-id="<?php echo $order['id']; ?>" data-budget-range="<?php echo htmlspecialchars($order['budget_range'] ?? ''); ?>">
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label class="form-label"><i class="fas fa-money-bill-wave"></i> Estimated Cost (ETB) *</label>
                                     <input type="number" name="estimated_cost" class="form-control estimated-cost" 
                                            step="0.01" min="0" required 
                                            placeholder="e.g., 5000.00"
-                                           onchange="calculateDeposit(<?php echo $order['id']; ?>)">
+                                           oninput="calculateDeposit(<?php echo $order['id']; ?>)">
+                                    <div class="budget-warning" id="budget-warning-<?php echo $order['id']; ?>" style="display:none;color:#E74C3C;font-size:12px;font-weight:600;margin-top:5px;">
+                                        <i class="fas fa-exclamation-triangle"></i> Cost exceeds customer's budget range!
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label"><i class="fas fa-calendar-days"></i> Production Days *</label>
@@ -451,15 +469,20 @@ $pageTitle = 'Cost Estimation - Review Orders';
 
                             <div class="cost-summary" id="cost-summary-<?php echo $order['id']; ?>">
                                 <div class="cost-item">
-                                    <span><i class="fas fa-receipt"></i> Estimated Total Cost:</span>
+                                    <span><i class="fas fa-receipt"></i> Original Estimate:</span>
+                                    <span class="original-cost-display">ETB 0.00</span>
+                                </div>
+
+                                <div class="cost-item">
+                                    <span><i class="fas fa-money-check-alt"></i> Final Total Cost:</span>
                                     <span class="total-cost">ETB 0.00</span>
                                 </div>
                                 <div class="cost-item">
-                                    <span><i class="fas fa-hand-holding-usd"></i> Deposit Required (40%):</span>
+                                    <span><i class="fas fa-hand-holding-usd"></i> Deposit Required (<?php echo $depositPercentage; ?>%):</span>
                                     <span class="deposit-amount">ETB 0.00</span>
                                 </div>
                                 <div class="cost-item">
-                                    <span><i class="fas fa-balance-scale"></i> Remaining Balance (60%):</span>
+                                    <span><i class="fas fa-balance-scale"></i> Remaining Balance (<?php echo $remainingPercentage; ?>%):</span>
                                     <span class="remaining-balance">ETB 0.00</span>
                                 </div>
                             </div>
@@ -479,13 +502,36 @@ $pageTitle = 'Cost Estimation - Review Orders';
         function calculateDeposit(orderId) {
             const form = document.querySelector(`form[data-order-id="${orderId}"]`);
             const estimatedCost = parseFloat(form.querySelector('.estimated-cost').value) || 0;
-            const depositAmount = estimatedCost * 0.40;
-            const remainingBalance = estimatedCost * 0.60;
+            
+            // Get deposit percentage from PHP (passed from backend)
+            const depositPercentage = <?php echo isset($depositPercentage) ? $depositPercentage : 40; ?>;
+            
+            const depositAmount = estimatedCost * (depositPercentage / 100);
+            const remainingBalance = estimatedCost * ((100 - depositPercentage) / 100);
 
             const summary = document.getElementById(`cost-summary-${orderId}`);
             summary.querySelector('.total-cost').textContent = 'ETB ' + estimatedCost.toFixed(2);
             summary.querySelector('.deposit-amount').textContent = 'ETB ' + depositAmount.toFixed(2);
             summary.querySelector('.remaining-balance').textContent = 'ETB ' + remainingBalance.toFixed(2);
+
+            // Budget range validation
+            const budgetRange = form.dataset.budgetRange || '';
+            const warning = document.getElementById(`budget-warning-${orderId}`);
+            const costInput = form.querySelector('.estimated-cost');
+            let maxBudget = null;
+
+            if (budgetRange === 'Under ETB 5,000')          maxBudget = 5000;
+            else if (budgetRange === 'ETB 5,000 - ETB 10,000')  maxBudget = 10000;
+            else if (budgetRange === 'ETB 10,000 - ETB 20,000') maxBudget = 20000;
+            // 'Above ETB 20,000' has no upper limit
+
+            if (maxBudget !== null && estimatedCost > maxBudget) {
+                warning.style.display = 'block';
+                costInput.style.borderColor = '#E74C3C';
+            } else {
+                warning.style.display = 'none';
+                costInput.style.borderColor = '';
+            }
         }
 
         $(document).ready(function() {
@@ -498,6 +544,9 @@ $pageTitle = 'Cost Estimation - Review Orders';
                 const estimatedDays = parseInt(form.find('[name="estimated_production_days"]').val());
                 const managerNotes = form.find('[name="manager_notes"]').val();
                 
+                // Get deposit percentage from PHP
+                const depositPercentage = <?php echo $depositPercentage; ?>;
+                
                 if (!estimatedCost || estimatedCost <= 0) {
                     showMessage('Please enter a valid estimated cost', 'error');
                     return;
@@ -507,8 +556,25 @@ $pageTitle = 'Cost Estimation - Review Orders';
                     showMessage('Please enter estimated production days', 'error');
                     return;
                 }
-                
-                const depositAmount = estimatedCost * 0.40;
+
+                // Budget range validation — cost must be <= customer's budget max
+                const budgetRange = form.data('budget-range') || '';
+                let maxBudget = null;
+                if (budgetRange === 'Under ETB 5,000')             maxBudget = 5000;
+                else if (budgetRange === 'ETB 5,000 - ETB 10,000')  maxBudget = 10000;
+                else if (budgetRange === 'ETB 10,000 - ETB 20,000') maxBudget = 20000;
+
+                if (maxBudget !== null && estimatedCost > maxBudget) {
+                    const errMsg = '❌ Cost exceeds budget limit of ETB ' + maxBudget.toLocaleString() + '.';
+                    showMessage(errMsg, 'error');
+                    $('html, body').animate({ scrollTop: $('#messageContainer').offset().top - 80 }, 400);
+                    form.find('.estimated-cost').css('border-color', '#E74C3C').focus();
+                    return;
+                }
+                // Reset border if valid
+                form.find('.estimated-cost').css('border-color', '');
+
+                const depositAmount = estimatedCost * (depositPercentage / 100);
                 const submitBtn = form.find('button[type="submit"]');
                 
                 submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Submitting...');

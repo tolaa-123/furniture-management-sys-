@@ -5,6 +5,16 @@ ob_end_clean();
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+// Check database connection
+if (!$pdo) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+// Define CSRF token name if not defined
+if (!defined('CSRF_TOKEN_NAME')) define('CSRF_TOKEN_NAME', 'csrf_token');
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 // Download actions send file headers — everything else sends JSON
@@ -46,15 +56,29 @@ function generateSqlDump($pdo) {
         $sql .= "DROP TABLE IF EXISTS `$table`;\n";
         $sql .= $create[1] . ";\n\n";
 
-        $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll(PDO::FETCH_NUM);
-        if (!empty($rows)) {
-            $sql .= "INSERT INTO `$table` VALUES\n";
-            $parts = [];
-            foreach ($rows as $row) {
-                $vals = array_map(fn($v) => $v === null ? 'NULL' : "'" . addslashes($v) . "'", $row);
-                $parts[] = '(' . implode(',', $vals) . ')';
+        // Use unbuffered query for large tables to reduce memory usage
+        $stmt = $pdo->query("SELECT * FROM `$table`");
+        $rowCount = 0;
+        $parts = [];
+        
+        while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+            $vals = array_map(function($v) {
+                if ($v === null) return 'NULL';
+                return "'" . addslashes($v) . "'";
+            }, $row);
+            $parts[] = '(' . implode(',', $vals) . ')';
+            $rowCount++;
+            
+            // Write in batches of 100 rows to manage memory
+            if ($rowCount % 100 === 0) {
+                $sql .= "INSERT INTO `$table` VALUES\n" . implode(",\n", $parts) . ";\n\n";
+                $parts = [];
             }
-            $sql .= implode(",\n", $parts) . ";\n\n";
+        }
+        
+        // Write remaining rows
+        if (!empty($parts)) {
+            $sql .= "INSERT INTO `$table` VALUES\n" . implode(",\n", $parts) . ";\n\n";
         }
     }
     $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";

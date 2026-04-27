@@ -12,6 +12,12 @@ if (!$csrf_token) {
 }
 
 require_once __DIR__ . '/../../../config/db_config.php';
+
+// Check database connection
+if (!$pdo) {
+    die('<div style="padding:20px;background:#f8d7da;color:#721c24;border-radius:8px;margin:20px;text-align:center;"><h3>Database Connection Error</h3><p>Unable to connect to the database. Please check your configuration.</p></div>');
+}
+
 $adminName = $_SESSION['user_name'] ?? 'Admin User';
 
 // Handle employee actions
@@ -172,6 +178,35 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/assets/css/admin-responsive.css">
+    <style>
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
     
 </head>
 <body>
@@ -190,15 +225,6 @@ try {
     $pageTitle = 'Employees';
     include_once __DIR__ . '/../../includes/admin_header.php'; 
     ?>
-        <div class="system-status"><span style="width: 10px; height: 10px; background: white; border-radius: 50%; display: inline-block;"></span><span>Operational</span></div>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <div class="notification-bell"><i class="fas fa-bell"></i><?php if($stats['pending_orders'] > 0): ?><span class="notification-badge"><?php echo $stats['pending_orders']; ?></span><?php endif; ?></div>
-            <div class="admin-profile">
-                <div class="admin-avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
-                <div><div style="font-size: 14px; font-weight: 600;"><?php echo htmlspecialchars($adminName); ?></div><div class="admin-role-badge">Administrator</div></div>
-            </div>
-        </div>
-    </div>
 
     <div class="main-content">
         <h2 style="margin-bottom: 30px; color: #2c3e50;">Employees Management</h2>
@@ -240,10 +266,10 @@ try {
                             <td><?php echo htmlspecialchars($emp['phone']); ?></td>
                             <td><?php echo date('M j, Y', strtotime($emp['created_at'])); ?></td>
                             <td>
-                                <button class="btn-action btn-primary-custom" onclick='editEmployee(<?php echo json_encode($emp); ?>)'><i class="fas fa-edit"></i> Edit</button>
+                                <button class="btn-action btn-primary-custom" onclick="editEmployee(<?php echo htmlspecialchars(json_encode($emp), ENT_QUOTES, 'UTF-8'); ?>)"><i class="fas fa-edit"></i> Edit</button>
                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Deactivate this employee?');">
                                     <input type="hidden" name="action" value="deactivate">
-                                    <input type="hidden" name="employee_id" value="<?php echo $emp['id'] ?? ''; ?>">
+                                    <input type="hidden" name="employee_id" value="<?php echo intval($emp['id'] ?? 0); ?>">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? $csrf_token); ?>">
                                     <button type="submit" class="btn-action btn-danger-custom"><i class="fas fa-ban"></i> Deactivate</button>
                                 </form>

@@ -359,7 +359,127 @@ try {
         </div>
         </div><!-- end tab-summary -->
 
+        <!-- ══ OVERTIME TABLE (always visible below all tabs) ══ -->
+        <div class="section-card" style="margin-top:20px;" id="overtimeSection">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+                <div>
+                    <h2 class="section-title" style="margin:0;"><i class="fas fa-clock" style="color:#F39C12;"></i> Overtime Hours</h2>
+                    <p style="margin:4px 0 0;font-size:13px;color:#7F8C8D;"><?php echo count($employees); ?> employees &nbsp;|&nbsp; Enter overtime hours worked beyond standard 8hrs/day</p>
+                </div>
+            </div>
+
+            <?php if (empty($employees)): ?>
+                <p style="text-align:center;color:#95A5A6;padding:30px 0;">No employees found.</p>
+            <?php else: ?>
+            <form method="POST" action="<?php echo BASE_URL; ?>/public/manager/attendance" id="otForm">
+                <input type="hidden" name="action" value="save_overtime">
+                <input type="hidden" name="csrf_token" value="<?php echo bin2hex(random_bytes(16)); ?>">
+                <input type="hidden" name="date" value="<?php echo date('Y-m-d'); ?>">
+
+                <div class="table-responsive">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#2C3E50;color:#fff;">
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:left;width:40px;">#</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:left;">Employee</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:left;">Position</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:center;width:120px;">OT Hours</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:center;width:130px;">OT Rate (ETB/hr)</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:center;width:140px;">OT Pay (ETB)</th>
+                            <th style="padding:12px 10px;font-size:12px;font-weight:700;text-align:left;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($employees as $i => $emp):
+                        $empId = $emp['id'];
+                        $initials = strtoupper(substr($emp['first_name'],0,1).substr($emp['last_name'],0,1));
+                        $avatarColors = ['#3498DB','#27AE60','#E74C3C','#9B59B6','#F39C12','#1ABC9C','#E67E22','#2980B9'];
+                        $avatarColor  = $avatarColors[$empId % count($avatarColors)];
+                        $otRate = 0;
+                        try {
+                            $sr = $pdo->prepare("SELECT overtime_rate FROM furn_employee_salary WHERE employee_id=?");
+                            $sr->execute([$empId]);
+                            $otRate = floatval($sr->fetchColumn() ?: 0);
+                        } catch(PDOException $e){}
+                        $existOT = 0; $existOTNote = '';
+                        try {
+                            $attCols = $pdo->query("SHOW COLUMNS FROM furn_attendance")->fetchAll(PDO::FETCH_COLUMN);
+                            $dateExpr = in_array('date', $attCols) ? 'date' : 'DATE(check_in_time)';
+                            if (in_array('overtime_hours', $attCols)) {
+                                $otr = $pdo->prepare("SELECT overtime_hours, notes FROM furn_attendance WHERE employee_id=? AND $dateExpr=? ORDER BY id DESC LIMIT 1");
+                                $otr->execute([$empId, date('Y-m-d')]);
+                                $otRow = $otr->fetch(PDO::FETCH_ASSOC);
+                                if ($otRow) { $existOT = floatval($otRow['overtime_hours']); $existOTNote = $otRow['notes'] ?? ''; }
+                            }
+                        } catch(PDOException $e){}
+                    ?>
+                    <tr style="border-bottom:1px solid #F0F0F0;">
+                        <td style="padding:10px;font-weight:600;color:#95A5A6;font-size:13px;"><?php echo $i+1; ?></td>
+                        <td style="padding:10px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div class="emp-avatar-placeholder" style="background:<?php echo $avatarColor; ?>;"><?php echo $initials; ?></div>
+                                <div>
+                                    <div style="font-weight:600;font-size:13px;"><?php echo htmlspecialchars($emp['first_name'].' '.$emp['last_name']); ?></div>
+                                    <div style="font-size:11px;color:#95A5A6;"><?php echo htmlspecialchars($emp['email']); ?></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding:10px;">
+                            <span style="background:#3498DB18;color:#3498DB;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;">
+                                <?php echo htmlspecialchars($emp['position'] ?? 'Employee'); ?>
+                            </span>
+                        </td>
+                        <td style="padding:10px;text-align:center;">
+                            <input type="number" name="ot_hours[<?php echo $empId; ?>]"
+                                   id="adm-ot-hrs-<?php echo $empId; ?>"
+                                   value="<?php echo $existOT; ?>"
+                                   min="0" max="24" step="0.5"
+                                   style="width:90px;padding:7px 10px;border:2px solid #E0E0E0;border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none;color:#F39C12;"
+                                   oninput="admCalcOTPay(<?php echo $empId; ?>, <?php echo $otRate; ?>)"
+                                   onfocus="this.style.borderColor='#F39C12'" onblur="this.style.borderColor='#E0E0E0'">
+                        </td>
+                        <td style="padding:10px;text-align:center;font-weight:600;color:#555;">
+                            ETB <?php echo number_format($otRate, 2); ?>
+                            <input type="hidden" name="ot_rate[<?php echo $empId; ?>]" value="<?php echo $otRate; ?>">
+                        </td>
+                        <td style="padding:10px;text-align:center;font-weight:700;color:#27AE60;" id="adm-ot-pay-<?php echo $empId; ?>">
+                            ETB <?php echo number_format($existOT * $otRate, 2); ?>
+                        </td>
+                        <td style="padding:10px;">
+                            <input type="text" name="ot_notes[<?php echo $empId; ?>]"
+                                   value="<?php echo htmlspecialchars($existOTNote); ?>"
+                                   placeholder="Optional note..."
+                                   style="width:150px;padding:6px 8px;border:1.5px solid #E0E0E0;border-radius:6px;font-size:12px;font-family:inherit;">
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                </div>
+
+                <div style="margin-top:16px;padding:14px 18px;background:#FEF9E7;border-radius:10px;border-left:4px solid #F39C12;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <div style="font-size:13px;color:#555;">
+                        <strong>OT Rate</strong> is set per employee in <a href="<?php echo BASE_URL; ?>/public/admin/employees" style="color:#3498DB;font-weight:600;">Admin → Employees</a>.
+                        OT Pay = OT Hours × OT Rate.
+                    </div>
+                    <button type="submit" style="padding:11px 28px;background:linear-gradient(135deg,#F39C12,#E67E22);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+                        <i class="fas fa-save"></i> Save Overtime
+                    </button>
+                </div>
+            </form>
+            <?php endif; ?>
+        </div>
+
     </div><!-- end main-content -->
+
+    <script>
+    function admCalcOTPay(empId, rate) {
+        const hrs = parseFloat(document.getElementById('adm-ot-hrs-' + empId)?.value || 0);
+        const pay = hrs * rate;
+        const el  = document.getElementById('adm-ot-pay-' + empId);
+        if (el) el.textContent = 'ETB ' + pay.toLocaleString('en', {minimumFractionDigits:2});
+    }
+    </script>
 
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>
     <script>

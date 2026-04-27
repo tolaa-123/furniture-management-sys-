@@ -272,7 +272,7 @@ $pageTitle = 'Payment Verification';
                         <thead>
                             <tr>
                                 <th>Payment ID</th>
-                                <th>Order ID</th>
+                                <th>Furniture</th>
                                 <th>Customer</th>
                                 <th>Type</th>
                                 <th>Amount</th>
@@ -285,7 +285,7 @@ $pageTitle = 'Payment Verification';
                             <?php foreach ($pendingPayments as $payment): ?>
                                 <tr>
                                     <td>#<?php echo $payment['payment_id'] ?? 'N/A'; ?></td>
-                                    <td>#<?php echo $payment['order_id'] ?? 'N/A'; ?></td>
+                                    <td><?php echo htmlspecialchars($payment['furniture_name'] ?? $payment['furniture_type'] ?? 'N/A'); ?></td>
                                     <td>
                                         <strong><?php echo htmlspecialchars($payment['customer_name'] ?? 'N/A'); ?></strong><br>
                                         <small><?php echo htmlspecialchars($payment['customer_email'] ?? ''); ?></small>
@@ -380,7 +380,7 @@ $pageTitle = 'Payment Verification';
                         <thead>
                             <tr>
                                 <th>Payment ID</th>
-                                <th>Order ID</th>
+                                <th>Furniture</th>
                                 <th>Customer</th>
                                 <th>Amount</th>
                                 <th>Verified By</th>
@@ -392,7 +392,7 @@ $pageTitle = 'Payment Verification';
                             <?php foreach ($verifiedPayments as $payment): ?>
                                 <tr>
                                     <td>#<?php echo $payment['payment_id'] ?? $payment['id'] ?? 'N/A'; ?></td>
-                                    <td>#<?php echo $payment['order_id'] ?? 'N/A'; ?></td>
+                                    <td><?php echo htmlspecialchars($payment['furniture_name'] ?? $payment['furniture_type'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($payment['customer_name'] ?? 'N/A'); ?></td>
                                     <td>ETB <?php echo number_format($payment['amount'] ?? 0, 2); ?></td>
                                     <td><?php echo htmlspecialchars($payment['verified_by_name'] ?? 'N/A'); ?></td>

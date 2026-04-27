@@ -3,6 +3,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: ' . BASE_URL . '/public/login'); exit();
 }
 require_once __DIR__ . '/../../../config/db_config.php';
+
+// Check database connection
+if (!$pdo) {
+    die('<div style="padding:20px;background:#f8d7da;color:#721c24;border-radius:8px;margin:20px;text-align:center;"><h3>Database Connection Error</h3><p>Unable to connect to the database. Please check your configuration.</p></div>');
+}
+
 $adminName = $_SESSION['user_name'] ?? 'Admin User';
 
 // ── Date range & active tab ──
@@ -342,9 +348,9 @@ $pageTitle = 'Reports';
     <div class="section-card" style="padding:0;overflow:hidden;">
         <?php if(empty($prodRows)): ?><div class="empty-rpt"><i class="fas fa-industry"></i>No production tasks found.</div>
         <?php else: ?><div class="table-responsive"><table class="rpt-table">
-            <thead><tr><th>#</th><th>Order</th><th>Furniture</th><th>Employee</th><th>Progress</th><th>Status</th><th>Created</th><th>Completed</th></tr></thead>
+            <thead><tr><th>#</th><th>Furniture</th><th>Employee</th><th>Progress</th><th>Status</th><th>Created</th><th>Completed</th></tr></thead>
             <tbody><?php foreach($prodRows as $i=>$r): $sc=['completed'=>'#27ae60','in_progress'=>'#3498db','pending'=>'#f39c12'][$r['status']]??'#888'; $prog=intval($r['progress']); ?>
-            <tr><td style="color:#aaa;"><?php echo $i+1; ?></td><td><strong><?php echo htmlspecialchars($r['order_number']??'—'); ?></strong></td><td><?php echo htmlspecialchars($r['furniture_name']??$r['furniture_type']??'—'); ?></td><td><?php echo htmlspecialchars($r['employee_name']??'—'); ?></td>
+            <tr><td style="color:#aaa;"><?php echo $i+1; ?></td><td><?php echo htmlspecialchars($r['furniture_name']??$r['furniture_type']??'—'); ?></td><td><?php echo htmlspecialchars($r['employee_name']??'—'); ?></td>
             <td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;background:#f0f0f0;border-radius:6px;height:8px;min-width:80px;"><div style="background:<?php echo $sc; ?>;height:100%;border-radius:6px;width:<?php echo $prog; ?>%;"></div></div><span style="font-size:12px;font-weight:600;color:<?php echo $sc; ?>;min-width:32px;"><?php echo $prog; ?>%</span></div></td>
             <td><span style="background:<?php echo $sc; ?>18;color:<?php echo $sc; ?>;border-radius:12px;padding:3px 10px;font-size:11px;font-weight:600;"><?php echo ucwords(str_replace('_',' ',$r['status'])); ?></span></td>
             <td><?php echo date('M j, Y',strtotime($r['created_at'])); ?></td><td><?php echo $r['completed_at']?date('M j, Y',strtotime($r['completed_at'])):'—'; ?></td></tr>

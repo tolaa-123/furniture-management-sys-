@@ -43,12 +43,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                         WHERE t.id = ? AND o.status IN ('in_production','payment_verified','deposit_paid')
                     ")->execute([$taskId]);
                 } elseif ($stage === 'in_progress') {
-                    $pdo->prepare("
-                        UPDATE furn_orders o
-                        JOIN furn_production_tasks t ON t.order_id = o.id
-                        SET o.status = 'in_production'
-                        WHERE t.id = ? AND o.status IN ('payment_verified','deposit_paid')
-                    ")->execute([$taskId]);
+                    // Get order_id from task
+                    $taskStmt = $pdo->prepare("SELECT order_id FROM furn_production_tasks WHERE id = ?");
+                    $taskStmt->execute([$taskId]);
+                    $taskOrderId = $taskStmt->fetchColumn();
+                    
+                    if ($taskOrderId) {
+                        // Use OrderModel to start production (this will automatically deduct reserved materials)
+                        require_once __DIR__ . '/../../../app/models/OrderModel.php';
+                        $orderModel = new OrderModel();
+                        
+                        try {
+                            // Check if order is in correct status before starting production
+                            $orderStmt = $pdo->prepare("SELECT status FROM furn_orders WHERE id = ?");
+                            $orderStmt->execute([$taskOrderId]);
+                            $currentStatus = $orderStmt->fetchColumn();
+                            
+                            if (in_array($currentStatus, ['payment_verified', 'deposit_paid'])) {
+                                // Start production - this will deduct reserved stock automatically
+                                $orderModel->startProduction($taskOrderId);
+                            }
+                        } catch (Exception $e) {
+                            error_log("Production start error: " . $e->getMessage());
+                            // Continue anyway - status will be updated
+                        }
+                    }
                 }
                 $_SESSION['prod_success'] = 'Task #' . $taskId . ' updated to ' . ucfirst(str_replace('_',' ',$stage)) . '.';
                 header('Location: ' . BASE_URL . '/public/manager/production');
@@ -155,7 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                     <thead>
                         <tr>
                             <th>Task ID</th>
-                            <th>Order</th>
                             <th>Customer</th>
                             <th>Furniture</th>
                             <th>Assigned Employee</th>
@@ -167,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                     </thead>
                     <tbody>
                         <?php if (empty($productionOrders)): ?>
-                            <tr><td colspan="9" style="text-align:center;padding:40px;color:#aaa;">
+                            <tr><td colspan="8" style="text-align:center;padding:40px;color:#aaa;">
                                 <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
                                 No production tasks yet. Assign employees to orders from the <a href="<?php echo BASE_URL; ?>/public/manager/assign-employees">Assign Employees</a> page.
                             </td></tr>
@@ -184,7 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stage'])) {
                                 ?>
                                 <tr>
                                     <td>#<?php echo $task['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($task['order_number'] ?? '#'.$task['order_id']); ?></td>
                                     <td><?php echo htmlspecialchars($task['customer_name'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($task['furniture_name'] ?? $task['furniture_type'] ?? 'Other'); ?></td>
                                     <td><?php echo htmlspecialchars($task['employee_name'] ?? 'Unassigned'); ?></td>

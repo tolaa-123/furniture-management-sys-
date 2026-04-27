@@ -32,7 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($matIds as $i => $matId) {
                 $matId = intval($matId);
                 $qty   = floatval($matQtys[$i] ?? 0);
-                if (!$matId || $qty <= 0) continue;
+                if (!$matId) continue;
+                
+                // Validate: quantity must be >= 1
+                if ($qty < 1) {
+                    throw new Exception("Material quantity must be at least 1. Please enter a valid quantity.");
+                }
 
                 // Server-side: validate qty <= available stock
                 $stockStmt = $pdo->prepare("SELECT (current_stock - COALESCE(reserved_stock,0)) as available, name FROM furn_materials WHERE id = ?");
@@ -93,6 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtIns = $pdo->prepare("
                 INSERT INTO furn_material_usage (employee_id, task_id, material_id, quantity_used, waste_amount, notes, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, NOW())
+                ON DUPLICATE KEY UPDATE
+                    quantity_used = quantity_used + VALUES(quantity_used),
+                    waste_amount  = waste_amount  + VALUES(waste_amount),
+                    notes         = VALUES(notes)
             ");
             
             // Also save to furn_order_materials for profit calculation (CONSOLIDATION)
@@ -129,19 +138,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $matId = intval($matId);
                 $qty   = floatval($matQtys[$i] ?? 0);
                 $waste = floatval($matWastes[$i] ?? 0);
-                if (!$matId || $qty <= 0) continue;
+                if (!$matId) continue;
+                
+                // Validate: quantity used must be >= 1
+                if ($qty < 1) {
+                    throw new Exception("Material quantity used must be at least 1. Please enter a valid quantity.");
+                }
 
                 // Validate: must have approved request for this material
                 $stmtCheckApproved->execute([$employeeId, $matId]);
                 $approvedQty = floatval($stmtCheckApproved->fetchColumn());
+
+                // Get material name for clear error messages
+                $matNameStmt = $pdo->prepare("SELECT name FROM furn_materials WHERE id = ?");
+                $matNameStmt->execute([$matId]);
+                $matName = $matNameStmt->fetchColumn() ?: "Material ID $matId";
+
                 if ($approvedQty <= 0) {
-                    throw new Exception("No approved request found for material ID $matId. Request and get approval first.");
-                }
-                if ($qty > $approvedQty) {
-                    throw new Exception("Quantity ($qty) exceeds approved amount ($approvedQty) for material ID $matId.");
+                    throw new Exception("No approved request found for \"$matName\". Request and get approval first.");
                 }
 
                 $totalConsumed = $qty + $waste;
+
+                // Validate: used + wasted must be <= approved quantity
+                if ($totalConsumed > $approvedQty) {
+                    throw new Exception(
+                        "\"$matName\": used ($qty) + waste ($waste) = $totalConsumed exceeds approved amount ($approvedQty). " .
+                        "Total consumed must be ≤ $approvedQty."
+                    );
+                }
                 $stmtIns->execute([$employeeId, $taskId ?: null, $matId, $qty, $waste, $notes]);
                 
                 // CONSOLIDATION: Also log to furn_order_materials for profit tracking
@@ -149,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmtOrderMat->execute([$orderId, $taskId, $qty, $qty, $matId]);
                 }
                 
-                $stmtReduceReq->execute([$qty, $employeeId, $matId]);
+                $stmtReduceReq->execute([$totalConsumed, $employeeId, $matId]);
                 $stmtDeductStock->execute([$totalConsumed, $totalConsumed, $matId]);
                 $count++;
             }
@@ -234,8 +259,11 @@ try {
         waste_amount DECIMAL(10,2) DEFAULT 0,
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX(employee_id), INDEX(material_id)
+        INDEX(employee_id), INDEX(material_id),
+        UNIQUE KEY uq_emp_task_mat (employee_id, task_id, material_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Add unique key if table already exists (for existing installs)
+    try { $pdo->exec("ALTER TABLE furn_material_usage ADD UNIQUE KEY uq_emp_task_mat (employee_id, task_id, material_id)"); } catch (PDOException $e2) {}
 } catch (PDOException $e) { error_log("Create usage table: " . $e->getMessage()); }
 
 // Fetch this employee's material requests
@@ -250,24 +278,43 @@ try {
         LEFT JOIN furn_materials m ON mr.material_id = m.id
         LEFT JOIN furn_orders o ON mr.order_id = o.id
         LEFT JOIN furn_users a ON mr.approved_by = a.id
-        WHERE mr.employee_id = ?
+        WHERE mr.employee_id = ? AND mr.quantity_requested > 0
         ORDER BY mr.created_at DESC
     ");
     $stmt->execute([$employeeId]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Requests error: " . $e->getMessage()); }
 
-// Fetch usage history
+// Fetch usage history - grouped by material to avoid duplicates
 $usageHistory = [];
 try {
     $stmt = $pdo->prepare("
-        SELECT mu.*, m.material_name, m.unit, t.id as task_number, o.order_number
+        SELECT
+            MIN(mu.id) as id,
+            m.name as material_name,
+            m.unit,
+            COALESCE(
+                o.furniture_name,
+                o.furniture_type,
+                o2.furniture_name,
+                o2.furniture_type,
+                'N/A'
+            ) as furniture_name,
+            SUM(mu.quantity_used) as quantity_used,
+            SUM(mu.waste_amount) as waste_amount,
+            MAX(mu.created_at) as created_at
         FROM furn_material_usage mu
         LEFT JOIN furn_materials m ON mu.material_id = m.id
         LEFT JOIN furn_production_tasks t ON mu.task_id = t.id
         LEFT JOIN furn_orders o ON t.order_id = o.id
+        LEFT JOIN furn_material_requests mr
+            ON mr.employee_id = mu.employee_id
+            AND mr.material_id = mu.material_id
+            AND mr.status = 'approved'
+        LEFT JOIN furn_orders o2 ON mr.order_id = o2.id
         WHERE mu.employee_id = ?
-        ORDER BY mu.created_at DESC
+        GROUP BY mu.material_id, COALESCE(t.order_id, mr.order_id)
+        ORDER BY MAX(mu.created_at) DESC
         LIMIT 50
     ");
     $stmt->execute([$employeeId]);
@@ -404,9 +451,8 @@ try {
                SUM(mr.quantity_requested) as approved_qty
         FROM furn_material_requests mr
         JOIN furn_materials m ON mr.material_id = m.id
-        WHERE mr.employee_id = ? AND mr.status = 'approved'
+        WHERE mr.employee_id = ? AND mr.status = 'approved' AND mr.quantity_requested > 0
         GROUP BY mr.material_id, m.name, m.unit
-        HAVING approved_qty > 0
     ");
     $stmt->execute([$employeeId]);
     $approvedMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -747,14 +793,13 @@ $pageTitle = 'Materials';
                 <div class="table-responsive">
                     <table class="data-table mobile-cards">
                         <thead>
-                            <tr><th>ID</th><th>Task</th><th>Order</th><th>Material</th><th>Qty Used</th><th>Waste</th><th>Date</th><th>Notes</th></tr>
+                            <tr><th>ID</th><th>Furniture</th><th>Material</th><th>Qty Used</th><th>Waste</th><th>Date</th></tr>
                         </thead>
                         <tbody>
                             <?php foreach ($usageHistory as $u): ?>
                             <tr>
                                 <td>#<?php echo str_pad($u['id'], 4, '0', STR_PAD_LEFT); ?></td>
-                                <td>#<?php echo str_pad($u['task_number'] ?? 0, 4, '0', STR_PAD_LEFT); ?></td>
-                                <td><?php echo htmlspecialchars($u['order_number'] ?? 'N/A'); ?></td>
+                                <td><?php echo htmlspecialchars($u['furniture_name']); ?></td>
                                 <td><strong><?php echo htmlspecialchars($u['material_name']); ?></strong></td>
                                 <td><?php echo $u['quantity_used']; ?> <?php echo $u['unit']; ?></td>
                                 <td>
@@ -765,7 +810,6 @@ $pageTitle = 'Materials';
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo date('M d, Y', strtotime($u['created_at'])); ?></td>
-                                <td><?php echo htmlspecialchars($u['notes'] ?: '—'); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -866,8 +910,8 @@ $pageTitle = 'Materials';
             return;
         }
 
-        // Filter approved materials by current usage furniture type
-        const usageMaterials = getApprovedMaterialsForType(currentUsageFurnitureType);
+        // Show ALL approved materials (not filtered by type)
+        const usageMaterials = MATERIALS;
 
         let opts = '<option value="">-- Select --</option>';
         usageMaterials.forEach(m => {
@@ -988,8 +1032,8 @@ $pageTitle = 'Materials';
         const tr = document.createElement('tr');
         tr.id = 'reqRow_' + reqRowCount;
 
-        // Use filtered materials based on current furniture type
-        const filteredMaterials = getMaterialsForType(currentFurnitureType);
+        // Show ALL materials from database (not filtered by type)
+        const filteredMaterials = ALL_MATERIALS;
 
         let opts = '<option value="">-- Select Material --</option>';
         filteredMaterials.forEach(m => {
@@ -1058,7 +1102,24 @@ $pageTitle = 'Materials';
         if (rows.length === 0) {
             e.preventDefault();
             alert('Please add at least one material to request.');
+            return;
         }
+        
+        // Validate each row: quantity must be >= 1
+        let hasError = false;
+        rows.forEach((row, index) => {
+            const qtyInput = row.querySelector('input[name="req_mat_qty[]"]');
+            const matSelect = row.querySelector('select[name="req_mat_id[]"]');
+            
+            if (matSelect && matSelect.value) {
+                const qty = parseFloat(qtyInput?.value || 0);
+                if (qty < 1) {
+                    e.preventDefault();
+                    alert(`Row ${index + 1}: Quantity must be at least 1.`);
+                    hasError = true;
+                }
+            }
+        });
     });
 
     document.getElementById('usageReportForm').addEventListener('submit', function(e) {
@@ -1066,7 +1127,24 @@ $pageTitle = 'Materials';
         if (rows.length === 0) {
             e.preventDefault();
             alert('Please add at least one material.');
+            return;
         }
+        
+        // Validate each row: quantity used must be >= 1
+        let hasError = false;
+        rows.forEach((row, index) => {
+            const qtyInput = row.querySelector('input[name="mat_qty[]"]');
+            const matSelect = row.querySelector('select[name="mat_id[]"]');
+            
+            if (matSelect && matSelect.value) {
+                const qty = parseFloat(qtyInput?.value || 0);
+                if (qty < 1) {
+                    e.preventDefault();
+                    alert(`Row ${index + 1}: Quantity used must be at least 1.`);
+                    hasError = true;
+                }
+            }
+        });
     });
     </script>
     <script src="<?php echo BASE_URL; ?>/public/assets/js/admin-mobile.js"></script>

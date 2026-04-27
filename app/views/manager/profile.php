@@ -1,5 +1,5 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
 
 // Get database connection (defines BASE_URL)
 require_once __DIR__ . '/../../../config/db_config.php';
@@ -52,7 +52,7 @@ $pageTitle = 'My Profile';
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #9B59B6, #8e44ad);
+            background: linear-gradient(135deg, #e67e22, #d35400);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -75,7 +75,7 @@ $pageTitle = 'My Profile';
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(155, 89, 182, 0.9);
+            background: rgba(230, 126, 34, 0.9);
             padding: 8px;
             text-align: center;
             opacity: 0;
@@ -92,9 +92,9 @@ $pageTitle = 'My Profile';
         .page-header { background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
         .page-title { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
         .section-card { background: white; padding: 30px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .section-title { font-size: 20px; font-weight: 600; color: #9B59B6; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
-        .btn-save { background: linear-gradient(135deg, #9B59B6, #8e44ad); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; }
-        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(155,89,182,0.3); color: white; }
+        .section-title { font-size: 20px; font-weight: 600; color: #e67e22; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        .btn-save { background: linear-gradient(135deg, #e67e22, #d35400); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; }
+        .btn-save:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(230,126,34,0.3); color: white; }
     </style>
 </head>
 <body>
@@ -130,7 +130,7 @@ $pageTitle = 'My Profile';
                     <h2 style="margin-bottom: 5px;"><?php echo htmlspecialchars($managerData['first_name'] . ' ' . $managerData['last_name']); ?></h2>
                     <p style="color: #7f8c8d; margin: 0;"><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($managerData['email']); ?></p>
                     <p style="color: #7f8c8d; margin: 0;"><i class="fas fa-user-tie"></i> MANAGER</p>
-                    <span style="display: inline-block; background: #9B59B6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px;">ACTIVE</span>
+                    <span style="display: inline-block; background: #e67e22; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px;">ACTIVE</span>
                 </div>
             </div>
         </div>
@@ -214,7 +214,7 @@ $pageTitle = 'My Profile';
         <div class="section-card">
             <h3 class="section-title"><i class="fas fa-cog"></i> Quick Actions</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <a href="<?php echo BASE_URL; ?>/public/manager/dashboard" style="padding: 15px; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border-left: 4px solid #9B59B6; transition: all 0.3s;" onmouseover="this.style.background='#9B59B6'; this.style.color='white'" onmouseout="this.style.background='#f8f9fa'; this.style.color='#2c3e50'">
+                <a href="<?php echo BASE_URL; ?>/public/manager/dashboard" style="padding: 15px; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border-left: 4px solid #e67e22; transition: all 0.3s;" onmouseover="this.style.background='#e67e22'; this.style.color='white'" onmouseout="this.style.background='#f8f9fa'; this.style.color='#2c3e50'">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
                 <a href="<?php echo BASE_URL; ?>/public/manager/orders" style="padding: 15px; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border-left: 4px solid #3498db; transition: all 0.3s;" onmouseover="this.style.background='#3498db'; this.style.color='white'" onmouseout="this.style.background='#f8f9fa'; this.style.color='#2c3e50'">

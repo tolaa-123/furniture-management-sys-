@@ -109,9 +109,9 @@
                                                 $statusClass = 'bg-warning';
                                                 $statusText = 'Pending Cost Approval';
                                                 break;
-                                            case 'waiting_for_deposit':
+                                            case 'cost_estimated':
                                                 $statusClass = 'bg-info';
-                                                $statusText = 'Waiting for Deposit';
+                                                $statusText = 'Cost Estimated - Pay Deposit';
                                                 break;
                                             case 'deposit_paid':
                                                 $statusClass = 'bg-primary';
@@ -373,7 +373,7 @@
             <div class="mb-4 text-center">
                 <a href="/orders/download-summary/<?php echo $order['id']; ?>" class="btn btn-outline-primary me-2"><i class="fas fa-download"></i> Download Summary</a>
                 <a href="/orders/message-manager/<?php echo $order['id']; ?>" class="btn btn-outline-info me-2"><i class="fas fa-envelope"></i> Message Manager</a>
-                <?php if (in_array($order['status'], ['pending_approval', 'pending', 'deposit_pending', 'waiting_for_deposit'])): ?>
+                <?php if (in_array($order['status'], ['pending_approval', 'pending', 'deposit_pending', 'cost_estimated'])): ?>
                     <a href="/orders/cancel/<?php echo $order['id']; ?>" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this order?')"><i class="fas fa-times"></i> Cancel Order</a>
                 <?php endif; ?>
             </div>
@@ -381,12 +381,12 @@
                 <?php if ($auth->getUserRole() === 'manager' || $auth->getUserRole() === 'admin'): ?>
                     <?php if ($order['status'] === 'pending_cost_approval'): ?>
                         <a href="/manager/dashboard" class="btn btn-primary">Back to Dashboard</a>
-                    <?php elseif ($order['status'] === 'waiting_for_deposit'): ?>
+                    <?php elseif ($order['status'] === 'cost_estimated'): ?>
                         <button class="btn btn-success" disabled>Waiting for Customer Deposit</button>
                         <a href="/manager/dashboard" class="btn btn-secondary">Back to Dashboard</a>
                     <?php endif; ?>
                 <?php else: ?>
-                    <?php if ($order['status'] === 'waiting_for_deposit' && $order['deposit_amount'] > 0): ?>
+                    <?php if ($order['status'] === 'cost_estimated' && $order['deposit_amount'] > 0): ?>
                         <a href="/orders/pay-deposit/<?php echo $order['id']; ?>" class="btn btn-success btn-lg">
                             <i class="fas fa-credit-card"></i> Pay Deposit (ETB <?php echo number_format($order['deposit_amount'], 2); ?>)
                         </a>

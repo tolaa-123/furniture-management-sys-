@@ -33,7 +33,13 @@ if ($customerId > 0) {
                 o.length, o.width, o.height, o.material, o.color,
                 o.design_description, o.design_image, o.special_notes,
                 COALESCE(o.estimated_cost, o.total_amount, 0) as total_amount,
-                COALESCE(o.deposit_amount, o.total_amount * 0.4, 0) as deposit_amount,
+                COALESCE(o.deposit_amount, 
+                    o.total_amount * (
+                        SELECT COALESCE(setting_value, 40) / 100 
+                        FROM furn_settings 
+                        WHERE setting_key = 'default_deposit_percentage' 
+                        LIMIT 1
+                    ), 0) as deposit_amount,
                 COALESCE(o.remaining_balance, o.total_amount, 0) as remaining_balance,
                 o.status, o.created_at, o.updated_at,
                 COALESCE(SUM(CASE WHEN p.status IN ('approved','verified') THEN p.amount ELSE 0 END), 0) as amount_paid
@@ -88,8 +94,7 @@ if ($customerId > 0) {
         .orders-table tbody tr:hover { background: #FFF8F0; transform: scale(1.01); }
         .status-pill { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
         .status-pending_review, .status-pending_cost_approval { background: #fff3cd; color: #856404; }
-        .status-cost_estimated { background: #ffeeba; color: #7d4e00; }
-        .status-waiting_for_deposit, .status-awaiting_deposit { background: #ffe5b4; color: #7d4e00; }
+        .status-cost_estimated, .status-awaiting_deposit { background: #ffeeba; color: #7d4e00; }
         .status-deposit_paid { background: #b8e994; color: #155724; }
         .status-payment_verified { background: #c3e6cb; color: #155724; }
         .status-in_production { background: #ffd59e; color: #b36b00; }
@@ -145,7 +150,7 @@ if ($customerId > 0) {
             if (!empty($orders)) {
                 foreach ($orders as $order) {
                     $s = $order['status'] ?? '';
-                    if (in_array($s, ['pending_review', 'pending_cost_approval', 'cost_estimated', 'waiting_for_deposit', 'awaiting_deposit'])) {
+                    if (in_array($s, ['pending_review', 'pending_cost_approval', 'cost_estimated', 'awaiting_deposit'])) {
                         $pendingDeposit++;
                     }
                     if (in_array($s, ['payment_verified', 'deposit_paid', 'in_production', 'ready_for_delivery', 'awaiting_final_payment'])) {

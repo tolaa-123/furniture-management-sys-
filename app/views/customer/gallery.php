@@ -511,7 +511,8 @@ $wishlistIds = array_flip($wishlistProducts);
                             <div class="product-details">
                                 <div><i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($product['materials_used'] ?? ''); ?></div>
                             </div>
-                            <div class="product-price">ETB <?php echo number_format($product['base_price'], 2); ?></div>
+                            <?php $originalPrice = $product['base_price']; ?>
+                            <div class="product-price">ETB <?php echo number_format($originalPrice, 2); ?></div>
                             <p class="product-description"><?php echo htmlspecialchars($product['description'] ?? ''); ?></p>
                             <button class="btn-order" onclick="orderProduct(<?php echo htmlspecialchars(json_encode([
                                 'product_id'      => $product['id'],

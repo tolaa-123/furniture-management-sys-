@@ -32,10 +32,7 @@ try {
     // Validation
     if (!$customerId)       throw new Exception('Please select a customer');
     if (!$furnitureType)    throw new Exception('Furniture type is required');
-    if (!$furnitureName)    throw new Exception('Furniture name is required');
-    if (!$material)         throw new Exception('Material is required');
     if (!$color)            throw new Exception('Color/finish is required');
-    if (!$designDescription) throw new Exception('Design description is required');
     if ($length <= 0 || $width <= 0 || $height <= 0) throw new Exception('All dimensions must be greater than 0');
     if ($quantity < 1)      throw new Exception('Quantity must be at least 1');
     if (!$budgetRange)      throw new Exception('Budget range is required');
@@ -67,19 +64,19 @@ try {
 
     $stmt = $pdo->prepare("
         INSERT INTO furn_orders (
-            customer_id, order_number, furniture_type, furniture_name,
+            customer_id, order_number, furniture_type,
             length, width, height,
             quantity, budget_range, preferred_delivery_date,
-            material, color, design_description, design_image, special_notes,
+            color, design_description, design_image, special_notes,
             status, created_by_employee_id, assigned_employee_id, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?, NOW())
     ");
 
     $stmt->execute([
-        $customerId, $orderNumber, $furnitureType, $furnitureName,
+        $customerId, $orderNumber, $furnitureType,
         $length, $width, $height,
         $quantity, $budgetRange, $preferredDelivery ?: null,
-        $material, $color, $designDescription, $designImage, $specialNotes,
+        $color, $designDescription, $designImage, $specialNotes,
         $employeeId, $employeeId
     ]);
 

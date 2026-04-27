@@ -99,14 +99,27 @@ try {
         throw new Exception('No valid items in cart');
     }
     
-    $depositAmount = $total * 0.40;
-    $balanceAmount = $total * 0.60;
+    // Get deposit percentage from settings (default 40%)
+    $depositPercentage = 40;
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        if ($result !== false && floatval($result) > 0) {
+            $depositPercentage = floatval($result);
+        }
+    } catch (PDOException $e) {
+        error_log("Error fetching deposit percentage: " . $e->getMessage());
+    }
+    
+    $depositAmount = $total * ($depositPercentage / 100);
+    $balanceAmount = $total * ((100 - $depositPercentage) / 100);
     
     // Insert order
     $stmt = $db->prepare("
         INSERT INTO furn_orders 
         (customer_id, order_number, status, total_amount, deposit_amount, remaining_balance, special_instructions, created_at)
-        VALUES (?, ?, 'waiting_for_deposit', ?, ?, ?, ?, NOW())
+        VALUES (?, ?, 'cost_estimated', ?, ?, ?, ?, NOW())
     ");
     
     $specialInstructions = json_encode([

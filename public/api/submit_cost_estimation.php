@@ -40,9 +40,45 @@ try {
     if ($estimatedProductionDays <= 0) {
         throw new Exception('Estimated production days must be greater than 0');
     }
+
+    // Fetch order's budget_range and validate estimated cost against it
+    $stmtOrder = $pdo->prepare("SELECT budget_range FROM furn_orders WHERE id = ?");
+    $stmtOrder->execute([$orderId]);
+    $orderRow = $stmtOrder->fetch(PDO::FETCH_ASSOC);
+
+    if ($orderRow && !empty($orderRow['budget_range'])) {
+        $budgetRange = $orderRow['budget_range'];
+        $maxBudget = null;
+
+        if ($budgetRange === 'Under ETB 5,000') {
+            $maxBudget = 5000;
+        } elseif ($budgetRange === 'ETB 5,000 - ETB 10,000') {
+            $maxBudget = 10000;
+        } elseif ($budgetRange === 'ETB 10,000 - ETB 20,000') {
+            $maxBudget = 20000;
+        }
+        // 'Above ETB 20,000' has no upper limit
+
+        if ($maxBudget !== null && $estimatedCost > $maxBudget) {
+            throw new Exception("Cost exceeds customer's budget limit of ETB " . number_format($maxBudget, 2) . ".");
+        }
+    }
     
-    // Verify deposit amount is 40% of estimated cost
-    $calculatedDeposit = $estimatedCost * 0.40;
+    // Get deposit percentage from settings (default 40%)
+    $depositPercentage = 40;
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        if ($result !== false && floatval($result) > 0) {
+            $depositPercentage = floatval($result);
+        }
+    } catch (PDOException $e) {
+        error_log("Error fetching deposit percentage: " . $e->getMessage());
+    }
+    
+    // Verify deposit amount matches configured percentage
+    $calculatedDeposit = $estimatedCost * ($depositPercentage / 100);
     if (abs($depositAmount - $calculatedDeposit) > 0.01) {
         $depositAmount = $calculatedDeposit; // Recalculate to ensure accuracy
     }

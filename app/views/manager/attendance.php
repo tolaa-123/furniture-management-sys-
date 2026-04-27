@@ -573,138 +573,8 @@ $pageTitle = 'Team Attendance';
             </form>
             <?php endif; ?>
         </div>
+
         </div><!-- end tab-sheet -->
-
-        <!-- ══════════════════════════════════════════════
-             OVERTIME TABLE (below attendance sheet)
-        ══════════════════════════════════════════════ -->
-        <div class="section-card" style="margin-top:20px;" id="overtimeSection">
-            <!-- Print header -->
-            <div class="print-header">
-                <h2>FurnitureCraft — Overtime Record</h2>
-                <p>Date: <strong id="printOTDate"><?php echo date('d/m/Y'); ?></strong> &nbsp;|&nbsp; Manager: <strong><?php echo htmlspecialchars($managerName); ?></strong></p>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
-                <div>
-                    <h2 class="section-title" style="margin:0;"><i class="fas fa-clock" style="color:#F39C12;"></i> Overtime Hours</h2>
-                    <p style="margin:4px 0 0;font-size:13px;color:#7F8C8D;"><?php echo count($employees); ?> employees &nbsp;|&nbsp; Enter overtime hours worked beyond standard 8hrs/day</p>
-                </div>
-                <div style="display:flex;gap:8px;" class="no-print">
-                    <button onclick="printTab('overtimeSection')" style="padding:8px 16px;background:#F39C12;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
-                        <i class="fas fa-print"></i> Print OT Sheet
-                    </button>
-                </div>
-            </div>
-
-            <?php if (empty($employees)): ?>
-                <p style="text-align:center;color:#95A5A6;padding:30px 0;">No employees found.</p>
-            <?php else: ?>
-            <form method="POST" action="<?php echo BASE_URL; ?>/public/manager/attendance" id="otForm">
-                <input type="hidden" name="action" value="save_overtime">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                <input type="hidden" name="date" id="otDate" value="<?php echo date('Y-m-d'); ?>">
-
-                <div class="table-responsive">
-                <table class="att-table" id="otTable">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;">#</th>
-                            <th>Employee</th>
-                            <th>Position</th>
-                            <th style="text-align:center;width:120px;">OT Hours</th>
-                            <th style="text-align:center;width:130px;">OT Rate (ETB/hr)</th>
-                            <th style="text-align:center;width:140px;">OT Pay (ETB)</th>
-                            <th class="no-print">Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($employees as $i => $emp):
-                        $empId = $emp['id'];
-                        $initials = strtoupper(substr($emp['first_name'],0,1).substr($emp['last_name'],0,1));
-                        $avatarColors = ['#3498DB','#27AE60','#E74C3C','#9B59B6','#F39C12','#1ABC9C','#E67E22','#2980B9'];
-                        $avatarColor  = $avatarColors[$empId % count($avatarColors)];
-
-                        // Fetch OT rate from salary config
-                        $otRate = 0;
-                        try {
-                            $sr = $pdo->prepare("SELECT overtime_rate FROM furn_employee_salary WHERE employee_id=?");
-                            $sr->execute([$empId]);
-                            $otRate = floatval($sr->fetchColumn() ?: 0);
-                        } catch(PDOException $e){}
-
-                        // Fetch today's existing OT hours from attendance
-                        $existOT = 0;
-                        $existOTNote = '';
-                        try {
-                            $attCols = $pdo->query("SHOW COLUMNS FROM furn_attendance")->fetchAll(PDO::FETCH_COLUMN);
-                            $dateExpr = in_array('date', $attCols) ? 'date' : 'DATE(check_in_time)';
-                            if (in_array('overtime_hours', $attCols)) {
-                                $otr = $pdo->prepare("SELECT overtime_hours, notes FROM furn_attendance WHERE employee_id=? AND $dateExpr=? ORDER BY id DESC LIMIT 1");
-                                $otr->execute([$empId, date('Y-m-d')]);
-                                $otRow = $otr->fetch(PDO::FETCH_ASSOC);
-                                if ($otRow) { $existOT = floatval($otRow['overtime_hours']); $existOTNote = $otRow['notes'] ?? ''; }
-                            }
-                        } catch(PDOException $e){}
-                    ?>
-                    <tr id="ot-row-<?php echo $empId; ?>">
-                        <td style="font-weight:600;color:#95A5A6;font-size:13px;"><?php echo $i+1; ?></td>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <div class="emp-avatar-placeholder" style="background:<?php echo $avatarColor; ?>;"><?php echo $initials; ?></div>
-                                <div>
-                                    <div style="font-weight:600;font-size:13px;"><?php echo htmlspecialchars($emp['first_name'].' '.$emp['last_name']); ?></div>
-                                    <div style="font-size:11px;color:#95A5A6;"><?php echo htmlspecialchars($emp['email']); ?></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span style="background:#3498DB18;color:#3498DB;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;">
-                                <?php echo htmlspecialchars($emp['position'] ?? 'Employee'); ?>
-                            </span>
-                        </td>
-                        <td style="text-align:center;">
-                            <input type="number" name="ot_hours[<?php echo $empId; ?>]"
-                                   id="ot-hrs-<?php echo $empId; ?>"
-                                   value="<?php echo $existOT; ?>"
-                                   min="0" max="24" step="0.5"
-                                   style="width:90px;padding:7px 10px;border:2px solid #E0E0E0;border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none;color:#F39C12;"
-                                   oninput="calcOTPay(<?php echo $empId; ?>, <?php echo $otRate; ?>)"
-                                   onfocus="this.style.borderColor='#F39C12'" onblur="this.style.borderColor='#E0E0E0'">
-                        </td>
-                        <td style="text-align:center;font-weight:600;color:#555;">
-                            ETB <?php echo number_format($otRate, 2); ?>
-                            <input type="hidden" name="ot_rate[<?php echo $empId; ?>]" value="<?php echo $otRate; ?>">
-                        </td>
-                        <td style="text-align:center;font-weight:700;color:#27AE60;" id="ot-pay-<?php echo $empId; ?>">
-                            ETB <?php echo number_format($existOT * $otRate, 2); ?>
-                        </td>
-                        <td class="no-print">
-                            <input type="text" name="ot_notes[<?php echo $empId; ?>]"
-                                   value="<?php echo htmlspecialchars($existOTNote); ?>"
-                                   placeholder="Optional note..."
-                                   style="width:150px;padding:6px 8px;border:1.5px solid #E0E0E0;border-radius:6px;font-size:12px;font-family:inherit;">
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-                </div>
-
-                <div style="margin-top:16px;padding:14px 18px;background:#FEF9E7;border-radius:10px;border-left:4px solid #F39C12;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                    <div style="font-size:13px;color:#555;">
-                        <strong>OT Rate</strong> is set per employee in <a href="<?php echo BASE_URL; ?>/public/admin/employees" style="color:#3498DB;font-weight:600;">Admin → Employees</a>.
-                        OT Pay = OT Hours × OT Rate.
-                    </div>
-                    <div class="no-print">
-                        <button type="submit" style="padding:11px 28px;background:linear-gradient(135deg,#F39C12,#E67E22);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
-                            <i class="fas fa-save"></i> Save Overtime
-                        </button>
-                    </div>
-                </div>
-            </form>
-            <?php endif; ?>
-        </div>
 
         <!-- ══════════════════════════════════════════════
              TAB 2: ATTENDANCE RECORDS
@@ -900,6 +770,137 @@ $pageTitle = 'Team Attendance';
             </div>
         </div>
         </div><!-- end tab-summary -->
+
+        <!-- ══════════════════════════════════════════════
+             OVERTIME TABLE (always visible below all tabs)
+        ══════════════════════════════════════════════ -->
+        <div class="section-card" style="margin-top:20px;" id="overtimeSection">
+            <!-- Print header -->
+            <div class="print-header">
+                <h2>FurnitureCraft — Overtime Record</h2>
+                <p>Date: <strong id="printOTDate"><?php echo date('d/m/Y'); ?></strong> &nbsp;|&nbsp; Manager: <strong><?php echo htmlspecialchars($managerName); ?></strong></p>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+                <div>
+                    <h2 class="section-title" style="margin:0;"><i class="fas fa-clock" style="color:#F39C12;"></i> Overtime Hours</h2>
+                    <p style="margin:4px 0 0;font-size:13px;color:#7F8C8D;"><?php echo count($employees); ?> employees &nbsp;|&nbsp; Enter overtime hours worked beyond standard 8hrs/day</p>
+                </div>
+                <div style="display:flex;gap:8px;" class="no-print">
+                    <button onclick="printTab('overtimeSection')" style="padding:8px 16px;background:#F39C12;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                        <i class="fas fa-print"></i> Print OT Sheet
+                    </button>
+                </div>
+            </div>
+
+            <?php if (empty($employees)): ?>
+                <p style="text-align:center;color:#95A5A6;padding:30px 0;">No employees found.</p>
+            <?php else: ?>
+            <form method="POST" action="<?php echo BASE_URL; ?>/public/manager/attendance" id="otForm">
+                <input type="hidden" name="action" value="save_overtime">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <input type="hidden" name="date" id="otDate" value="<?php echo date('Y-m-d'); ?>">
+
+                <div class="table-responsive">
+                <table class="att-table" id="otTable">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">#</th>
+                            <th>Employee</th>
+                            <th>Position</th>
+                            <th style="text-align:center;width:120px;">OT Hours</th>
+                            <th style="text-align:center;width:130px;">OT Rate (ETB/hr)</th>
+                            <th style="text-align:center;width:140px;">OT Pay (ETB)</th>
+                            <th class="no-print">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($employees as $i => $emp):
+                        $empId = $emp['id'];
+                        $initials = strtoupper(substr($emp['first_name'],0,1).substr($emp['last_name'],0,1));
+                        $avatarColors = ['#3498DB','#27AE60','#E74C3C','#9B59B6','#F39C12','#1ABC9C','#E67E22','#2980B9'];
+                        $avatarColor  = $avatarColors[$empId % count($avatarColors)];
+
+                        // Fetch OT rate from salary config
+                        $otRate = 0;
+                        try {
+                            $sr = $pdo->prepare("SELECT overtime_rate FROM furn_employee_salary WHERE employee_id=?");
+                            $sr->execute([$empId]);
+                            $otRate = floatval($sr->fetchColumn() ?: 0);
+                        } catch(PDOException $e){}
+
+                        // Fetch today's existing OT hours from attendance
+                        $existOT = 0;
+                        $existOTNote = '';
+                        try {
+                            $attCols = $pdo->query("SHOW COLUMNS FROM furn_attendance")->fetchAll(PDO::FETCH_COLUMN);
+                            $dateExpr = in_array('date', $attCols) ? 'date' : 'DATE(check_in_time)';
+                            if (in_array('overtime_hours', $attCols)) {
+                                $otr = $pdo->prepare("SELECT overtime_hours, notes FROM furn_attendance WHERE employee_id=? AND $dateExpr=? ORDER BY id DESC LIMIT 1");
+                                $otr->execute([$empId, date('Y-m-d')]);
+                                $otRow = $otr->fetch(PDO::FETCH_ASSOC);
+                                if ($otRow) { $existOT = floatval($otRow['overtime_hours']); $existOTNote = $otRow['notes'] ?? ''; }
+                            }
+                        } catch(PDOException $e){}
+                    ?>
+                    <tr id="ot-row-<?php echo $empId; ?>">
+                        <td style="font-weight:600;color:#95A5A6;font-size:13px;"><?php echo $i+1; ?></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div class="emp-avatar-placeholder" style="background:<?php echo $avatarColor; ?>;"><?php echo $initials; ?></div>
+                                <div>
+                                    <div style="font-weight:600;font-size:13px;"><?php echo htmlspecialchars($emp['first_name'].' '.$emp['last_name']); ?></div>
+                                    <div style="font-size:11px;color:#95A5A6;"><?php echo htmlspecialchars($emp['email']); ?></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="background:#3498DB18;color:#3498DB;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:600;">
+                                <?php echo htmlspecialchars($emp['position'] ?? 'Employee'); ?>
+                            </span>
+                        </td>
+                        <td style="text-align:center;">
+                            <input type="number" name="ot_hours[<?php echo $empId; ?>]"
+                                   id="ot-hrs-<?php echo $empId; ?>"
+                                   value="<?php echo $existOT; ?>"
+                                   min="0" max="24" step="0.5"
+                                   style="width:90px;padding:7px 10px;border:2px solid #E0E0E0;border-radius:8px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none;color:#F39C12;"
+                                   oninput="calcOTPay(<?php echo $empId; ?>, <?php echo $otRate; ?>)"
+                                   onfocus="this.style.borderColor='#F39C12'" onblur="this.style.borderColor='#E0E0E0'">
+                        </td>
+                        <td style="text-align:center;font-weight:600;color:#555;">
+                            ETB <?php echo number_format($otRate, 2); ?>
+                            <input type="hidden" name="ot_rate[<?php echo $empId; ?>]" value="<?php echo $otRate; ?>">
+                        </td>
+                        <td style="text-align:center;font-weight:700;color:#27AE60;" id="ot-pay-<?php echo $empId; ?>">
+                            ETB <?php echo number_format($existOT * $otRate, 2); ?>
+                        </td>
+                        <td class="no-print">
+                            <input type="text" name="ot_notes[<?php echo $empId; ?>]"
+                                   value="<?php echo htmlspecialchars($existOTNote); ?>"
+                                   placeholder="Optional note..."
+                                   style="width:150px;padding:6px 8px;border:1.5px solid #E0E0E0;border-radius:6px;font-size:12px;font-family:inherit;">
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                </div>
+
+                <div style="margin-top:16px;padding:14px 18px;background:#FEF9E7;border-radius:10px;border-left:4px solid #F39C12;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <div style="font-size:13px;color:#555;">
+                        <strong>OT Rate</strong> is set per employee in <a href="<?php echo BASE_URL; ?>/public/admin/employees" style="color:#3498DB;font-weight:600;">Admin → Employees</a>.
+                        OT Pay = OT Hours × OT Rate.
+                    </div>
+                    <div class="no-print">
+                        <button type="submit" style="padding:11px 28px;background:linear-gradient(135deg,#F39C12,#E67E22);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+                            <i class="fas fa-save"></i> Save Overtime
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <?php endif; ?>
+        </div>
 
     </div><!-- end main-content -->
 

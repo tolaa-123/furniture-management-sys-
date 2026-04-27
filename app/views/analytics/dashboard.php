@@ -140,7 +140,7 @@ if ($role === 'admin') {
     <div id="tab-materials" class="tab-pane">
         <div class="section-card">
             <div class="section-header"><h2 class="section-title"><i class="fas fa-boxes"></i> Material Usage Trends</h2></div>
-            <div class="ch-wrap"><canvas id="matChart"></canvas></div>
+            <div style="position:relative;height:380px;width:100%;"><canvas id="matChart"></canvas></div>
         </div>
     </div><!-- end tab-materials -->
 
@@ -394,55 +394,58 @@ function initMaterials() {
     if (inited.materials) { matChart && matChart.resize(); return; }
     inited.materials = true;
 
-    const mL = D.materialUsage.labels || [];
+    const mL  = D.materialUsage.labels   || [];
     const mDS = D.materialUsage.datasets || [];
 
-    // If only 1 month of data, use bar chart — line needs 2+ points to draw lines
-    const chartType = mL.length > 1 ? 'line' : 'bar';
+    const ctx = document.getElementById('matChart');
+    if (!ctx) return;
 
-    if (chartType === 'bar') {
-        // Flatten: one bar per material showing total usage
-        const matNames = mDS.map(ds => ds.label);
-        const matTotals = mDS.map(ds => ds.data.reduce((a, b) => a + b, 0));
-        matChart = new Chart(document.getElementById('matChart'), {
-            type: 'bar',
-            data: {
-                labels: matNames,
-                datasets: [{
-                    label: 'Qty Used',
-                    data: matTotals,
-                    backgroundColor: PLIST.map(p => p.bg),
-                    borderColor: PLIST.map(p => p.bd),
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, title: { display: true, text: 'Qty Used' } } }
-            }
-        });
-    } else {
-        const mappedDS = mDS.map((ds, i) => ({
-            label: ds.label,
-            data: ds.data,
-            borderColor: PLIST[i % PLIST.length].bd,
-            backgroundColor: 'transparent',
-            tension: 0.3,
-            borderWidth: 2,
-            fill: false,
-            pointRadius: 5
-        }));
-        matChart = new Chart(document.getElementById('matChart'), {
-            type: 'line',
-            data: { labels: mL, datasets: mappedDS },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' } },
-                scales: { y: { beginAtZero: true, title: { display: true, text: 'Qty Used' } } }
-            }
-        });
+    // No data at all
+    if (!mDS.length || !mL.length) {
+        ctx.parentElement.innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:#aaa;font-size:15px;">' +
+            '<i class="fas fa-chart-bar" style="margin-right:8px;font-size:24px;"></i>No material usage data yet.</div>';
+        return;
     }
+
+    // Use grouped bar chart — easiest to read regardless of how many months
+    // Each group = one month, each bar in group = one material
+    matChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: mL,
+            datasets: mDS.map((ds, i) => ({
+                label:           ds.label,
+                data:            ds.data,
+                backgroundColor: PLIST[i % PLIST.length].bg,
+                borderColor:     PLIST[i % PLIST.length].bd,
+                borderWidth:     1,
+                borderRadius:    4
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} units`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Month' },
+                    ticks: { maxRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Qty Used' }
+                }
+            }
+        }
+    });
 }
 
 function switchTab(name, btn) {
@@ -480,10 +483,11 @@ function liveStats() {
 
 function doRefreshCache() {
     if (!confirm('Refresh analytics cache?')) return;
+    const csrfToken = '<?php echo htmlspecialchars($_SESSION["csrf_token"] ?? ($_SESSION[CSRF_TOKEN_NAME] ?? "")); ?>';
     fetch(BASE + '/public/analytics/refresh-cache', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'csrf_token=<?php echo htmlspecialchars($_SESSION[CSRF_TOKEN_NAME] ?? $_SESSION["csrf_token"] ?? ""); ?>'
+        body: 'csrf_token=' + csrfToken
     }).then(r => r.json()).then(d => alert(d.message || d.error || 'Done')).catch(() => alert('Error'));
 }
 </script>

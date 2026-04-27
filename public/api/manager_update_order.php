@@ -35,7 +35,7 @@ try {
     }
     
     // Check if order can be edited by manager
-    $editableStatuses = ['pending_review', 'pending_cost_approval', 'cost_estimated', 'waiting_for_deposit'];
+    $editableStatuses = ['pending_review', 'pending_cost_approval', 'cost_estimated'];
     if (!in_array($order['status'], $editableStatuses)) {
         throw new Exception('This order cannot be edited. It has already progressed beyond editing stage.');
     }
@@ -169,7 +169,7 @@ try {
     }
     
     // If cost was already estimated, reset to pending_review so manager must re-estimate
-    if (in_array($order['status'], ['cost_estimated', 'waiting_for_deposit'])) {
+    if ($order['status'] === 'cost_estimated') {
         $stmt = $pdo->prepare("UPDATE furn_orders SET status = 'pending_review', estimated_cost = NULL WHERE id = ?");
         $stmt->execute([$orderId]);
     }

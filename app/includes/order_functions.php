@@ -65,7 +65,7 @@ function generateOrderNumber() {
 function getOrderStatusBadge($status) {
     $badges = [
         'pending_cost_approval' => '<span class="badge bg-warning">Pending Approval</span>',
-        'waiting_for_deposit' => '<span class="badge bg-info">Waiting for Deposit</span>',
+        'cost_estimated' => '<span class="badge bg-info">Cost Estimated - Pay Deposit</span>',
         'deposit_paid' => '<span class="badge bg-primary">Deposit Paid</span>',
         'in_production' => '<span class="badge bg-secondary">In Production</span>',
         'ready_for_delivery' => '<span class="badge bg-success">Ready for Delivery</span>',
@@ -106,14 +106,14 @@ function getPaymentInstructions($method, $orderNumber) {
  * Check if order can be edited
  */
 function canEditOrder($status) {
-    return in_array($status, ['pending_cost_approval', 'waiting_for_deposit']);
+    return in_array($status, ['pending_cost_approval', 'cost_estimated']);
 }
 
 /**
  * Check if order can be cancelled
  */
 function canCancelOrder($status) {
-    return in_array($status, ['pending_cost_approval', 'waiting_for_deposit']);
+    return in_array($status, ['pending_cost_approval', 'cost_estimated']);
 }
 
 /**
@@ -231,7 +231,7 @@ function sendOrderNotification($orderId, $type = 'created') {
 function getOrderProgress($status) {
     $progress = [
         'pending_cost_approval' => 10,
-        'waiting_for_deposit' => 25,
+        'cost_estimated' => 25,
         'deposit_paid' => 40,
         'in_production' => 70,
         'ready_for_delivery' => 90,

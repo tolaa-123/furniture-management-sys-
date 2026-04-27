@@ -261,7 +261,6 @@ $pageTitle = 'Products Management';
                             <th>ID</th>
                             <th>Product Name</th>
                             <th>Category</th>
-                            <th>Description</th>
                             <th>Base Price</th>
                             <th>Created</th>
                             <th>Actions</th>
@@ -280,7 +279,6 @@ $pageTitle = 'Products Management';
                             <td><?php echo $product['id'] ?? 'N/A'; ?></td>
                             <td><strong><?php echo htmlspecialchars($product['name'] ?? 'N/A'); ?></strong></td>
                             <td><span class="category-badge" data-category="<?php echo htmlspecialchars($product['category'] ?? ''); ?>"><?php echo htmlspecialchars($product['category'] ?: '—'); ?></span></td>
-                            <td><?php echo htmlspecialchars(substr($product['description'] ?? '', 0, 50)) . (strlen($product['description'] ?? '') > 50 ? '...' : ''); ?></td>
                             <td><strong>ETB <?php echo number_format($product['base_price'] ?? 0, 2); ?></strong></td>
                             <td><?php echo date('M j, Y', strtotime($product['created_at'])); ?></td>
                             <td>

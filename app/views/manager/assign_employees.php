@@ -40,13 +40,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $stmt = $pdo->query("DESCRIBE furn_orders");
                 $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
                 
-                // Update order with assigned employee
-                if (in_array('assigned_employee_id', $columns)) {
-                    $stmt = $pdo->prepare("UPDATE furn_orders SET assigned_employee_id = ?, status = 'in_production' WHERE id = ?");
-                    $stmt->execute([$employeeId, $orderId]);
-                } else {
-                    $stmt = $pdo->prepare("UPDATE furn_orders SET status = 'in_production' WHERE id = ?");
-                    $stmt->execute([$orderId]);
+                // Use OrderModel to start production (this will automatically deduct reserved materials)
+                require_once __DIR__ . '/../../../app/models/OrderModel.php';
+                $orderModel = new OrderModel();
+                
+                try {
+                    // Start production - this will deduct reserved stock automatically
+                    $orderModel->startProduction($orderId);
+                    
+                    // Update assigned employee if column exists
+                    if (in_array('assigned_employee_id', $columns)) {
+                        $stmt = $pdo->prepare("UPDATE furn_orders SET assigned_employee_id = ? WHERE id = ?");
+                        $stmt->execute([$employeeId, $orderId]);
+                    }
+                } catch (Exception $e) {
+                    throw new Exception('Failed to start production: ' . $e->getMessage());
                 }
                 
                 // Create production task for employee
@@ -111,6 +119,7 @@ try {
     // Ensure required columns exist
     $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS assigned_employee_id INT DEFAULT NULL");
     $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS estimated_cost DECIMAL(12,2) DEFAULT NULL");
+    $pdo->exec("ALTER TABLE furn_orders ADD COLUMN IF NOT EXISTS created_by_employee_id INT DEFAULT NULL");
     
     $stmt = $pdo->query("
         SELECT o.*, u.first_name, u.last_name,

@@ -74,6 +74,13 @@ class EmailService {
         $this->senderName = $name;
     }
 
+    /**
+     * Public method to send a raw email (subject + HTML body)
+     */
+    public function sendRaw($to, $subject, $body) {
+        return $this->send($to, $subject, $body);
+    }
+
     public function sendOrderConfirmation($customerEmail, $orderData) {
         $subject = "Order Confirmation - Order #" . $orderData['order_number'];
         $body    = $this->orderConfirmationTemplate($orderData);

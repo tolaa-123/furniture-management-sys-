@@ -46,9 +46,9 @@
                                                 $statusClass = 'bg-warning';
                                                 $statusText = 'Pending Cost Approval';
                                                 break;
-                                            case 'waiting_for_deposit':
+                                            case 'cost_estimated':
                                                 $statusClass = 'bg-info';
-                                                $statusText = 'Waiting for Deposit';
+                                                $statusText = 'Cost Estimated - Pay Deposit';
                                                 break;
                                             case 'deposit_paid':
                                                 $statusClass = 'bg-primary';

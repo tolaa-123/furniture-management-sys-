@@ -48,9 +48,22 @@ try {
         }
     }
     
-    // Calculate deposit (40%) and balance (60%)
-    $deposit = $total * 0.40;
-    $balance = $total * 0.60;
+    // Get deposit percentage from settings (default 40%)
+    $depositPercentage = 40;
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        if ($result !== false && floatval($result) > 0) {
+            $depositPercentage = floatval($result);
+        }
+    } catch (PDOException $e) {
+        error_log("Error fetching deposit percentage: " . $e->getMessage());
+    }
+    
+    // Calculate deposit and balance based on configured percentage
+    $deposit = $total * ($depositPercentage / 100);
+    $balance = $total * ((100 - $depositPercentage) / 100);
     
     echo json_encode([
         'success' => true,

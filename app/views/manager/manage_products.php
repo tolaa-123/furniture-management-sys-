@@ -214,8 +214,6 @@ $pageTitle = 'Manage Products';
                             <th>ID</th>
                             <th>Product Name</th>
                             <th>Category</th>
-                            <th>Material</th>
-                            <th>Dimensions</th>
                             <th>Price (ETB)</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -267,8 +265,6 @@ $pageTitle = 'Manage Products';
                                     </div>
                                 </td>
                                 <td><span class="badge badge-info"><?php echo ucfirst($product['category_name'] ?? 'Uncategorized'); ?></span></td>
-                                <td><?php echo htmlspecialchars($product['materials_used'] ?? '—'); ?></td>
-                                <td><?php echo !empty($product['dimensions']) ? htmlspecialchars($product['dimensions']) : '<span style="color:#ccc;">—</span>'; ?></td>
                                 <td><strong>ETB <?php echo number_format($product['base_price'], 2); ?></strong></td>
                                 <td>
                                     <?php if ($product['is_active']): ?>

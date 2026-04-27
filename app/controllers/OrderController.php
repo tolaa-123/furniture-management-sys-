@@ -178,12 +178,12 @@ class OrderController extends BaseController {
             
             // Check if all customizations for this order are approved
             $pendingCustomizations = $this->customizationModel->getPendingCustomizations($customization['order_id']);
-            // If there are no pending customizations, always update order status to waiting_for_deposit
+            // If there are no pending customizations, always update order status to cost_estimated
             if (empty($pendingCustomizations)) {
                 $orderTotal = $this->orderModel->calculateOrderTotal($customization['order_id']);
                 // Calculate deposit amount based on the total order value and deposit percentage
                 $depositAmount = $orderTotal * ($depositPercentage / 100);
-                $this->orderModel->updateStatus($customization['order_id'], 'waiting_for_deposit', [
+                $this->orderModel->updateStatus($customization['order_id'], 'cost_estimated', [
                     'total_amount' => $orderTotal,
                     'deposit_amount' => $depositAmount
                 ]);
@@ -195,7 +195,7 @@ class OrderController extends BaseController {
                     'furn_orders',
                     $customization['order_id'],
                     ['status' => 'pending_cost_approval'],
-                    ['status' => 'waiting_for_deposit', 'total_amount' => $orderTotal, 'deposit_amount' => $depositAmount]
+                    ['status' => 'cost_estimated', 'total_amount' => $orderTotal, 'deposit_amount' => $depositAmount]
                 );
             }
             

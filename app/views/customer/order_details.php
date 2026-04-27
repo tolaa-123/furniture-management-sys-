@@ -472,8 +472,20 @@ $pageTitle = 'Order Details';
                     <div class="detail-value"><strong style="font-size: 1.2rem; color: #8B4513;">ETB <?php echo number_format($totalCost, 2); ?></strong></div>
                 </div>
                 <div class="detail-row">
-                    <div class="detail-label">Deposit (40%):</div>
-                    <div class="detail-value">ETB <?php echo number_format($order['deposit_amount'] ?? ($totalCost * 0.4), 2); ?></div>
+                    <div class="detail-label">Deposit (<?php 
+                        // Get deposit percentage from settings
+                        $dp = 40;
+                        try {
+                            $dpStmt = $pdo->prepare("SELECT setting_value FROM furn_settings WHERE setting_key = 'default_deposit_percentage' LIMIT 1");
+                            $dpStmt->execute();
+                            $dpResult = $dpStmt->fetchColumn();
+                            if ($dpResult !== false && floatval($dpResult) > 0) {
+                                $dp = floatval($dpResult);
+                            }
+                        } catch (PDOException $e) {}
+                        echo $dp;
+                    ?>%):</div>
+                    <div class="detail-value">ETB <?php echo number_format($order['deposit_amount'] ?? ($totalCost * ($dp / 100)), 2); ?></div>
                 </div>
                 <?php if ($depositPaid > 0): ?>
                 <div class="detail-row">

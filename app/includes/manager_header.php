@@ -61,7 +61,7 @@ $kpiTotal   = array_sum($kpi);
         </div>
 
         <!-- Notification Bell -->
-        <div style="position:relative;cursor:pointer;" onclick="toggleNotificationDropdown()" title="Notifications">
+        <div id="notifBellWrap" style="position:relative;cursor:pointer;" onclick="toggleNotificationDropdown(event)" title="Notifications">
             <i class="fas fa-bell" style="font-size:18px;color:rgba(255,255,255,0.85);" id="bellIcon"></i>
             <?php if($badgeCount > 0): ?>
             <span id="notifBadge" style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;"><?php echo $badgeCount > 9 ? '9+' : $badgeCount; ?></span>
@@ -102,12 +102,11 @@ $kpiTotal   = array_sum($kpi);
                         $bg   = $n['is_read'] ? 'white' : '#f0f8ff';
                         $fw   = $n['is_read'] ? '400' : '600';
                         $link = !empty($n['link']) ? BASE_URL . '/public' . $n['link'] : '#';
-                        $link .= (strpos($link, '?') === false ? '?' : '&') . 'notif=' . $n['id'];
-                        if ($n['related_id']) $link .= '&focus=' . $n['type'] . '&id=' . $n['related_id'];
                     ?>
-                    <a href="<?php echo htmlspecialchars($link); ?>"
+                    <a href="javascript:void(0)"
+                       data-href="<?php echo htmlspecialchars($link); ?>"
                        onclick="markNotifRead(<?php echo (int)$n['id']; ?>, this, event)"
-                       style="display:block;padding:11px 14px;border-bottom:1px solid #f0f0f0;text-decoration:none;color:#2c3e50;background:<?php echo $bg; ?>;transition:background .2s;"
+                       style="display:block;padding:11px 14px;border-bottom:1px solid #f0f0f0;text-decoration:none;color:#2c3e50;background:<?php echo $bg; ?>;transition:background .2s;cursor:pointer;"
                        onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='<?php echo $bg; ?>'">
                         <div style="display:flex;align-items:flex-start;gap:10px;">
                             <div style="width:32px;height:32px;border-radius:50%;background:<?php echo $color; ?>22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -118,7 +117,7 @@ $kpiTotal   = array_sum($kpi);
                                 <?php if(!empty($n['message'])): ?><div style="font-size:11px;color:#7f8c8d;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($n['message']); ?></div><?php endif; ?>
                                 <div style="font-size:10px;color:#aaa;margin-top:3px;"><?php echo timeAgo($n['created_at']); ?></div>
                             </div>
-                            <?php if(!$n['is_read']): ?><span style="width:8px;height:8px;background:#e74c3c;border-radius:50%;flex-shrink:0;margin-top:4px;"></span><?php endif; ?>
+                            <?php if(!$n['is_read']): ?><span class="notif-dot" style="width:8px;height:8px;background:#e74c3c;border-radius:50%;flex-shrink:0;margin-top:4px;"></span><?php endif; ?>
                         </div>
                     </a>
                     <?php endforeach; endif; ?>
@@ -148,43 +147,94 @@ $kpiTotal   = array_sum($kpi);
 </div>
 <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} #bellIcon:hover{transform:scale(1.2)}</style>
 <script>
-function toggleNotificationDropdown(){
-    const d = document.getElementById('notifDropdown');
+// ── Notification Bell ──────────────────────────────────────────────────────
+const NOTIF_BELL_ID = 'notifDropdown';
+
+function toggleNotificationDropdown(e) {
+    e && e.stopPropagation();
+    const d = document.getElementById(NOTIF_BELL_ID);
+    if (!d) return;
     d.style.display = d.style.display === 'none' ? 'block' : 'none';
 }
-function markNotifRead(id, el, event) {
-    event.preventDefault();
-    const href = el.getAttribute('href');
+
+// Close when clicking outside
+document.addEventListener('click', function(e) {
+    const d = document.getElementById(NOTIF_BELL_ID);
+    if (!d || d.style.display === 'none') return;
+    const bell = document.getElementById('notifBellWrap');
+    if (bell && bell.contains(e.target)) return;
+    d.style.display = 'none';
+});
+
+// Mark single notification as read then navigate
+function markNotifRead(id, el, e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const href = el.getAttribute('data-href');
+
+    // Optimistic UI: mark row as read visually
+    el.style.background = 'white';
+    el.style.fontWeight  = '400';
+    const dot = el.querySelector('.notif-dot');
+    if (dot) dot.style.display = 'none';
+
+    // Update badge count
+    const badge = document.getElementById('notifBadge');
+    if (badge && badge.style.display !== 'none') {
+        const c = parseInt(badge.textContent) || 0;
+        if (c <= 1) { badge.style.display = 'none'; }
+        else { badge.textContent = c - 1 > 9 ? '9+' : c - 1; }
+    }
+
+    // API call — wait for completion before navigating
+    const csrfToken = '<?php echo urlencode($csrf_token); ?>';
+    console.log('[Notif] Sending: id=' + id + ' csrf=' + csrfToken.substring(0,8) + '...');
     fetch('<?php echo BASE_URL; ?>/public/api/mark_notification_read.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'notification_id=' + id + '&csrf_token=<?php echo urlencode($csrf_token); ?>'
+        body: 'notification_id=' + id + '&csrf_token=' + csrfToken
+    }).then(function(r) {
+        return r.json();
+    }).then(function(data) {
+        console.log('[Notif] mark_read response:', data);
+    }).catch(function(err) {
+        console.error('[Notif] mark_read error:', err);
     }).finally(function() {
-        if (href && href !== '#') window.location.href = href;
+        if (href && href !== '#') {
+            window.location.href = href;
+        }
     });
-    const badge = document.getElementById('notifBadge');
-    if (badge) {
-        const c = parseInt(badge.textContent) || 0;
-        if (c <= 1) badge.style.display = 'none';
-        else badge.textContent = c - 1;
-    }
 }
+
+// Mark all as read
 function markAllRead() {
     fetch('<?php echo BASE_URL; ?>/public/api/mark_notifications_read.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'csrf_token=<?php echo urlencode($csrf_token); ?>'
-    }).finally(() => {
+    }).finally(function() {
         const b = document.getElementById('notifBadge');
         if (b) b.style.display = 'none';
-        document.getElementById('notifDropdown').style.display = 'none';
+        document.getElementById(NOTIF_BELL_ID).style.display = 'none';
         location.reload();
     });
 }
-document.addEventListener('click', function(e) {
-    const d = document.getElementById('notifDropdown');
-    if (d && !e.target.closest('[onclick*="toggleNotificationDropdown"]') && !e.target.closest('#notifDropdown'))
-        d.style.display = 'none';
-});
-setInterval(function(){fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count',{credentials:'same-origin'}).then(r=>r.json()).then(data=>{if(data.count!==undefined){const b=document.getElementById('notifBadge');if(b){if(data.count>0){b.textContent=data.count>9?'9+':data.count;b.style.display='flex';}else b.style.display='none';}}}).catch(()=>{});},30000);
+
+// Poll unread count every 30s
+setInterval(function() {
+    fetch('<?php echo BASE_URL; ?>/public/api/notifications.php?action=unread_count', {credentials:'same-origin'})
+        .then(r => r.json())
+        .then(function(data) {
+            if (data.count === undefined) return;
+            const b = document.getElementById('notifBadge');
+            if (!b) return;
+            if (data.count > 0) {
+                b.textContent = data.count > 9 ? '9+' : data.count;
+                b.style.display = 'flex';
+            } else {
+                b.style.display = 'none';
+            }
+        }).catch(function(){});
+}, 30000);
 </script>
