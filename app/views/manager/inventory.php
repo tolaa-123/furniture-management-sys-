@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stock'])) {
     $purchase_date   = trim($_POST['purchase_date'] ?? '');
     if (empty($purchase_date)) $purchase_date = date('Y-m-d');
     $supplier_name   = trim($_POST['supplier_name'] ?? '');
+    $create_invoice  = isset($_POST['create_supplier_invoice']) ? true : false;
 
     try {
         // Ensure purchase log table exists
@@ -104,6 +105,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_stock'])) {
                 ->execute([$material_id, $managerId, $quantity_change,
                            $purchase_price, $quantity_change * $purchase_price,
                            $invoice_number ?: null, $supplier_name ?: null, $purchase_date]);
+            
+            $purchase_id = $pdo->lastInsertId();
+            
+            // NEW: If "Create Supplier Invoice" checkbox is checked, redirect to invoice creation
+            if ($create_invoice && !empty($supplier_name) && $purchase_price > 0) {
+                // Get material details
+                $matStmt = $pdo->prepare("SELECT name, unit FROM furn_materials WHERE id = ?");
+                $matStmt->execute([$material_id]);
+                $material = $matStmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Store restock data in session for invoice creation
+                $_SESSION['restock_invoice_data'] = [
+                    'purchase_id' => $purchase_id,
+                    'supplier_name' => $supplier_name,
+                    'invoice_number' => $invoice_number,
+                    'purchase_date' => $purchase_date,
+                    'material_name' => $material['name'],
+                    'quantity' => $quantity_change,
+                    'unit' => $material['unit'],
+                    'unit_price' => $purchase_price,
+                    'total' => $quantity_change * $purchase_price
+                ];
+                
+                $_SESSION['success_message'] = "Stock updated successfully! Redirecting to create supplier invoice...";
+                header('Location: ' . BASE_URL . '/public/manager/create-supplier-invoice?from_restock=1');
+                exit();
+            }
         } else {
             $pdo->prepare("UPDATE furn_materials SET current_stock = GREATEST(0, current_stock - ?), updated_at = NOW() WHERE id = ?")
                 ->execute([$quantity_change, $material_id]);
@@ -689,6 +717,21 @@ $pageTitle = 'Inventory Management';
                             <input type="text" name="supplier_name" id="restock_supplier"
                                 style="width:100%;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;"
                                 placeholder="Leave blank to keep existing supplier">
+                        </div>
+                        
+                        <!-- NEW: Create Supplier Invoice Checkbox -->
+                        <div style="background:#e3f2fd;border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid #2196F3;">
+                            <label style="display:flex;align-items:center;cursor:pointer;font-size:13px;">
+                                <input type="checkbox" name="create_supplier_invoice" id="create_invoice_checkbox" value="1"
+                                    style="width:18px;height:18px;margin-right:10px;cursor:pointer;">
+                                <span style="font-weight:600;color:#1976D2;">
+                                    <i class="fas fa-file-invoice-dollar"></i> Create Supplier Invoice after restock
+                                </span>
+                            </label>
+                            <small style="display:block;margin-top:6px;margin-left:28px;color:#555;line-height:1.4;">
+                                Check this to automatically create a supplier invoice for payment tracking. 
+                                Requires: Supplier Name, Unit Price, and Invoice Number.
+                            </small>
                         </div>
                     </div>
 

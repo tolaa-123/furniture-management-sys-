@@ -712,6 +712,30 @@ switch ($route) {
         include_once '../app/views/manager/supplier_request.php';
         break;
 
+    case 'manager/supplier-payments':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/supplier_payments.php';
+        break;
+
+    case 'manager/create-supplier-invoice':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/create_supplier_invoice.php';
+        break;
+
+    case 'manager/record-supplier-payment':
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager', 'admin'])) {
+            header('Location: ' . BASE_URL . '/public/login');
+            exit();
+        }
+        include_once '../app/views/manager/record_supplier_payment.php';
+        break;
+
     case 'manager/material-report':
         if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['manager','admin'])) {
             header('Location: ' . BASE_URL . '/public/login');

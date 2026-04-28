@@ -143,6 +143,14 @@ function isActive($page) {
             </a>
         </li>
 
+        <!-- Supplier Payments -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/public/manager/supplier-payments" class="<?php echo isActive('/manager/supplier-payments'); ?>">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Supplier Payments</span>
+            </a>
+        </li>
+
         <!-- Analytics Dashboard -->
         <li>
             <a href="<?php echo BASE_URL; ?>/public/analytics/dashboard" class="<?php echo isActive('/analytics/dashboard'); ?>">
