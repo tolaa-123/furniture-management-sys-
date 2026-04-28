@@ -330,7 +330,7 @@ try {
         FROM furn_materials WHERE is_active = 1 ORDER BY name ASC");
     $materials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Materials error: " . $e->getMessage()); }
-// Tasks assigned to this employee (pending or in_progress)
+// Tasks assigned to this employee (pending or in_progress) - EXCLUDE tasks with approved materials
 $tasks = [];
 try {
     $stmt = $pdo->prepare("
@@ -344,11 +344,18 @@ try {
             LOWER(p.name) = LOWER(o.furniture_name)
             OR LOWER(p.name) = LOWER(o.furniture_type)
         )
-        WHERE t.employee_id = ? AND t.status IN ('pending','in_progress','assigned')
+        WHERE t.employee_id = ? 
+          AND t.status IN ('pending','in_progress','assigned')
+          AND NOT EXISTS (
+              SELECT 1 FROM furn_material_requests mr
+              WHERE mr.employee_id = ?
+                AND mr.order_id = o.id
+                AND mr.status = 'approved'
+          )
         GROUP BY t.id, o.order_number, o.id, o.furniture_name, o.furniture_type
         ORDER BY t.created_at DESC
     ");
-    $stmt->execute([$employeeId]);
+    $stmt->execute([$employeeId, $employeeId]);
     $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Tasks error: " . $e->getMessage()); }
 

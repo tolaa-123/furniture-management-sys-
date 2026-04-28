@@ -107,14 +107,21 @@
                 </div>
                 <div class="col-lg-6">
                     <!-- Hero Image Slideshow -->
-                    <div style="position:relative;width:100%;height:500px;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                        <div id="heroTrack" style="display:flex;height:100%;transition:transform 0.7s cubic-bezier(.77,0,.18,1);">
-                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
-                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
-                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
-                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                    <div style="position:relative;width:100%;height:500px;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.2);background:#f5f5f5;">
+                        <!-- Loading Spinner -->
+                        <div id="heroLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f5f5f5;z-index:5;">
+                            <div style="text-align:center;">
+                                <div style="width:50px;height:50px;border:4px solid #e0e0e0;border-top-color:#7b3f1d;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
+                                <p style="color:#666;font-size:14px;">Loading images...</p>
+                            </div>
+                        </div>
+                        <div id="heroTrack" style="display:flex;height:100%;transition:transform 0.7s cubic-bezier(.77,0,.18,1);opacity:0;">
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Custom Furniture 1" onerror="this.src='<?php echo BASE_URL; ?>/public/assets/images/collections/sofa.jpg'"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Custom Furniture 2" onerror="this.src='<?php echo BASE_URL; ?>/public/assets/images/collections/bed.jpg'"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero3.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Custom Furniture 3" onerror="this.src='<?php echo BASE_URL; ?>/public/assets/images/collections/table.jpg'"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero4.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Custom Furniture 4" onerror="this.src='<?php echo BASE_URL; ?>/public/assets/images/collections/chair.jpg'"></div>
                             <!-- Clone of first image for infinite loop -->
-                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:fill;"></div>
+                            <div style="min-width:100%;height:100%;flex-shrink:0;"><img src="<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Custom Furniture 1" onerror="this.src='<?php echo BASE_URL; ?>/public/assets/images/collections/sofa.jpg'"></div>
                         </div>
                     </div>
                 </div>
@@ -122,13 +129,24 @@
         </div>
     </section>
     
+    <style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    </style>
     <script>
-    // Hero Image Slideshow - infinite loop slide left
+    // Hero Image Slideshow - infinite loop slide left with loading state
     (function() {
         const track = document.getElementById('heroTrack');
+        const loading = document.getElementById('heroLoading');
         const total = 4; // real slides (5th is clone)
         let cur = 0;
         let imagesLoaded = 0;
+        let slideshowStarted = false;
         const heroImages = [
             '<?php echo BASE_URL; ?>/public/assets/images/hero/hero1.jpg',
             '<?php echo BASE_URL; ?>/public/assets/images/hero/hero2.jpg',
@@ -151,22 +169,43 @@
             }
         });
 
+        // Start slideshow after images loaded
+        function startSlideshow() {
+            if (!slideshowStarted) {
+                slideshowStarted = true;
+                // Hide loading, show track
+                loading.style.display = 'none';
+                track.style.opacity = '1';
+                track.style.animation = 'fadeIn 0.5s ease-in';
+                // Start auto-slide
+                setInterval(() => show(cur + 1), 4000);
+            }
+        }
+
         // Preload all hero images before starting slideshow
         function preloadHeroImages() {
-            heroImages.forEach(function(src) {
+            // Set timeout fallback - start slideshow after 3 seconds even if images not loaded
+            const fallbackTimer = setTimeout(() => {
+                console.warn('Hero images taking too long to load, starting slideshow anyway');
+                startSlideshow();
+            }, 3000);
+
+            heroImages.forEach(function(src, index) {
                 const img = new Image();
                 img.onload = function() {
                     imagesLoaded++;
+                    console.log('Hero image loaded: ' + src + ' (' + imagesLoaded + '/' + heroImages.length + ')');
                     if (imagesLoaded === heroImages.length) {
-                        // All images loaded, start slideshow
-                        setInterval(() => show(cur + 1), 4000);
+                        clearTimeout(fallbackTimer);
+                        startSlideshow();
                     }
                 };
                 img.onerror = function() {
                     imagesLoaded++;
+                    console.error('Failed to load hero image: ' + src);
                     if (imagesLoaded === heroImages.length) {
-                        // All images processed (even if some failed), start slideshow
-                        setInterval(() => show(cur + 1), 4000);
+                        clearTimeout(fallbackTimer);
+                        startSlideshow();
                     }
                 };
                 img.src = src;
@@ -178,62 +217,7 @@
     })();
     </script>
 
-    <!-- Promotion Banners Section -->
-    <?php
-    // Get active promotions for homepage
-    require_once __DIR__ . '/../../app/includes/promotion_helper.php';
-    $homepagePromotions = getHomepagePromotions();
-    
-    if (!empty($homepagePromotions)):
-    ?>
-    <section class="promotions-section py-4" style="background: linear-gradient(135deg, #FFE5E5 0%, #FFD6D6 100%);">
-        <div class="container">
-            <?php foreach ($homepagePromotions as $promo): ?>
-                <div class="promotion-banner" style="background:linear-gradient(135deg,#E74C3C 0%,#C0392B 100%);color:white;padding:20px 30px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 8px rgba(0,0,0,0.15);animation:slideIn 0.5s ease;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;">
-                        <div style="flex:1;min-width:250px;">
-                            <div style="font-size:22px;font-weight:700;margin-bottom:8px;">
-                                <i class="fas fa-tag" style="margin-right:10px;"></i><?php echo htmlspecialchars($promo['banner_text'] ?? $promo['name']); ?>
-                            </div>
-                            <?php if ($promo['description']): ?>
-                                <div style="font-size:15px;opacity:0.95;line-height:1.5;">
-                                    <?php echo htmlspecialchars($promo['description']); ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div style="text-align:right;">
-                            <?php 
-                            $daysRemaining = $promo['days_remaining'] ?? 0;
-                            if ($daysRemaining <= 3): ?>
-                                <div style="font-size:16px;font-weight:700;margin-bottom:5px;">
-                                    <i class="fas fa-clock" style="margin-right:5px;"></i>Ends in <?php echo $daysRemaining; ?> days!
-                                </div>
-                            <?php elseif ($daysRemaining <= 7): ?>
-                                <div style="font-size:15px;margin-bottom:5px;">
-                                    <i class="fas fa-clock" style="margin-right:5px;"></i>Ends in <?php echo $daysRemaining; ?> days
-                                </div>
-                            <?php endif; ?>
-                            <a href="<?php echo BASE_URL; ?>/public/furniture" class="btn btn-light btn-sm" style="font-weight:600;">
-                                <i class="fas fa-shopping-cart" style="margin-right:5px;"></i>Shop Now
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    </section>
-    <style>
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .promotion-banner:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-    </style>
-    <?php endif; ?>
+
 
     <!-- About Section -->
     <section id="about" class="py-5">

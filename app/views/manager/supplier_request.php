@@ -280,12 +280,13 @@ $pageTitle = 'Supplier Request';
                 <div style="margin-bottom:10px;">
                     <label class="field-label">Materials to Request <span>*</span></label>
                 </div>
+                
                 <div style="overflow-x:auto;margin-bottom:12px;border-radius:8px;border:1px solid #e0e0e0;">
                     <table class="mat-table" id="matTable">
                         <thead>
                             <tr>
                                 <th style="width:40px;">#</th>
-                                <th>Material Name</th>
+                                <th>Material Name <small style="font-weight:400;color:#7f8c8d;">(Type any name)</small></th>
                                 <th style="width:130px;">Quantity</th>
                                 <th style="width:110px;">Unit</th>
                                 <th style="width:50px;"></th>
@@ -294,9 +295,14 @@ $pageTitle = 'Supplier Request';
                         <tbody id="matRows"></tbody>
                     </table>
                 </div>
-                <button type="button" onclick="addMatRow()" class="btn-add-mat" style="margin-bottom:20px;">
-                    <i class="fas fa-plus"></i> Add Material
-                </button>
+                <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                    <button type="button" onclick="addMatRow()" class="btn-add-mat">
+                        <i class="fas fa-plus"></i> Add Material
+                    </button>
+                    <button type="button" onclick="addCustomMatRow()" class="btn-add-mat" style="background:#4caf50;">
+                        <i class="fas fa-edit"></i> Add Custom Material (Not in Inventory)
+                    </button>
+                </div>
 
                 <div class="info-banner">
                     <i class="fas fa-info-circle"></i>
@@ -400,19 +406,32 @@ const MATERIALS = <?php echo json_encode(array_column($materials, 'unit', 'name'
 const SUPPLIERS = <?php echo json_encode(array_column($suppliers, 'supplier_email', 'supplier')); ?>;
 let rowCount = 0;
 
-function addMatRow(name='', qty='', unit='') {
+function addMatRow(name='', qty='', unit='', isCustom=false) {
     rowCount++;
     const tbody = document.getElementById('matRows');
     const tr = document.createElement('tr');
     tr.id = 'matRow_' + rowCount;
     const matOpts = Object.keys(MATERIALS).map(n => `<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+    
+    // Add visual indicator for custom materials
+    const customBadge = isCustom ? `<span style="display:inline-block;background:#4caf50;color:white;font-size:10px;padding:2px 6px;border-radius:3px;margin-left:6px;font-weight:600;">CUSTOM</span>` : '';
+    
     tr.innerHTML = `
         <td style="text-align:center;color:#aaa;font-size:13px;font-weight:600;">${rowCount}</td>
         <td>
-            <input type="text" name="material_name[]" class="form-control" style="min-width:200px;"
-                   placeholder="Material name" required list="matList_${rowCount}" value="${name}"
-                   oninput="autoUnit(this,${rowCount})">
-            <datalist id="matList_${rowCount}">${matOpts}</datalist>
+            <div style="position:relative;">
+                <input type="text" name="material_name[]" class="form-control mat-name-input" style="min-width:200px;"
+                       placeholder="${isCustom ? 'Type custom material name...' : 'Select from list or type custom name...'}" 
+                       required list="matList_${rowCount}" value="${name}"
+                       oninput="autoUnit(this,${rowCount}); checkCustomMaterial(this, ${rowCount})"
+                       data-row-id="${rowCount}">
+                <datalist id="matList_${rowCount}">${matOpts}</datalist>
+                <div id="customIndicator_${rowCount}" style="display:${isCustom?'block':'none'};margin-top:4px;">
+                    <small style="color:#4caf50;font-weight:600;font-size:11px;">
+                        <i class="fas fa-info-circle"></i> Custom material (not in inventory)
+                    </small>
+                </div>
+            </div>
         </td>
         <td>
             <input type="number" name="quantity[]" class="form-control" style="width:100px;"
@@ -420,7 +439,7 @@ function addMatRow(name='', qty='', unit='') {
         </td>
         <td>
             <input type="text" name="unit[]" id="unit_${rowCount}" class="form-control"
-                   style="width:85px;" placeholder="kg/pcs" value="${unit}" required>
+                   style="width:85px;" placeholder="kg/pcs/m" value="${unit}" required>
         </td>
         <td style="text-align:center;">
             <button type="button" onclick="removeRow(${rowCount})"
@@ -429,6 +448,42 @@ function addMatRow(name='', qty='', unit='') {
             </button>
         </td>`;
     tbody.appendChild(tr);
+    
+    // Focus on the material name input if it's a new custom row
+    if (isCustom) {
+        setTimeout(() => {
+            const input = tr.querySelector('.mat-name-input');
+            if (input) input.focus();
+        }, 100);
+    }
+}
+
+// Add a custom material row with focus on name input
+function addCustomMatRow() {
+    addMatRow('', '', '', true);
+}
+
+// Check if material is custom (not in inventory)
+function checkCustomMaterial(input, rowId) {
+    const materialName = input.value.trim();
+    const indicator = document.getElementById('customIndicator_' + rowId);
+    
+    if (!indicator) return;
+    
+    // Check if material exists in our inventory
+    const existsInInventory = MATERIALS.hasOwnProperty(materialName);
+    
+    if (materialName && !existsInInventory) {
+        // Show custom indicator
+        indicator.style.display = 'block';
+        input.style.borderColor = '#4caf50';
+        input.style.borderWidth = '2px';
+    } else {
+        // Hide custom indicator
+        indicator.style.display = 'none';
+        input.style.borderColor = '';
+        input.style.borderWidth = '';
+    }
 }
 
 function autoUnit(input, rowId) {

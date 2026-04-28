@@ -486,7 +486,16 @@ class AuthController extends BaseController {
             // Update password and clear token
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             
-            $stmt = $pdo->prepare("UPDATE furn_users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?");
+            $stmt = $pdo->prepare("
+                UPDATE furn_users 
+                SET password_hash = ?, 
+                    password_reset_token = NULL, 
+                    password_reset_expires = NULL,
+                    failed_attempts = 0,
+                    status = 'active',
+                    is_active = 1
+                WHERE id = ?
+            ");
             $stmt->execute([$passwordHash, $userId]);
             
             // Log success

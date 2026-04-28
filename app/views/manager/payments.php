@@ -160,13 +160,16 @@ try {
 // Rejected payments
 try {
     $stmt = $pdo->query("
-        SELECT p.payment_id, p.order_id, p.customer_id, p.amount, p.payment_type,
+        SELECT p.payment_id as id, p.payment_id, p.order_id, p.customer_id, p.amount, p.payment_type,
                p.payment_method, COALESCE(p.receipt_image, p.receipt_file) as receipt_file, p.payment_date, p.status,
+               p.verified_by, p.verified_at as approved_at, p.rejection_reason,
                o.furniture_type, o.furniture_name, o.order_number,
-               CONCAT(u.first_name, ' ', u.last_name) as customer_name
+               CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+               CONCAT(v.first_name, ' ', v.last_name) as approved_by_name
         FROM furn_payments p
         LEFT JOIN furn_orders o ON p.order_id = o.id
         LEFT JOIN furn_users u ON p.customer_id = u.id
+        LEFT JOIN furn_users v ON p.verified_by = v.id
         WHERE p.status = 'rejected'
         ORDER BY p.created_at DESC
         LIMIT 10
@@ -174,6 +177,7 @@ try {
     $rejectedPayments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Rejected payments error: " . $e->getMessage());
+    $rejectedPayments = [];
 }
 
 $pageTitle = 'Payment Verification';
@@ -431,12 +435,12 @@ $pageTitle = 'Payment Verification';
                     <tbody>
                         <?php foreach ($rejectedPayments as $payment): ?>
                             <tr>
-                                <td>#<?php echo $payment['id']; ?></td>
-                                <td>#<?php echo $payment['order_id']; ?></td>
+                                <td>#<?php echo $payment['id'] ?? $payment['payment_id'] ?? 'N/A'; ?></td>
+                                <td>#<?php echo $payment['order_id'] ?? 'N/A'; ?></td>
                                 <td><?php echo htmlspecialchars($payment['customer_name'] ?? 'N/A'); ?></td>
-                                <td>ETB <?php echo number_format($payment['amount'], 2); ?></td>
+                                <td>ETB <?php echo number_format($payment['amount'] ?? 0, 2); ?></td>
                                 <td><?php echo htmlspecialchars($payment['approved_by_name'] ?? 'N/A'); ?></td>
-                                <td><?php echo date('M d, Y H:i', strtotime($payment['approved_at'])); ?></td>
+                                <td><?php echo !empty($payment['approved_at']) ? date('M d, Y H:i', strtotime($payment['approved_at'])) : 'N/A'; ?></td>
                                 <td><?php echo htmlspecialchars($payment['rejection_reason'] ?? '-'); ?></td>
                             </tr>
                         <?php endforeach; ?>
