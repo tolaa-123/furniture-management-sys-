@@ -75,20 +75,51 @@ CREATE TABLE IF NOT EXISTS furn_supplier_payments (
     FOREIGN KEY (invoice_id) REFERENCES furn_supplier_invoices(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 4. Update furn_material_purchases to link with invoices
+-- 4. Update furn_material_purchases to link with invoices (if table exists)
+-- Check if columns exist before adding
+SET @dbname = DATABASE();
+SET @tablename = 'furn_material_purchases';
+SET @columnname1 = 'invoice_id';
+SET @columnname2 = 'payment_status';
+
+SET @preparedStatement = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=@dbname AND TABLE_NAME=@tablename) > 0,
+  CONCAT('ALTER TABLE ', @tablename, ' 
+    ADD COLUMN IF NOT EXISTS ', @columnname1, ' INT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS ', @columnname2, ' ENUM(\'unpaid\', \'partial\', \'paid\') DEFAULT \'unpaid\',
+    ADD INDEX IF NOT EXISTS idx_invoice_id (invoice_id)'),
+  'SELECT 1'
+));
+
+-- Note: MySQL 8.0 doesn't support IF NOT EXISTS in ALTER TABLE ADD COLUMN
+-- We'll use a safer approach - ignore errors if columns exist
 ALTER TABLE furn_material_purchases 
-ADD COLUMN IF NOT EXISTS invoice_id INT DEFAULT NULL AFTER supplier,
-ADD COLUMN IF NOT EXISTS payment_status ENUM('unpaid', 'partial', 'paid') DEFAULT 'unpaid' AFTER invoice_id,
+ADD COLUMN invoice_id INT DEFAULT NULL AFTER supplier;
+
+ALTER TABLE furn_material_purchases 
+ADD COLUMN payment_status ENUM('unpaid', 'partial', 'paid') DEFAULT 'unpaid' AFTER invoice_id;
+
+ALTER TABLE furn_material_purchases 
 ADD INDEX idx_invoice_id (invoice_id);
 
--- 5. Update furn_suppliers table to track balances
+-- 5. Update furn_suppliers table to track balances (if table exists)
 ALTER TABLE furn_suppliers
-ADD COLUMN IF NOT EXISTS current_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER contact_phone,
-ADD COLUMN IF NOT EXISTS total_purchases DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER current_balance,
-ADD COLUMN IF NOT EXISTS total_paid DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER total_purchases,
-ADD COLUMN IF NOT EXISTS last_payment_date DATE DEFAULT NULL AFTER total_paid,
-ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(50) DEFAULT 'Net 30' AFTER last_payment_date,
-ADD COLUMN IF NOT EXISTS credit_limit DECIMAL(12,2) DEFAULT NULL AFTER payment_terms;
+ADD COLUMN current_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER contact_phone;
+
+ALTER TABLE furn_suppliers
+ADD COLUMN total_purchases DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER current_balance;
+
+ALTER TABLE furn_suppliers
+ADD COLUMN total_paid DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER total_purchases;
+
+ALTER TABLE furn_suppliers
+ADD COLUMN last_payment_date DATE DEFAULT NULL AFTER total_paid;
+
+ALTER TABLE furn_suppliers
+ADD COLUMN payment_terms VARCHAR(50) DEFAULT 'Net 30' AFTER last_payment_date;
+
+ALTER TABLE furn_suppliers
+ADD COLUMN credit_limit DECIMAL(12,2) DEFAULT NULL AFTER payment_terms;
 
 -- 6. Create view for accounts payable summary
 CREATE OR REPLACE VIEW vw_accounts_payable_summary AS
