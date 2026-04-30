@@ -1,6 +1,6 @@
 # Furniture Management System (FurnitureERP)
 
-A comprehensive web-based Enterprise Resource Planning (ERP) system designed specifically for furniture manufacturing businesses. This system streamlines operations from order management to production, material tracking, employee management, and financial reporting.p
+A comprehensive web-based Enterprise Resource Planning (ERP) system designed specifically for furniture manufacturing businesses. This system streamlines operations from order management to production, material tracking, employee management, and financial reporting.
 
 ## 📋 Project Information
 
@@ -183,9 +183,9 @@ chmod -R 777 public/uploads/
 http://localhost/NEWkoder/public/
 ```
 
-### Production Deployment (VPS)
+### Production Deployment
 
-See [VPS_DEPLOYMENT_COMPLETE.txt](VPS_DEPLOYMENT_COMPLETE.txt) for detailed deployment instructions.
+For production deployment, configure your web server to point to the `public/` directory and update the database credentials in the configuration files.
 
 ## 👥 User Roles & Permissions
 
@@ -267,10 +267,7 @@ The system has been tested for:
 
 ## 📝 Documentation
 
-- [User Guide](SUPPLIER_PAYMENT_USER_GUIDE.txt)
-- [Deployment Guide](VPS_DEPLOYMENT_COMPLETE.txt)
-- [Presentation Checklist](PRESENTATION_DEPLOYMENT_CHECKLIST.txt)
-- [API Documentation](docs/API.md) (if available)
+This repository contains comprehensive documentation for the Furniture Management System.
 
 ## 🤝 Contributing
 
@@ -308,7 +305,7 @@ This project was developed as a Final Year Project (FYP II) for the Computer Sci
 - **Database Tables:** 20+
 - **Features:** 50+
 - **Development Time:** 6 months
-- **Team Size:** [Number] members
+- **Team Size:** [5] members
 
 ## 🔮 Future Enhancements
 
