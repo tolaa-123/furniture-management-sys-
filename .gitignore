@@ -1,34 +1,47 @@
-# Database config with real credentials — never commit
-config/db_config.php
+# Debug files (exclude from university submission)
+debug_*.php
+*_debug.php
 
-# Database deployment file with sensitive data
-deploy_database.sql
+# Documentation files (internal use only)
+*_COMPLETE.txt
+*_DEPLOYMENT.txt
+*_GUIDE.txt
+DEPLOY_*.txt
+VPS_*.txt
+CONTABO_*.txt
+QUICK_*.txt
+PRESENTATION_*.txt
+FYP_II_PRESENTATION_CONTENT.txt
 
-# Debug script (security risk in production)
-public/debug_deployment.php
+# Environment files
+.env
+public/api/.env
 
-# Uploaded files
-public/uploads/
-
-# Logs
-logs/*.log
-logs/cache/
-
-# Backups
-backups/
-
-# Documentation files (temporary)
-*.txt
-*.md
-!README.md
-
-# OS / editor
-.DS_Store
-Thumbs.db
+# IDE files
 .vscode/
+.idea/
 *.swp
 *.swo
 
-# PHP error logs
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
 error_log
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Vendor (if using Composer)
+vendor/
+
+# Backup files
+*.backup
+backup_*.sql
