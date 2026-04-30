@@ -1,14 +1,6 @@
 # Furniture Management System (FurnitureERP)
 
-A comprehensive web-based Enterprise Resource Planning (ERP) system designed specifically for furniture manufacturing businesses. This system streamlines operations from order management to production, material tracking, employee management, and financial reporting.
-
-## 🌐 Live Demo
-
-**Website:** [https://furnitureerp.tech](https://furnitureerp.tech)
-
-**Demo Credentials:**
-- Username: `admin`
-- Password: `password`
+A comprehensive web-based Enterprise Resource Planning (ERP) system designed specifically for furniture manufacturing businesses. This system streamlines operations from order management to production, material tracking, employee management, and financial reporting.p
 
 ## 📋 Project Information
 
